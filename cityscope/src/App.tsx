@@ -3,6 +3,7 @@ import Toolbar from '@mui/material/Toolbar';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import MapView from './components/MapView';
+import FeaturePanel from './components/FeaturePanel';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <MapView />
         </Box>
       </Box>
+      <FeaturePanel />
     </Box>
   );
 }
