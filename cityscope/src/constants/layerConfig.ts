@@ -20,6 +20,8 @@ export const ROAD_LAYER_FILTER = (layerId: string): boolean =>
 export const BUILDING_LAYER_FILTER = (layerId: string): boolean =>
   layerId.startsWith('building');
 
+export const BUILDING_EXTRUSION_LAYER_ID = 'building-3d-extrusion';
+
 export const DISTRICT_SOURCE_ID = 'berlin-districts';
 export const DISTRICT_FILL_LAYER_ID = 'berlin-districts-fill';
 export const DISTRICT_LINE_LAYER_ID = 'berlin-districts-line';
