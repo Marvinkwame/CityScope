@@ -3,13 +3,17 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import Box from '@mui/material/Box';
 import { useLayerStore } from '../store/layerStore';
+import { useFeatureStore } from '../store/featureStore';
 import {
   ROAD_LAYER_FILTER,
   BUILDING_LAYER_FILTER,
   DISTRICT_SOURCE_ID,
   DISTRICT_FILL_LAYER_ID,
   DISTRICT_LINE_LAYER_ID,
+  FEATURE_TYPE_PRIORITY,
+  classifyLayerId,
 } from '../constants/layerConfig';
+import type { LayerId } from '../constants/layerConfig';
 
 const BERLIN_CENTER: [number, number] = [13.405, 52.52];
 const DEFAULT_ZOOM = 12;
@@ -40,6 +44,18 @@ function applyLayerVisibility(
     [DISTRICT_FILL_LAYER_ID, DISTRICT_LINE_LAYER_ID],
     currentLayers.districts,
   );
+}
+
+function getQueryableLayers(
+  roadLayerIds: string[],
+  buildingLayerIds: string[],
+): string[] {
+  const currentLayers = useLayerStore.getState().layers;
+  const queryLayers: string[] = [];
+  if (currentLayers.roads) queryLayers.push(...roadLayerIds);
+  if (currentLayers.buildings) queryLayers.push(...buildingLayerIds);
+  if (currentLayers.districts) queryLayers.push(DISTRICT_FILL_LAYER_ID);
+  return queryLayers;
 }
 
 function MapView() {
@@ -118,6 +134,76 @@ function MapView() {
           mapReadyRef.current = true;
           applyLayerVisibility(map, roadLayerIdsRef.current, buildingLayerIdsRef.current);
         });
+
+      // Click handler — select features
+      map.on('click', (e) => {
+        const queryLayers = getQueryableLayers(
+          roadLayerIdsRef.current,
+          buildingLayerIdsRef.current,
+        );
+
+        if (queryLayers.length === 0) {
+          useFeatureStore.getState().clearFeature();
+          return;
+        }
+
+        const features = map.queryRenderedFeatures(e.point, {
+          layers: queryLayers,
+        });
+
+        if (features.length === 0) {
+          useFeatureStore.getState().clearFeature();
+          return;
+        }
+
+        // Classify and pick highest-priority feature
+        const classified = features
+          .filter((f) => f.layer != null)
+          .map((f) => ({ feature: f, type: classifyLayerId(f.layer!.id) }))
+          .filter(
+            (c): c is { feature: (typeof features)[number]; type: LayerId } =>
+              c.type !== null,
+          );
+
+        if (classified.length === 0) {
+          useFeatureStore.getState().clearFeature();
+          return;
+        }
+
+        classified.sort(
+          (a, b) => FEATURE_TYPE_PRIORITY[a.type] - FEATURE_TYPE_PRIORITY[b.type],
+        );
+
+        const winner = classified[0];
+        const props = (winner.feature.properties ?? {}) as Record<string, unknown>;
+        const name = (props.name ?? props.Name ?? props.NAME ?? null) as string | null;
+
+        useFeatureStore.getState().selectFeature({
+          type: winner.type,
+          sourceLayerId: winner.feature.layer!.id,
+          name,
+          coordinates: { lng: e.lngLat.lng, lat: e.lngLat.lat },
+          properties: props,
+        });
+      });
+
+      // Hover handler — pointer cursor
+      map.on('mousemove', (e) => {
+        const queryLayers = getQueryableLayers(
+          roadLayerIdsRef.current,
+          buildingLayerIdsRef.current,
+        );
+
+        if (queryLayers.length === 0) {
+          map.getCanvas().style.cursor = '';
+          return;
+        }
+
+        const features = map.queryRenderedFeatures(e.point, {
+          layers: queryLayers,
+        });
+        map.getCanvas().style.cursor = features.length > 0 ? 'pointer' : '';
+      });
     });
 
     mapRef.current = map;
