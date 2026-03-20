@@ -4,9 +4,11 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import Box from '@mui/material/Box';
 import { useLayerStore } from '../store/layerStore';
 import { useFeatureStore } from '../store/featureStore';
+import { useMapStore } from '../store/mapStore';
 import {
   ROAD_LAYER_FILTER,
   BUILDING_LAYER_FILTER,
+  BUILDING_EXTRUSION_LAYER_ID,
   DISTRICT_SOURCE_ID,
   DISTRICT_FILL_LAYER_ID,
   DISTRICT_LINE_LAYER_ID,
@@ -39,6 +41,8 @@ function applyLayerVisibility(
   const currentLayers = useLayerStore.getState().layers;
   setLayerVisibility(map, roadLayerIds, currentLayers.roads);
   setLayerVisibility(map, buildingLayerIds, currentLayers.buildings);
+  // Also toggle the extrusion layer with buildings
+  setLayerVisibility(map, [BUILDING_EXTRUSION_LAYER_ID], currentLayers.buildings);
   setLayerVisibility(
     map,
     [DISTRICT_FILL_LAYER_ID, DISTRICT_LINE_LAYER_ID],
@@ -53,9 +57,42 @@ function getQueryableLayers(
   const currentLayers = useLayerStore.getState().layers;
   const queryLayers: string[] = [];
   if (currentLayers.roads) queryLayers.push(...roadLayerIds);
-  if (currentLayers.buildings) queryLayers.push(...buildingLayerIds);
+  if (currentLayers.buildings) {
+    queryLayers.push(...buildingLayerIds);
+    // Include extrusion layer in queries if it exists
+    queryLayers.push(BUILDING_EXTRUSION_LAYER_ID);
+  }
   if (currentLayers.districts) queryLayers.push(DISTRICT_FILL_LAYER_ID);
   return queryLayers;
+}
+
+function addExtrusionLayer(map: mapboxgl.Map) {
+  if (map.getLayer(BUILDING_EXTRUSION_LAYER_ID)) return;
+
+  map.addLayer({
+    id: BUILDING_EXTRUSION_LAYER_ID,
+    type: 'fill-extrusion',
+    source: 'composite',
+    'source-layer': 'building',
+    paint: {
+      'fill-extrusion-color': '#90CAF9',
+      'fill-extrusion-height': ['get', 'height'],
+      'fill-extrusion-base': ['get', 'min_height'],
+      'fill-extrusion-opacity': 0.7,
+    },
+  });
+
+  // Respect current buildings visibility
+  const buildingsVisible = useLayerStore.getState().layers.buildings;
+  if (!buildingsVisible) {
+    map.setLayoutProperty(BUILDING_EXTRUSION_LAYER_ID, 'visibility', 'none');
+  }
+}
+
+function removeExtrusionLayer(map: mapboxgl.Map) {
+  if (map.getLayer(BUILDING_EXTRUSION_LAYER_ID)) {
+    map.removeLayer(BUILDING_EXTRUSION_LAYER_ID);
+  }
 }
 
 function MapView() {
@@ -66,6 +103,7 @@ function MapView() {
   const buildingLayerIdsRef = useRef<string[]>([]);
 
   const layers = useLayerStore((state) => state.layers);
+  const is3D = useMapStore((state) => state.is3D);
 
   useEffect(() => {
     if (mapRef.current || !mapContainerRef.current) return;
@@ -128,6 +166,13 @@ function MapView() {
 
           mapReadyRef.current = true;
           applyLayerVisibility(map, roadLayerIdsRef.current, buildingLayerIdsRef.current);
+
+          // Apply 3D mode if it was already active
+          if (useMapStore.getState().is3D) {
+            addExtrusionLayer(map);
+            map.easeTo({ pitch: 60, bearing: -20, duration: 1000 });
+            map.setLight({ anchor: 'viewport', color: '#fff', intensity: 0.4 });
+          }
         })
         .catch((err) => {
           console.warn('Failed to load district boundaries:', err);
@@ -140,7 +185,7 @@ function MapView() {
         const queryLayers = getQueryableLayers(
           roadLayerIdsRef.current,
           buildingLayerIdsRef.current,
-        );
+        ).filter((id) => map.getLayer(id));
 
         if (queryLayers.length === 0) {
           useFeatureStore.getState().clearFeature();
@@ -192,7 +237,7 @@ function MapView() {
         const queryLayers = getQueryableLayers(
           roadLayerIdsRef.current,
           buildingLayerIdsRef.current,
-        );
+        ).filter((id) => map.getLayer(id));
 
         if (queryLayers.length === 0) {
           map.getCanvas().style.cursor = '';
@@ -215,11 +260,28 @@ function MapView() {
     };
   }, []);
 
+  // Sync layer visibility
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReadyRef.current) return;
     applyLayerVisibility(map, roadLayerIdsRef.current, buildingLayerIdsRef.current);
   }, [layers]);
+
+  // Sync 3D mode
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReadyRef.current) return;
+
+    if (is3D) {
+      map.easeTo({ pitch: 60, bearing: -20, duration: 1000 });
+      addExtrusionLayer(map);
+      map.setLight({ anchor: 'viewport', color: '#fff', intensity: 0.4 });
+    } else {
+      map.easeTo({ pitch: 0, bearing: 0, duration: 1000 });
+      removeExtrusionLayer(map);
+      map.setLight({ anchor: 'viewport', color: '#fff', intensity: 0 });
+    }
+  }, [is3D]);
 
   return (
     <Box
