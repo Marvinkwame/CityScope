@@ -1,10 +1,12 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import Box from '@mui/material/Box';
 import { useLayerStore } from '../store/layerStore';
 import { useFeatureStore } from '../store/featureStore';
 import { useMapStore } from '../store/mapStore';
+import { useDistricts } from '../hooks/useDistricts';
+import { usePois } from '../hooks/usePois';
 import {
   ROAD_LAYER_FILTER,
   BUILDING_LAYER_FILTER,
@@ -12,6 +14,8 @@ import {
   DISTRICT_SOURCE_ID,
   DISTRICT_FILL_LAYER_ID,
   DISTRICT_LINE_LAYER_ID,
+  POI_HEATMAP_SOURCE_ID,
+  POI_HEATMAP_LAYER_ID,
   FEATURE_TYPE_PRIORITY,
   classifyLayerId,
 } from '../constants/layerConfig';
@@ -41,13 +45,13 @@ function applyLayerVisibility(
   const currentLayers = useLayerStore.getState().layers;
   setLayerVisibility(map, roadLayerIds, currentLayers.roads);
   setLayerVisibility(map, buildingLayerIds, currentLayers.buildings);
-  // Also toggle the extrusion layer with buildings
   setLayerVisibility(map, [BUILDING_EXTRUSION_LAYER_ID], currentLayers.buildings);
   setLayerVisibility(
     map,
     [DISTRICT_FILL_LAYER_ID, DISTRICT_LINE_LAYER_ID],
     currentLayers.districts,
   );
+  setLayerVisibility(map, [POI_HEATMAP_LAYER_ID], currentLayers.heatmap);
 }
 
 function getQueryableLayers(
@@ -59,7 +63,6 @@ function getQueryableLayers(
   if (currentLayers.roads) queryLayers.push(...roadLayerIds);
   if (currentLayers.buildings) {
     queryLayers.push(...buildingLayerIds);
-    // Include extrusion layer in queries if it exists
     queryLayers.push(BUILDING_EXTRUSION_LAYER_ID);
   }
   if (currentLayers.districts) queryLayers.push(DISTRICT_FILL_LAYER_ID);
@@ -82,7 +85,6 @@ function addExtrusionLayer(map: mapboxgl.Map) {
     },
   });
 
-  // Respect current buildings visibility
   const buildingsVisible = useLayerStore.getState().layers.buildings;
   if (!buildingsVisible) {
     map.setLayoutProperty(BUILDING_EXTRUSION_LAYER_ID, 'visibility', 'none');
@@ -95,16 +97,52 @@ function removeExtrusionLayer(map: mapboxgl.Map) {
   }
 }
 
+function addDistrictLayers(map: mapboxgl.Map, data: GeoJSON.FeatureCollection) {
+  if (map.getSource(DISTRICT_SOURCE_ID)) return;
+
+  map.addSource(DISTRICT_SOURCE_ID, { type: 'geojson', data });
+
+  map.addLayer({
+    id: DISTRICT_FILL_LAYER_ID,
+    type: 'fill',
+    source: DISTRICT_SOURCE_ID,
+    paint: {
+      'fill-color': '#CE93D8',
+      'fill-opacity': 0.15,
+    },
+    layout: {
+      visibility: 'none',
+    },
+  });
+
+  map.addLayer({
+    id: DISTRICT_LINE_LAYER_ID,
+    type: 'line',
+    source: DISTRICT_SOURCE_ID,
+    paint: {
+      'line-color': '#CE93D8',
+      'line-width': 2,
+      'line-opacity': 0.7,
+    },
+    layout: {
+      visibility: 'none',
+    },
+  });
+}
+
 function MapView() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
-  const mapReadyRef = useRef(false);
   const roadLayerIdsRef = useRef<string[]>([]);
   const buildingLayerIdsRef = useRef<string[]>([]);
+  const [mapReady, setMapReady] = useState(false);
 
   const layers = useLayerStore((state) => state.layers);
   const is3D = useMapStore((state) => state.is3D);
+  const { data: districtsData } = useDistricts();
+  const { data: poisData } = usePois();
 
+  // Initialize map
   useEffect(() => {
     if (mapRef.current || !mapContainerRef.current) return;
 
@@ -130,55 +168,15 @@ function MapView() {
         .filter((l) => BUILDING_LAYER_FILTER(l.id))
         .map((l) => l.id);
 
-      fetch('/data/berlin-districts.geojson')
-        .then((res) => res.json())
-        .then((geojson: GeoJSON.FeatureCollection) => {
-          if (!map.getSource(DISTRICT_SOURCE_ID)) {
-            map.addSource(DISTRICT_SOURCE_ID, { type: 'geojson', data: geojson });
+      applyLayerVisibility(map, roadLayerIdsRef.current, buildingLayerIdsRef.current);
 
-            map.addLayer({
-              id: DISTRICT_FILL_LAYER_ID,
-              type: 'fill',
-              source: DISTRICT_SOURCE_ID,
-              paint: {
-                'fill-color': '#CE93D8',
-                'fill-opacity': 0.15,
-              },
-              layout: {
-                visibility: 'none',
-              },
-            });
+      if (useMapStore.getState().is3D) {
+        addExtrusionLayer(map);
+        map.easeTo({ pitch: 60, bearing: -20, duration: 1000 });
+        map.setLight({ anchor: 'viewport', color: '#fff', intensity: 0.4 });
+      }
 
-            map.addLayer({
-              id: DISTRICT_LINE_LAYER_ID,
-              type: 'line',
-              source: DISTRICT_SOURCE_ID,
-              paint: {
-                'line-color': '#CE93D8',
-                'line-width': 2,
-                'line-opacity': 0.7,
-              },
-              layout: {
-                visibility: 'none',
-              },
-            });
-          }
-
-          mapReadyRef.current = true;
-          applyLayerVisibility(map, roadLayerIdsRef.current, buildingLayerIdsRef.current);
-
-          // Apply 3D mode if it was already active
-          if (useMapStore.getState().is3D) {
-            addExtrusionLayer(map);
-            map.easeTo({ pitch: 60, bearing: -20, duration: 1000 });
-            map.setLight({ anchor: 'viewport', color: '#fff', intensity: 0.4 });
-          }
-        })
-        .catch((err) => {
-          console.warn('Failed to load district boundaries:', err);
-          mapReadyRef.current = true;
-          applyLayerVisibility(map, roadLayerIdsRef.current, buildingLayerIdsRef.current);
-        });
+      setMapReady(true);
 
       // Click handler — select features
       map.on('click', (e) => {
@@ -201,7 +199,6 @@ function MapView() {
           return;
         }
 
-        // Classify and pick highest-priority feature
         const classified = features
           .filter((f) => f.layer != null)
           .map((f) => ({ feature: f, type: classifyLayerId(f.layer!.id) }))
@@ -256,21 +253,89 @@ function MapView() {
     return () => {
       mapRef.current?.remove();
       mapRef.current = null;
-      mapReadyRef.current = false;
+      setMapReady(false);
     };
   }, []);
+
+  // Add district layers when both map and data are ready
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !districtsData) return;
+
+    const source = map.getSource(DISTRICT_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
+    if (source) {
+      source.setData(districtsData);
+    } else {
+      addDistrictLayers(map, districtsData);
+      applyLayerVisibility(map, roadLayerIdsRef.current, buildingLayerIdsRef.current);
+    }
+  }, [districtsData, mapReady]);
+
+  // Add/update POI heatmap source and layer when data is ready
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !poisData) return;
+
+    const geojson: GeoJSON.FeatureCollection = {
+      type: 'FeatureCollection',
+      features: poisData.map((poi) => ({
+        type: 'Feature' as const,
+        geometry: {
+          type: 'Point' as const,
+          coordinates: [poi.lng, poi.lat],
+        },
+        properties: {
+          name: poi.name,
+          category: poi.category,
+        },
+      })),
+    };
+
+    const source = map.getSource(POI_HEATMAP_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
+    if (source) {
+      source.setData(geojson);
+    } else {
+      map.addSource(POI_HEATMAP_SOURCE_ID, { type: 'geojson', data: geojson });
+
+      map.addLayer({
+        id: POI_HEATMAP_LAYER_ID,
+        type: 'heatmap',
+        source: POI_HEATMAP_SOURCE_ID,
+        layout: {
+          visibility: useLayerStore.getState().layers.heatmap ? 'visible' : 'none',
+        },
+        paint: {
+          'heatmap-weight': 1,
+          'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 22, 3],
+          'heatmap-color': [
+            'interpolate',
+            ['linear'],
+            ['heatmap-density'],
+            0, 'rgba(65,105,225,0)',
+            0.2, 'rgb(65,105,225)',
+            0.4, 'rgb(0,180,120)',
+            0.6, 'rgb(255,255,0)',
+            0.8, 'rgb(255,165,0)',
+            1, 'rgb(255,0,0)',
+          ],
+          'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 15, 15, 25],
+          'heatmap-opacity': 0.7,
+        },
+      });
+    }
+  }, [poisData, mapReady]);
 
   // Sync layer visibility
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReadyRef.current) return;
+    if (!map || !mapReady) return;
     applyLayerVisibility(map, roadLayerIdsRef.current, buildingLayerIdsRef.current);
-  }, [layers]);
+  }, [layers, mapReady]);
 
   // Sync 3D mode
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReadyRef.current) return;
+    if (!map || !mapReady) return;
 
     if (is3D) {
       map.easeTo({ pitch: 60, bearing: -20, duration: 1000 });
@@ -281,7 +346,7 @@ function MapView() {
       removeExtrusionLayer(map);
       map.setLight({ anchor: 'viewport', color: '#fff', intensity: 0 });
     }
-  }, [is3D]);
+  }, [is3D, mapReady]);
 
   return (
     <Box
