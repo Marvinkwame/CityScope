@@ -11,6 +11,7 @@ export const useLayerStore = create<LayerState>((set) => ({
     roads: true,
     buildings: true,
     districts: false,
+    heatmap: false,
   },
   toggleLayer: (id) =>
     set((state) => ({
