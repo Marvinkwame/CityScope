@@ -2,13 +2,14 @@ import { Router } from 'express';
 import type { Request, Response } from 'express';
 import pool from '../db.js';
 
+export const districtRouter = Router({ mergeParams: true });
 
-export const districtRouter = Router();
-
-districtRouter.get('/', async (_req: Request, res: Response) => {
+districtRouter.get('/', async (req: Request, res: Response) => {
   try {
-    const result = await pool.query(`
-      SELECT json_build_object(
+    const cityId = req.params.cityId ?? 'berlin';
+
+    const result = await pool.query(
+      `SELECT json_build_object(
         'type', 'FeatureCollection',
         'features', COALESCE(json_agg(
           json_build_object(
@@ -20,7 +21,9 @@ districtRouter.get('/', async (_req: Request, res: Response) => {
         ), '[]'::json)
       ) AS geojson
       FROM districts
-    `);
+      WHERE city_id = $1`,
+      [cityId],
+    );
 
     res.json(result.rows[0].geojson);
   } catch (err) {
