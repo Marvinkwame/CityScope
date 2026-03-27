@@ -5,6 +5,7 @@ import Box from '@mui/material/Box';
 import { useLayerStore } from '../store/layerStore';
 import { useFeatureStore } from '../store/featureStore';
 import { useMapStore } from '../store/mapStore';
+import { useCityStore } from '../store/cityStore';
 import { useDistricts } from '../hooks/useDistricts';
 import { usePois } from '../hooks/usePois';
 import {
@@ -20,9 +21,6 @@ import {
   classifyLayerId,
 } from '../constants/layerConfig';
 import type { LayerId } from '../constants/layerConfig';
-
-const BERLIN_CENTER: [number, number] = [13.405, 52.52];
-const DEFAULT_ZOOM = 12;
 
 function setLayerVisibility(
   map: mapboxgl.Map,
@@ -135,10 +133,12 @@ function MapView() {
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const roadLayerIdsRef = useRef<string[]>([]);
   const buildingLayerIdsRef = useRef<string[]>([]);
+  const isInitialMountRef = useRef(true);
   const [mapReady, setMapReady] = useState(false);
 
   const layers = useLayerStore((state) => state.layers);
   const is3D = useMapStore((state) => state.is3D);
+  const selectedCity = useCityStore((state) => state.selectedCity);
   const { data: districtsData } = useDistricts();
   const { data: poisData } = usePois();
 
@@ -146,13 +146,14 @@ function MapView() {
   useEffect(() => {
     if (mapRef.current || !mapContainerRef.current) return;
 
+    const city = useCityStore.getState().selectedCity;
     mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: 'mapbox://styles/mapbox/dark-v11',
-      center: BERLIN_CENTER,
-      zoom: DEFAULT_ZOOM,
+      center: [city.centerLng, city.centerLat],
+      zoom: city.defaultZoom,
     });
 
     map.addControl(new mapboxgl.NavigationControl(), 'top-right');
@@ -256,6 +257,27 @@ function MapView() {
       setMapReady(false);
     };
   }, []);
+
+  // Fly to city on change
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      return;
+    }
+
+    map.flyTo({
+      center: [selectedCity.centerLng, selectedCity.centerLat],
+      zoom: selectedCity.defaultZoom,
+      duration: 2000,
+      essential: true,
+    });
+
+    useFeatureStore.getState().clearFeature();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCity.id, mapReady]);
 
   // Add district layers when both map and data are ready
   useEffect(() => {
