@@ -9,3 +9,4 @@ export const useMapStore = create<MapState>((set) => ({
   is3D: false,
   toggle3D: () => set((state) => ({ is3D: !state.is3D })),
 }));
+ 
