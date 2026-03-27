@@ -7,8 +7,10 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "seed": "tsx src/scripts/seed.ts",
-    "fetch:pois": "tsx src/scripts/fetch-pois.ts",
-    "seed:pois": "tsx src/scripts/seed-pois.ts"
+    "seed:cities": "tsx src/scripts/seed-cities.ts",
+    "seed:pois": "tsx src/scripts/seed-pois.ts",
+    "seed:all": "tsx src/scripts/seed-all.ts",
+    "fetch:pois": "tsx src/scripts/fetch-pois.ts"
   },
   "dependencies": {
     "cors": "^2.8.6",
