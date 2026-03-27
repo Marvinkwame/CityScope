@@ -23,9 +23,9 @@ export const BUILDING_LAYER_FILTER = (layerId: string): boolean =>
 
 export const BUILDING_EXTRUSION_LAYER_ID = 'building-3d-extrusion';
 
-export const DISTRICT_SOURCE_ID = 'berlin-districts';
-export const DISTRICT_FILL_LAYER_ID = 'berlin-districts-fill';
-export const DISTRICT_LINE_LAYER_ID = 'berlin-districts-line';
+export const DISTRICT_SOURCE_ID = 'city-districts';
+export const DISTRICT_FILL_LAYER_ID = 'city-districts-fill';
+export const DISTRICT_LINE_LAYER_ID = 'city-districts-line';
 
 export const POI_HEATMAP_SOURCE_ID = 'pois-heatmap';
 export const POI_HEATMAP_LAYER_ID = 'pois-heatmap-layer';
