@@ -3,9 +3,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import 'dotenv/config';
+import { CITY_CONFIGS } from '../config/cities.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dataPath = path.resolve(__dirname, 'pois-data.json');
 
 interface Poi {
   name: string | null;
@@ -15,7 +15,30 @@ interface Poi {
 }
 
 async function seed() {
-  const raw = readFileSync(dataPath, 'utf-8');
+  const cityId = process.argv[2];
+  if (!cityId) {
+    console.error('Usage: tsx seed-pois.ts <cityId>');
+    console.error('Available cities:', CITY_CONFIGS.map((c) => c.id).join(', '));
+    process.exit(1);
+  }
+
+  const cityConfig = CITY_CONFIGS.find((c) => c.id === cityId);
+  if (!cityConfig) {
+    console.error(`Unknown city: ${cityId}`);
+    process.exit(1);
+  }
+
+  const dataPath = path.resolve(__dirname, `pois-data-${cityId}.json`);
+
+  let raw: string;
+  try {
+    raw = readFileSync(dataPath, 'utf-8');
+  } catch {
+    console.error(`POI data file not found: ${dataPath}`);
+    console.error(`Run "npm run fetch:pois -- ${cityId}" first`);
+    process.exit(1);
+  }
+
   const pois: Poi[] = JSON.parse(raw);
 
   const client = new pg.Client({
@@ -23,9 +46,8 @@ async function seed() {
   });
   await client.connect();
 
-  await client.query('TRUNCATE pois RESTART IDENTITY');
+  await client.query('DELETE FROM pois WHERE city_id = $1', [cityId]);
 
-  // Batch insert in groups of 500
   const batchSize = 500;
   for (let i = 0; i < pois.length; i += batchSize) {
     const batch = pois.slice(i, i + batchSize);
@@ -33,20 +55,20 @@ async function seed() {
     const placeholders: string[] = [];
 
     batch.forEach((poi, idx) => {
-      const offset = idx * 4;
+      const offset = idx * 5;
       placeholders.push(
-        `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4})`,
+        `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5})`,
       );
-      values.push(poi.name, poi.category, poi.lat, poi.lng);
+      values.push(poi.name, poi.category, poi.lat, poi.lng, cityId);
     });
 
     await client.query(
-      `INSERT INTO pois (name, category, lat, lng) VALUES ${placeholders.join(', ')}`,
+      `INSERT INTO pois (name, category, lat, lng, city_id) VALUES ${placeholders.join(', ')}`,
       values,
     );
   }
 
-  console.log(`Seeded ${pois.length} POIs`);
+  console.log(`Seeded ${pois.length} POIs for ${cityConfig.name}`);
   await client.end();
 }
 

@@ -1,9 +1,9 @@
 import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CITY_CONFIGS } from '../config/cities.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const outputPath = path.resolve(__dirname, 'pois-data.json');
 
 interface OverpassElement {
   type: string;
@@ -35,18 +35,34 @@ function extractCategory(tags: Record<string, string>): string | null {
 }
 
 async function fetchPois() {
+  const cityId = process.argv[2];
+  if (!cityId) {
+    console.error('Usage: tsx fetch-pois.ts <cityId>');
+    console.error('Available cities:', CITY_CONFIGS.map((c) => c.id).join(', '));
+    process.exit(1);
+  }
+
+  const cityConfig = CITY_CONFIGS.find((c) => c.id === cityId);
+  if (!cityConfig) {
+    console.error(`Unknown city: ${cityId}`);
+    process.exit(1);
+  }
+
+  const { south, west, north, east } = cityConfig.bounds;
+  const bbox = `${south},${west},${north},${east}`;
+
   const query = `
     [out:json][timeout:120];
     (
-      node["amenity"~"cafe|restaurant|bar|pub"](52.34,13.08,52.68,13.76);
-      node["tourism"~"museum|hotel|attraction"](52.34,13.08,52.68,13.76);
-      node["leisure"~"park|playground"](52.34,13.08,52.68,13.76);
-      node["shop"~"supermarket|bakery"](52.34,13.08,52.68,13.76);
+      node["amenity"~"cafe|restaurant|bar|pub"](${bbox});
+      node["tourism"~"museum|hotel|attraction"](${bbox});
+      node["leisure"~"park|playground"](${bbox});
+      node["shop"~"supermarket|bakery"](${bbox});
     );
     out center 5000;
   `;
 
-  console.log('Fetching POIs from Overpass API...');
+  console.log(`Fetching POIs for ${cityConfig.name} from Overpass API...`);
 
   const res = await fetch('https://overpass-api.de/api/interpreter', {
     method: 'POST',
@@ -80,6 +96,7 @@ async function fetchPois() {
     });
   }
 
+  const outputPath = path.resolve(__dirname, `pois-data-${cityId}.json`);
   writeFileSync(outputPath, JSON.stringify(pois, null, 2));
   console.log(`Saved ${pois.length} POIs to ${outputPath}`);
 }
