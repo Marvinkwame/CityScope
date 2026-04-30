@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import MapView from './components/MapView';
 import FeaturePanel from './components/FeaturePanel';
+import HeatmapSpotlightCard from './components/HeatmapSpotlightCard';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
         <Toolbar />
         <Box sx={{ flexGrow: 1, position: 'relative' }}>
           <MapView />
+          <HeatmapSpotlightCard />
         </Box>
       </Box>
       <FeaturePanel />
