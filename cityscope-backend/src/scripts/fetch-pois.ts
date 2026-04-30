@@ -66,7 +66,11 @@ async function fetchPois() {
 
   const res = await fetch('https://overpass-api.de/api/interpreter', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'User-Agent': 'CityScope/1.0 (educational geospatial portfolio)',
+      'Accept': 'application/json',
+    },
     body: `data=${encodeURIComponent(query)}`,
   });
 
