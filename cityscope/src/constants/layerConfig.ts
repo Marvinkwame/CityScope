@@ -30,6 +30,11 @@ export const DISTRICT_LINE_LAYER_ID = 'city-districts-line';
 export const POI_HEATMAP_SOURCE_ID = 'pois-heatmap';
 export const POI_HEATMAP_LAYER_ID = 'pois-heatmap-layer';
 
+export const ISOCHRONE_SOURCE_ID = 'isochrone-source';
+export const ISOCHRONE_FILL_LAYER_ID = 'isochrone-fill';
+export const ISOCHRONE_LINE_LAYER_ID = 'isochrone-line';
+export const ISOCHRONE_COLOR = '#00BCD4';
+
 export const FEATURE_TYPE_PRIORITY: Record<LayerId, number> = {
   buildings: 0,
   roads: 1,
