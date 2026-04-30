@@ -6,8 +6,11 @@ import { useLayerStore } from '../store/layerStore';
 import { useFeatureStore } from '../store/featureStore';
 import { useMapStore } from '../store/mapStore';
 import { useCityStore } from '../store/cityStore';
+import { useIsochroneStore } from '../store/isochroneStore';
+import { useHeatmapStore } from '../store/heatmapStore';
 import { useDistricts } from '../hooks/useDistricts';
 import { usePois } from '../hooks/usePois';
+import { useIsochrone } from '../hooks/useIsochrone';
 import {
   ROAD_LAYER_FILTER,
   BUILDING_LAYER_FILTER,
@@ -17,6 +20,10 @@ import {
   DISTRICT_LINE_LAYER_ID,
   POI_HEATMAP_SOURCE_ID,
   POI_HEATMAP_LAYER_ID,
+  ISOCHRONE_SOURCE_ID,
+  ISOCHRONE_FILL_LAYER_ID,
+  ISOCHRONE_LINE_LAYER_ID,
+  ISOCHRONE_COLOR,
   FEATURE_TYPE_PRIORITY,
   classifyLayerId,
 } from '../constants/layerConfig';
@@ -134,13 +141,17 @@ function MapView() {
   const roadLayerIdsRef = useRef<string[]>([]);
   const buildingLayerIdsRef = useRef<string[]>([]);
   const isInitialMountRef = useRef(true);
+  const isochroneMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
   const layers = useLayerStore((state) => state.layers);
   const is3D = useMapStore((state) => state.is3D);
   const selectedCity = useCityStore((state) => state.selectedCity);
+  const isochroneEnabled = useIsochroneStore((state) => state.enabled);
+  const isochroneOrigin = useIsochroneStore((state) => state.origin);
   const { data: districtsData } = useDistricts();
   const { data: poisData } = usePois();
+  const { data: isochroneData } = useIsochrone();
 
   // Initialize map
   useEffect(() => {
@@ -181,6 +192,17 @@ function MapView() {
 
       // Click handler — select features
       map.on('click', (e) => {
+        // Isochrone mode intercepts all clicks
+        if (useIsochroneStore.getState().enabled) {
+          useIsochroneStore.getState().setOrigin({ lng: e.lngLat.lng, lat: e.lngLat.lat });
+          return;
+        }
+
+        // Heatmap mode: record click origin for spotlight card (does not intercept)
+        if (useLayerStore.getState().layers.heatmap) {
+          useHeatmapStore.getState().setClickOrigin({ lng: e.lngLat.lng, lat: e.lngLat.lat });
+        }
+
         const queryLayers = getQueryableLayers(
           roadLayerIdsRef.current,
           buildingLayerIdsRef.current,
@@ -232,6 +254,12 @@ function MapView() {
 
       // Hover handler — pointer cursor
       map.on('mousemove', (e) => {
+        // Isochrone mode uses crosshair cursor
+        if (useIsochroneStore.getState().enabled) {
+          map.getCanvas().style.cursor = 'crosshair';
+          return;
+        }
+
         const queryLayers = getQueryableLayers(
           roadLayerIdsRef.current,
           buildingLayerIdsRef.current,
@@ -250,8 +278,12 @@ function MapView() {
     });
 
     mapRef.current = map;
+    useMapStore.getState().setMap(map);
 
     return () => {
+      isochroneMarkerRef.current?.remove();
+      isochroneMarkerRef.current = null;
+      useMapStore.getState().setMap(null);
       mapRef.current?.remove();
       mapRef.current = null;
       setMapReady(false);
@@ -276,6 +308,8 @@ function MapView() {
     });
 
     useFeatureStore.getState().clearFeature();
+    useIsochroneStore.getState().reset();
+    useHeatmapStore.getState().setClickOrigin(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCity.id, mapReady]);
 
@@ -352,6 +386,9 @@ function MapView() {
     const map = mapRef.current;
     if (!map || !mapReady) return;
     applyLayerVisibility(map, roadLayerIdsRef.current, buildingLayerIdsRef.current);
+    if (!layers.heatmap) {
+      useHeatmapStore.getState().setClickOrigin(null);
+    }
   }, [layers, mapReady]);
 
   // Sync 3D mode
@@ -369,6 +406,87 @@ function MapView() {
       map.setLight({ anchor: 'viewport', color: '#fff', intensity: 0 });
     }
   }, [is3D, mapReady]);
+
+  // Sync isochrone polygon layers
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+
+    if (!isochroneEnabled || !isochroneData) {
+      // Remove layers and source when disabled or no data
+      if (map.getLayer(ISOCHRONE_LINE_LAYER_ID)) map.removeLayer(ISOCHRONE_LINE_LAYER_ID);
+      if (map.getLayer(ISOCHRONE_FILL_LAYER_ID)) map.removeLayer(ISOCHRONE_FILL_LAYER_ID);
+      if (map.getSource(ISOCHRONE_SOURCE_ID)) map.removeSource(ISOCHRONE_SOURCE_ID);
+      return;
+    }
+
+    const source = map.getSource(ISOCHRONE_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
+    if (source) {
+      source.setData(isochroneData);
+    } else {
+      // Find first road layer to insert isochrone below it
+      const styleLayers = map.getStyle().layers;
+      const firstRoadLayer = styleLayers.find((l) => ROAD_LAYER_FILTER(l.id));
+
+      map.addSource(ISOCHRONE_SOURCE_ID, { type: 'geojson', data: isochroneData });
+
+      map.addLayer(
+        {
+          id: ISOCHRONE_FILL_LAYER_ID,
+          type: 'fill',
+          source: ISOCHRONE_SOURCE_ID,
+          paint: {
+            'fill-color': [
+              'step', ['get', 'contour'],
+              '#00E5FF',      // ≤ 10 min: brightest cyan (innermost)
+              11, '#00BCD4',  // 11–20 min: standard cyan
+              21, '#0097A7',  // 21+ min: dark teal (outermost)
+            ],
+            'fill-opacity': [
+              'interpolate',
+              ['linear'],
+              ['get', 'contour'],
+              5, 0.45,
+              30, 0.08,
+            ],
+          },
+        },
+        firstRoadLayer?.id,
+      );
+
+      map.addLayer(
+        {
+          id: ISOCHRONE_LINE_LAYER_ID,
+          type: 'line',
+          source: ISOCHRONE_SOURCE_ID,
+          paint: {
+            'line-color': ISOCHRONE_COLOR,
+            'line-width': 2,
+            'line-opacity': 0.6,
+          },
+        },
+        firstRoadLayer?.id,
+      );
+    }
+  }, [isochroneData, isochroneEnabled, mapReady]);
+
+  // Sync isochrone origin marker
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+
+    // Remove old marker
+    if (isochroneMarkerRef.current) {
+      isochroneMarkerRef.current.remove();
+      isochroneMarkerRef.current = null;
+    }
+
+    if (isochroneOrigin && isochroneEnabled) {
+      isochroneMarkerRef.current = new mapboxgl.Marker({ color: ISOCHRONE_COLOR })
+        .setLngLat([isochroneOrigin.lng, isochroneOrigin.lat])
+        .addTo(map);
+    }
+  }, [isochroneOrigin, isochroneEnabled, mapReady]);
 
   return (
     <Box
