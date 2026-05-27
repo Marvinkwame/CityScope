@@ -8,6 +8,8 @@ import { useMapStore } from '../store/mapStore';
 import { useCityStore } from '../store/cityStore';
 import { useIsochroneStore } from '../store/isochroneStore';
 import { useHeatmapStore } from '../store/heatmapStore';
+import { useRouteStore } from '../store/routeStore';
+import { useRoute } from '../hooks/useRoute';
 import { useDistricts } from '../hooks/useDistricts';
 import { usePois } from '../hooks/usePois';
 import { useIsochrone } from '../hooks/useIsochrone';
@@ -24,6 +26,8 @@ import {
   ISOCHRONE_FILL_LAYER_ID,
   ISOCHRONE_LINE_LAYER_ID,
   ISOCHRONE_COLOR,
+  ROUTE_SOURCE_ID,
+  ROUTE_LAYER_ID,
   FEATURE_TYPE_PRIORITY,
   classifyLayerId,
 } from '../constants/layerConfig';
@@ -142,6 +146,8 @@ function MapView() {
   const buildingLayerIdsRef = useRef<string[]>([]);
   const isInitialMountRef = useRef(true);
   const isochroneMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const routeOriginMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const routeDestinationMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
   const layers = useLayerStore((state) => state.layers);
@@ -149,6 +155,10 @@ function MapView() {
   const selectedCity = useCityStore((state) => state.selectedCity);
   const isochroneEnabled = useIsochroneStore((state) => state.enabled);
   const isochroneOrigin = useIsochroneStore((state) => state.origin);
+  const routeEnabled = useRouteStore((s) => s.enabled);
+  const routeOrigin = useRouteStore((s) => s.origin);
+  const routeDestination = useRouteStore((s) => s.destination);
+  const { data: routeData } = useRoute();
   const { data: districtsData } = useDistricts();
   const { data: poisData } = usePois();
   const { data: isochroneData } = useIsochrone();
@@ -195,6 +205,18 @@ function MapView() {
         // Isochrone mode intercepts all clicks
         if (useIsochroneStore.getState().enabled) {
           useIsochroneStore.getState().setOrigin({ lng: e.lngLat.lng, lat: e.lngLat.lat });
+          return;
+        }
+
+        // Route mode intercepts all clicks — set A or B pin
+        if (useRouteStore.getState().enabled) {
+          const rs = useRouteStore.getState();
+          if (rs.setMode === 'origin') {
+            rs.setOrigin({ lng: e.lngLat.lng, lat: e.lngLat.lat });
+            rs.setSetMode('destination');
+          } else {
+            rs.setDestination({ lng: e.lngLat.lng, lat: e.lngLat.lat });
+          }
           return;
         }
 
@@ -260,6 +282,12 @@ function MapView() {
           return;
         }
 
+        // Route mode uses crosshair cursor (pin-placement mode)
+        if (useRouteStore.getState().enabled) {
+          map.getCanvas().style.cursor = 'crosshair';
+          return;
+        }
+
         const queryLayers = getQueryableLayers(
           roadLayerIdsRef.current,
           buildingLayerIdsRef.current,
@@ -283,6 +311,10 @@ function MapView() {
     return () => {
       isochroneMarkerRef.current?.remove();
       isochroneMarkerRef.current = null;
+      routeOriginMarkerRef.current?.remove();
+      routeOriginMarkerRef.current = null;
+      routeDestinationMarkerRef.current?.remove();
+      routeDestinationMarkerRef.current = null;
       useMapStore.getState().setMap(null);
       mapRef.current?.remove();
       mapRef.current = null;
@@ -310,6 +342,7 @@ function MapView() {
     useFeatureStore.getState().clearFeature();
     useIsochroneStore.getState().reset();
     useHeatmapStore.getState().setClickOrigin(null);
+    useRouteStore.getState().reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCity.id, mapReady]);
 
@@ -487,6 +520,84 @@ function MapView() {
         .addTo(map);
     }
   }, [isochroneOrigin, isochroneEnabled, mapReady]);
+
+  // Sync route line layer
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+
+    if (!routeEnabled || !routeData || !routeOrigin || !routeDestination) {
+      if (map.getLayer(ROUTE_LAYER_ID)) map.removeLayer(ROUTE_LAYER_ID);
+      if (map.getSource(ROUTE_SOURCE_ID)) map.removeSource(ROUTE_SOURCE_ID);
+      return;
+    }
+
+    const routeFeature: GeoJSON.Feature<GeoJSON.LineString> = {
+      type: 'Feature',
+      geometry: routeData.geometry,
+      properties: {},
+    };
+
+    const source = map.getSource(ROUTE_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
+    if (source) {
+      source.setData(routeFeature);
+    } else {
+      const firstRoadLayer = map.getStyle().layers.find((l) => ROAD_LAYER_FILTER(l.id));
+      map.addSource(ROUTE_SOURCE_ID, { type: 'geojson', data: routeFeature });
+      map.addLayer(
+        {
+          id: ROUTE_LAYER_ID,
+          type: 'line',
+          source: ROUTE_SOURCE_ID,
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: {
+            'line-color': '#4FC3F7',
+            'line-width': 4,
+            'line-opacity': 0.9,
+          },
+        },
+        firstRoadLayer?.id,
+      );
+    }
+  }, [routeData, routeEnabled, routeOrigin, routeDestination, mapReady]);
+
+  // Sync route origin and destination markers
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+
+    // Origin marker (A — green)
+    routeOriginMarkerRef.current?.remove();
+    routeOriginMarkerRef.current = null;
+    if (routeOrigin && routeEnabled) {
+      const elA = document.createElement('div');
+      elA.style.cssText =
+        'width:20px;height:20px;background:#4CAF50;border:2px solid white;' +
+        'border-radius:50%;display:flex;align-items:center;justify-content:center;' +
+        'font-size:10px;font-weight:bold;color:white;box-shadow:0 2px 6px rgba(0,0,0,0.5);' +
+        'cursor:pointer;';
+      elA.textContent = 'A';
+      routeOriginMarkerRef.current = new mapboxgl.Marker({ element: elA })
+        .setLngLat([routeOrigin.lng, routeOrigin.lat])
+        .addTo(map);
+    }
+
+    // Destination marker (B — orange)
+    routeDestinationMarkerRef.current?.remove();
+    routeDestinationMarkerRef.current = null;
+    if (routeDestination && routeEnabled) {
+      const elB = document.createElement('div');
+      elB.style.cssText =
+        'width:20px;height:20px;background:#FF7043;border:2px solid white;' +
+        'border-radius:50%;display:flex;align-items:center;justify-content:center;' +
+        'font-size:10px;font-weight:bold;color:white;box-shadow:0 2px 6px rgba(0,0,0,0.5);' +
+        'cursor:pointer;';
+      elB.textContent = 'B';
+      routeDestinationMarkerRef.current = new mapboxgl.Marker({ element: elB })
+        .setLngLat([routeDestination.lng, routeDestination.lat])
+        .addTo(map);
+    }
+  }, [routeOrigin, routeDestination, routeEnabled, mapReady]);
 
   return (
     <Box
