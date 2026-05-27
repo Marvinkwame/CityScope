@@ -11,6 +11,7 @@ import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk';
 import { useIsochroneStore } from '../store/isochroneStore';
 import type { TravelProfile } from '../store/isochroneStore';
+import { useRouteStore } from '../store/routeStore';
 import IsochroneResultsPanel from './IsochroneResultsPanel';
 
 const TIME_PRESETS = [5, 10, 15, 20, 30] as const;
@@ -45,13 +46,20 @@ function IsochroneControls() {
     setContourMinutes(buildContours(preset));
   };
 
+  const handleToggle = (checked: boolean) => {
+    if (checked) {
+      useRouteStore.getState().setEnabled(false);
+    }
+    setEnabled(checked);
+  };
+
   return (
     <Box sx={{ px: 1, py: 0.5 }}>
       <FormControlLabel
         control={
           <Switch
             checked={enabled}
-            onChange={(e) => setEnabled(e.target.checked)}
+            onChange={(e) => handleToggle(e.target.checked)}
             size="small"
             sx={{ '& .MuiSwitch-thumb': { color: '#00BCD4' } }}
           />
