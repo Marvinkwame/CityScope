@@ -14,6 +14,7 @@ import CircleIcon from '@mui/icons-material/Circle';
 import { useLayerStore } from '../store/layerStore';
 import { LAYER_CONFIGS } from '../constants/layerConfig';
 import IsochroneControls from './IsochroneControls';
+import RouteControls from './RouteControls';
 
 const SIDEBAR_WIDTH = 280;
 
@@ -109,6 +110,12 @@ function Sidebar() {
         </Typography>
         <Box sx={{ mt: 1 }}>
           <IsochroneControls />
+        </Box>
+
+        <Divider sx={{ my: 2 }} />
+
+        <Box sx={{ mt: 1 }}>
+          <RouteControls />
         </Box>
       </Box>
     </Drawer>
