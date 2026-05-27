@@ -35,6 +35,9 @@ export const ISOCHRONE_FILL_LAYER_ID = 'isochrone-fill';
 export const ISOCHRONE_LINE_LAYER_ID = 'isochrone-line';
 export const ISOCHRONE_COLOR = '#00BCD4';
 
+export const ROUTE_SOURCE_ID = 'route-source';
+export const ROUTE_LAYER_ID = 'route-layer';
+
 export const FEATURE_TYPE_PRIORITY: Record<LayerId, number> = {
   buildings: 0,
   roads: 1,
