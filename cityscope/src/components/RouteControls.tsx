@@ -50,14 +50,14 @@ function RouteControls() {
   };
 
   return (
-    <Box sx={{ px: 1, py: 0.5 }}>
+    <Box sx={{ p: 1.25 }}>
       <FormControlLabel
         control={
           <Switch
             checked={enabled}
             onChange={(e) => handleToggle(e.target.checked)}
             size="small"
-            sx={{ '& .MuiSwitch-thumb': { color: '#4FC3F7' } }}
+            sx={{ '& .MuiSwitch-thumb': { color: '#00E5FF' } }}
           />
         }
         label={
@@ -115,8 +115,15 @@ function RouteControls() {
           {/* Travel mode */}
           <Box>
             <Typography
-              variant="caption"
-              sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}
+              sx={{
+                fontSize: '0.65rem',
+                fontWeight: 600,
+                letterSpacing: '1.5px',
+                textTransform: 'uppercase',
+                color: 'rgba(255,255,255,0.25)',
+                mb: 0.5,
+                display: 'block',
+              }}
             >
               Travel mode
             </Typography>

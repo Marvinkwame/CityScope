@@ -54,14 +54,14 @@ function IsochroneControls() {
   };
 
   return (
-    <Box sx={{ px: 1, py: 0.5 }}>
+    <Box sx={{ p: 1.25 }}>
       <FormControlLabel
         control={
           <Switch
             checked={enabled}
             onChange={(e) => handleToggle(e.target.checked)}
             size="small"
-            sx={{ '& .MuiSwitch-thumb': { color: '#00BCD4' } }}
+            sx={{ '& .MuiSwitch-thumb': { color: '#00E5FF' } }}
           />
         }
         label={
@@ -76,7 +76,17 @@ function IsochroneControls() {
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           {/* Travel mode */}
           <Box>
-            <Typography variant="caption" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+            <Typography
+              sx={{
+                fontSize: '0.65rem',
+                fontWeight: 600,
+                letterSpacing: '1.5px',
+                textTransform: 'uppercase',
+                color: 'rgba(255,255,255,0.25)',
+                mb: 0.5,
+                display: 'block',
+              }}
+            >
               Travel mode
             </Typography>
             <ToggleButtonGroup
@@ -100,7 +110,17 @@ function IsochroneControls() {
 
           {/* Max time preset */}
           <Box>
-            <Typography variant="caption" sx={{ color: 'text.secondary', mb: 0.5, display: 'block' }}>
+            <Typography
+              sx={{
+                fontSize: '0.65rem',
+                fontWeight: 600,
+                letterSpacing: '1.5px',
+                textTransform: 'uppercase',
+                color: 'rgba(255,255,255,0.25)',
+                mb: 0.5,
+                display: 'block',
+              }}
+            >
               Max time (minutes)
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
@@ -113,10 +133,10 @@ function IsochroneControls() {
                   onClick={() => handlePresetClick(preset)}
                   variant={maxMinutes === preset ? 'filled' : 'outlined'}
                   sx={{
-                    borderColor: '#00BCD4',
-                    color: maxMinutes === preset ? '#121212' : '#00BCD4',
-                    bgcolor: maxMinutes === preset ? '#00BCD4' : 'transparent',
-                    '&:hover': { bgcolor: maxMinutes === preset ? '#00BCD4' : 'rgba(0,188,212,0.1)' },
+                    borderColor: '#00E5FF',
+                    color: maxMinutes === preset ? '#121212' : '#00E5FF',
+                    bgcolor: maxMinutes === preset ? '#00E5FF' : 'transparent',
+                    '&:hover': { bgcolor: maxMinutes === preset ? '#00A8C0' : 'rgba(0,229,255,0.08)' },
                     fontSize: '0.75rem',
                   }}
                 />
@@ -126,7 +146,7 @@ function IsochroneControls() {
 
           {/* Status row */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minHeight: 24 }}>
-            {loading && <CircularProgress size={14} sx={{ color: '#00BCD4' }} />}
+            {loading && <CircularProgress size={14} sx={{ color: '#00E5FF' }} />}
             {!loading && !error && (
               <Typography variant="caption" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
                 {origin !== null
