@@ -61,6 +61,7 @@ function FeaturePanel() {
         '& .MuiDrawer-paper': {
           width: PANEL_WIDTH,
           boxSizing: 'border-box',
+          borderLeft: '1px solid rgba(255,255,255,0.07)',
         },
       }}
     >
@@ -76,9 +77,11 @@ function FeaturePanel() {
               label={config?.label ?? selectedFeature.type}
               size="small"
               sx={{
-                bgcolor: config?.color ?? '#999',
-                color: '#000',
+                background: 'rgba(255,255,255,0.06)',
+                border: `1px solid ${config?.color ?? '#999'}`,
+                color: config?.color ?? '#999',
                 fontWeight: 600,
+                fontSize: '0.7rem',
               }}
             />
             <IconButton onClick={clearFeature} size="small">
@@ -88,20 +91,35 @@ function FeaturePanel() {
 
           <Divider sx={{ my: 1.5 }} />
 
-          <Typography variant="h6">
+          <Typography variant="h5" sx={{ fontWeight: 600, mt: 1 }}>
             {selectedFeature.name ?? 'Unnamed Feature'}
           </Typography>
 
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          <Typography
+            variant="body2"
+            sx={{ mt: 0.5, color: 'rgba(255,255,255,0.45)' }}
+          >
             {selectedFeature.coordinates.lat.toFixed(5)},{' '}
             {selectedFeature.coordinates.lng.toFixed(5)}
           </Typography>
 
           <Divider sx={{ my: 1.5 }} />
 
-          <Typography variant="overline" color="text.secondary">
-            Properties
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+            <Typography
+              sx={{
+                fontSize: '0.65rem',
+                fontWeight: 600,
+                letterSpacing: '2px',
+                textTransform: 'uppercase',
+                color: 'rgba(255,255,255,0.25)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Properties
+            </Typography>
+            <Box sx={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+          </Box>
 
           {Object.keys(filteredProps).length > 0 ? (
             <Table size="small">
