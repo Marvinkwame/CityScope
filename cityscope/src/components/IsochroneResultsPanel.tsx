@@ -111,9 +111,13 @@ function IsochroneResultsPanel() {
             disableGutters
             TransitionProps={{ unmountOnExit: true }}
             sx={{
-              bgcolor: 'transparent',
-              boxShadow: 'none',
+              background: 'rgba(255,255,255,0.02)',
+              borderTop: '1px solid rgba(255,255,255,0.06)',
+              borderRight: '1px solid rgba(255,255,255,0.06)',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
               borderLeft: `3px solid ${color}`,
+              borderRadius: '8px !important',
+              boxShadow: 'none',
               pl: 1,
               mb: 1,
               '&:before': { display: 'none' },
@@ -193,7 +197,7 @@ function IsochroneResultsPanel() {
                   {band.pois.map((poi) => (
                     <ListItemButton
                       key={poi.id}
-                      sx={{ px: 0.5, py: 0.25, borderRadius: 0.5 }}
+                      sx={{ px: 0.5, py: 0.25, borderRadius: 0.5, '&:hover': { background: 'rgba(255,255,255,0.05)' } }}
                       onClick={() => {
                         const map = useMapStore.getState().map;
                         if (map) {

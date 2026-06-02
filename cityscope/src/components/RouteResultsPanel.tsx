@@ -41,27 +41,27 @@ function RouteResultsPanel() {
       <Box
         sx={{
           display: 'flex',
-          background: '#1e1e1e',
-          borderRadius: 1.5,
-          border: '1px solid #2a2a2a',
+          background: 'rgba(0,229,255,0.04)',
+          borderRadius: '10px',
+          border: '1px solid rgba(0,229,255,0.15)',
           overflow: 'hidden',
           mb: 1,
         }}
       >
         <Box sx={{ flex: 1, py: 1.5, textAlign: 'center' }}>
-          <Typography sx={{ color: '#4FC3F7', fontWeight: 700, fontSize: '1.1rem' }}>
+          <Typography sx={{ color: '#00E5FF', fontWeight: 700, fontSize: '1.1rem', textShadow: '0 0 10px rgba(0,229,255,0.4)' }}>
             {formatDistance(routeData.distanceM)}
           </Typography>
-          <Typography variant="caption" sx={{ color: '#555' }}>
+          <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>
             distance
           </Typography>
         </Box>
-        <Divider orientation="vertical" flexItem sx={{ borderColor: '#2a2a2a' }} />
+        <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255,255,255,0.06)' }} />
         <Box sx={{ flex: 1, py: 1.5, textAlign: 'center' }}>
-          <Typography sx={{ color: '#4FC3F7', fontWeight: 700, fontSize: '1.1rem' }}>
+          <Typography sx={{ color: '#00E5FF', fontWeight: 700, fontSize: '1.1rem', textShadow: '0 0 10px rgba(0,229,255,0.4)' }}>
             {formatDuration(routeData.durationS)}
           </Typography>
-          <Typography variant="caption" sx={{ color: '#555' }}>
+          <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>
             duration
           </Typography>
         </Box>
@@ -72,9 +72,9 @@ function RouteResultsPanel() {
         sx={{
           maxHeight: 220,
           overflowY: 'auto',
-          background: '#1a1a1a',
-          borderRadius: 1.5,
-          border: '1px solid #2a2a2a',
+          background: 'rgba(255,255,255,0.02)',
+          borderRadius: '10px',
+          border: '1px solid rgba(255,255,255,0.07)',
           mb: 1,
         }}
       >
@@ -88,23 +88,23 @@ function RouteResultsPanel() {
               px: 1.25,
               py: 0.75,
               borderBottom:
-                i < routeData.steps.length - 1 ? '1px solid #222' : 'none',
+                i < routeData.steps.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
             }}
           >
             <Typography
-              sx={{ color: '#4FC3F7', fontSize: '0.8rem', minWidth: 14, mt: 0.1 }}
+              sx={{ color: '#00E5FF', fontSize: '0.8rem', minWidth: 14, mt: 0.1 }}
             >
               {maneuverArrow(step.maneuverType, step.maneuverModifier)}
             </Typography>
             <Typography
               variant="caption"
-              sx={{ color: '#ccc', flex: 1, lineHeight: 1.4 }}
+              sx={{ color: 'rgba(255,255,255,0.75)', flex: 1, lineHeight: 1.4 }}
             >
               {step.instruction}
             </Typography>
             <Typography
               variant="caption"
-              sx={{ color: '#555', whiteSpace: 'nowrap' }}
+              sx={{ color: 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap' }}
             >
               {formatDistance(step.distanceM)}
             </Typography>
