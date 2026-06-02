@@ -61,10 +61,11 @@ function HeatmapSpotlightCard() {
           bottom: 32,
           left: 12,
           width: 280,
-          background: 'rgba(22,22,22,0.96)',
-          border: '1px solid #2a2a2a',
-          borderRadius: '10px',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+          background: 'rgba(5,5,10,0.92)',
+          backdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: '12px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.7)',
           overflow: 'hidden',
           zIndex: 10,
         }}
@@ -77,7 +78,7 @@ function HeatmapSpotlightCard() {
             justifyContent: 'space-between',
             px: 1.25,
             py: 0.75,
-            borderBottom: '1px solid #2a2a2a',
+            borderBottom: '1px solid rgba(255,255,255,0.07)',
           }}
         >
           <Typography sx={{ color: ACCENT, fontWeight: 700, fontSize: 12 }}>
@@ -103,7 +104,7 @@ function HeatmapSpotlightCard() {
                 display: 'flex',
                 flexWrap: 'wrap',
                 gap: 0.5,
-                borderBottom: '1px solid #2a2a2a',
+                borderBottom: '1px solid rgba(255,255,255,0.07)',
               }}
             >
               {Object.entries(spotlight.categoryCounts).map(([cat, count]) => (
@@ -114,9 +115,9 @@ function HeatmapSpotlightCard() {
                   sx={{
                     fontSize: 10,
                     height: 20,
-                    background: '#2a2a2a',
-                    color: '#ccc',
-                    border: '1px solid #333',
+                    background: 'rgba(255,255,255,0.05)',
+                    color: 'rgba(255,255,255,0.7)',
+                    border: '1px solid rgba(255,255,255,0.1)',
                   }}
                 />
               ))}
@@ -135,7 +136,7 @@ function HeatmapSpotlightCard() {
                     py: 0.5,
                     cursor: 'pointer',
                     borderBottom:
-                      i < spotlight.topPois.length - 1 ? '1px solid #222' : 'none',
+                      i < spotlight.topPois.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
                     '&:hover': { background: 'rgba(255,255,255,0.04)', borderRadius: 0.5 },
                   }}
                 >
@@ -156,7 +157,7 @@ function HeatmapSpotlightCard() {
               sx={{
                 px: 1.25,
                 py: 0.75,
-                borderTop: '1px solid #2a2a2a',
+                borderTop: '1px solid rgba(255,255,255,0.07)',
                 textAlign: 'center',
                 cursor: 'pointer',
                 '&:hover': { background: 'rgba(255,112,67,0.06)' },
@@ -181,7 +182,7 @@ function HeatmapSpotlightCard() {
                       py: 0.5,
                       cursor: 'pointer',
                       borderBottom:
-                        i < spotlight.allPois.length - 1 ? '1px solid #222' : 'none',
+                        i < spotlight.allPois.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
                       '&:hover': { background: 'rgba(255,255,255,0.04)', borderRadius: 0.5 },
                     }}
                   >
