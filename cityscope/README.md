@@ -1,124 +1,137 @@
-# CityScope
+# CityScope — Frontend
 
-A geospatial web application for exploring urban infrastructure through interactive map visualisations. Analyse walking distances, plan routes, and inspect city layers across multiple cities — all in a dark-themed, sidebar-driven interface.
+React 19 + Mapbox GL JS 3 geospatial application. Draw isochrones, plan routes, search places, and explore POI density across multiple cities.
 
-<!-- ![CityScope Screenshot](screenshot.png) -->
+🔗 **[Live Demo](https://your-demo-url.vercel.app)** &nbsp;·&nbsp; [Backend](../cityscope-backend/)
+
+---
 
 ## Features
 
-- **Interactive Map** — Full-screen Mapbox GL map with dark-v11 style, 2D/3D toggle, and smooth city-switching fly animations
-- **Layer Toggling** — Show/hide roads, buildings, and district boundaries from the sidebar
-- **District Boundaries** — GeoJSON overlay of city Bezirke/districts with fill and outline
-- **3D Building Extrusion** — Toggle fill-extrusion rendering of city buildings
-- **Feature Click Panel** — Click any road or building to see its name, type, and coordinates in a detail panel
-- **POI Heatmap** — Kernel density heatmap of points of interest with a colour-scale legend; click anywhere to open a spotlight card showing nearby POI counts by category
-- **Isochrone Analysis** — Click the map to draw walking, cycling, or driving reachability polygons (5/10/15/20/25/30 min bands); sidebar shows POI counts per band in collapsible accordions with a scrollable POI list and fly-to on click
-- **Route Planning** — Place A and B pins on the map to draw a walking, cycling, or driving route; sidebar shows total distance, duration, and a scrollable turn-by-turn step list
-- **Multi-city Support** — City switcher in the navbar; switching city clears all active analysis and flies the map to the new location
+- **Isochrone analysis** — reachability polygons (5–30 min) with per-band POI aggregation, accordion results, and fly-to on POI click
+- **Route planning** — A/B pin placement, walking / cycling / driving profiles, real-time directions from Mapbox, turn-by-turn step list
+- **Geocoding search** — floating pill search bar, 300 ms debounced suggestions from Mapbox Geocoding API, proximity-biased to the active city
+- **POI heatmap** — kernel density layer with spotlight card (nearest POIs by category on click)
+- **Feature inspection** — click any road or building to open a detail panel with properties from the Mapbox style
+- **Layer toggling** — roads, buildings, district boundaries, heatmap
+- **3D building extrusion** — flat ↔ fill-extrusion toggle
+- **Multi-city** — city switcher, per-city districts and POIs from a PostgreSQL backend
 
-## Tech Stack
+---
 
-| Category | Technology |
-|----------|------------|
-| Framework | React 19, TypeScript 5.9 |
-| Build | Vite 8 |
-| Map | Mapbox GL JS 3 |
-| UI | Material UI 7 |
+## Tech stack
+
+| Layer | Technology |
+|-------|------------|
+| Framework | React 19 · TypeScript 5.9 · Vite 8 |
+| Map | Mapbox GL JS 3 (dark-v11) |
+| Map APIs | Isochrone API · Directions API · Geocoding API v5 |
+| UI | Material UI 7 — custom dark glass theme |
 | State | Zustand 5 |
 | Data fetching | TanStack Query 5 |
-| Map APIs | Mapbox Isochrone API, Mapbox Directions API |
 
-## Getting Started
+---
 
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) 18+
-- A [Mapbox](https://www.mapbox.com/) account with an access token
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/your-username/cityscope.git
-cd cityscope
-
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp .env.example .env.local
-```
-
-Edit `.env.local` and add your Mapbox access token:
-
-```
-VITE_MAPBOX_TOKEN=pk.your_mapbox_token_here
-```
-
-You can get a free token at [account.mapbox.com/access-tokens](https://account.mapbox.com/access-tokens/).
-
-### Development
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:5173](http://localhost:5173) in your browser.
-
-### Build
-
-```bash
-npm run build
-npm run preview
-```
-
-## Project Structure
+## Project structure
 
 ```
 src/
 ├── components/
-│   ├── FeaturePanel.tsx           # Clicked feature detail panel (road/building)
-│   ├── HeatmapSpotlightCard.tsx   # POI category breakdown on map click
+│   ├── MapView.tsx                # Map init, all layer/source/marker operations
+│   ├── Navbar.tsx                 # App bar — city switcher, 3D toggle
+│   ├── Sidebar.tsx                # Layer toggles + analysis tool cards
+│   ├── GeoSearch.tsx              # Floating geocoding search bar
 │   ├── IsochroneControls.tsx      # Isochrone mode toggle, profile, time bands
-│   ├── IsochroneResultsPanel.tsx  # Band accordions, POI list, fly-to, clear
-│   ├── MapView.tsx                # Map init, layers, click/hover handlers
-│   ├── Navbar.tsx                 # App bar with city switcher
-│   ├── RouteControls.tsx          # Route toggle, Set A/B buttons, travel mode
+│   ├── IsochroneResultsPanel.tsx  # Band accordions, POI list, fly-to
+│   ├── RouteControls.tsx          # Route mode — Set A/B, travel mode, status
 │   ├── RouteResultsPanel.tsx      # Distance, duration, turn-by-turn steps
-│   └── Sidebar.tsx                # Layer toggles + analysis tools panel
+│   ├── FeaturePanel.tsx           # Right drawer — clicked feature properties
+│   └── HeatmapSpotlightCard.tsx   # Bottom-left — nearest POIs on heatmap click
 ├── hooks/
-│   ├── useCities.ts               # Fetch available cities from API
-│   ├── useDistricts.ts            # Fetch district GeoJSON
-│   ├── useHeatmapSpotlight.ts     # POI counts near a clicked point
-│   ├── useIsochrone.ts            # Mapbox Isochrone API query
+│   ├── useIsochrone.ts            # Mapbox Isochrone API — TanStack Query
+│   ├── useRoute.ts                # Mapbox Directions API — TanStack Query
+│   ├── useGeocode.ts              # Mapbox Geocoding API — TanStack Query
 │   ├── useIsochroneResults.ts     # Aggregate POIs per isochrone band
-│   ├── usePois.ts                 # Fetch POI dataset
-│   └── useRoute.ts                # Mapbox Directions API query
+│   ├── useHeatmapSpotlight.ts     # Nearest POIs to a clicked point
+│   ├── usePois.ts                 # POI dataset from backend
+│   ├── useDistricts.ts            # District GeoJSON from backend
+│   └── useCities.ts               # City list from backend
 ├── store/
-│   ├── cityStore.ts               # Active city selection
-│   ├── featureStore.ts            # Clicked map feature state
+│   ├── mapStore.ts                # Mapbox map instance (for imperative access)
+│   ├── cityStore.ts               # Active city
+│   ├── layerStore.ts              # Layer visibility
+│   ├── isochroneStore.ts          # Isochrone mode — enabled, origin, profile
+│   ├── routeStore.ts              # Route mode — enabled, pins, profile
+│   ├── geoSearchStore.ts          # Geocoding result (for map pin)
 │   ├── heatmapStore.ts            # Heatmap click origin
-│   ├── isochroneStore.ts          # Isochrone mode, origin, profile
-│   ├── layerStore.ts              # Layer visibility flags
-│   ├── mapStore.ts                # Mapbox map instance ref
-│   └── routeStore.ts              # Route mode, pins, profile
+│   └── featureStore.ts            # Clicked map feature
 ├── constants/
-│   └── layerConfig.ts             # Layer IDs, Mapbox filters, colours
-├── App.tsx                        # Root layout
-├── main.tsx                       # Entry point with providers
-└── theme.ts                       # MUI dark theme configuration
-public/
-└── data/
-    └── berlin-districts.geojson   # Berlin Bezirke boundaries
+│   └── layerConfig.ts             # Layer IDs, Mapbox filter functions, colours
+├── App.tsx
+├── main.tsx
+└── theme.ts                       # MUI dark glass theme
 ```
 
-## Architecture Notes
+---
 
-- **State management** — Zustand stores for all shared state. Components subscribe to stores directly; no prop drilling through `App`.
-- **Map mutations** — All Mapbox source/layer operations happen exclusively in `MapView.tsx`. Sidebar components update stores; `MapView` reacts via `useEffect`.
-- **Mode exclusivity** — Isochrone and Route Planning modes are mutually exclusive. Enabling either one disables the other at the toggle level.
-- **Data fetching** — TanStack Query handles all async calls (cities, districts, POIs, isochrone polygons, directions). Query results are cached and keyed to prevent redundant network requests.
-- **Imperative store reads** — Click handlers inside `map.on('click', ...)` use `useStore.getState()` (not hooks) to read current state without stale closure issues.
+## Architecture decisions
+
+### All Mapbox mutations live in MapView
+
+Every `map.addSource`, `map.addLayer`, and `new mapboxgl.Marker()` call lives in `MapView.tsx`. Components write to Zustand stores; `MapView` reacts via `useEffect`. This keeps the Mapbox lifecycle isolated — no scattered map calls across the tree, no race conditions from multiple owners.
+
+### Imperative `getState()` in event handlers
+
+Map click handlers (`map.on('click', ...)`) run inside a `useEffect` that fires once on mount, which means they close over stale hook values. All stores are read imperatively via `useStore.getState()` inside these handlers. This avoids the classic stale-closure problem with GL JS + React and is consistent with Zustand's documentation for this pattern.
+
+### TanStack Query with `enabled` guards
+
+Every external data source uses TanStack Query:
+
+```ts
+// Isochrone query only fires when origin is set
+useQuery({
+  queryKey: ['isochrone', origin?.lng, origin?.lat, profile, contourMinutes],
+  queryFn: () => fetchIsochrone(...),
+  enabled: enabled && origin !== null,
+  staleTime: 5 * 60 * 1000,
+})
+```
+
+The `enabled` guard means no speculative fetches, and `staleTime` prevents redundant network calls when the user toggles back to a previous configuration.
+
+### Mode exclusivity without circular imports
+
+Isochrone and Route modes are mutually exclusive. The naïve solution — having each store import the other — creates circular dependencies. Instead, the control components handle it: when enabling a mode, the component reads the other store imperatively via `getState()` and disables it. The stores themselves have no knowledge of each other.
+
+### Geocoding debounce + `freeSolo` gotcha
+
+The GeoSearch component uses a 300 ms `setTimeout` debounce before passing the query to `useGeocode`. MUI Autocomplete's `freeSolo` prop suppresses the popup when `options` is empty — which silently breaks `noOptionsText`. The fix is to control `open` explicitly via focus state and ignore `reason === 'reset'` in `onInputChange` to prevent MUI from clearing the input on blur.
+
+---
+
+## Commands
+
+```bash
+npm run dev       # Start dev server (http://localhost:5173)
+npm run build     # TypeScript check + Vite production build
+npm run lint      # ESLint
+npm run preview   # Preview production build
+```
+
+---
+
+## Environment variables
+
+```bash
+# .env.local
+VITE_MAPBOX_TOKEN=pk.your_token_here
+VITE_API_URL=http://localhost:3001
+```
+
+Get a free Mapbox token at [account.mapbox.com/access-tokens](https://account.mapbox.com/access-tokens/).
+
+---
 
 ## License
 
