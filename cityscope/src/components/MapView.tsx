@@ -9,6 +9,7 @@ import { useCityStore } from '../store/cityStore';
 import { useIsochroneStore } from '../store/isochroneStore';
 import { useHeatmapStore } from '../store/heatmapStore';
 import { useRouteStore } from '../store/routeStore';
+import { useGeoSearchStore } from '../store/geoSearchStore';
 import { useRoute } from '../hooks/useRoute';
 import { useDistricts } from '../hooks/useDistricts';
 import { usePois } from '../hooks/usePois';
@@ -148,6 +149,7 @@ function MapView() {
   const isochroneMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const routeOriginMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const routeDestinationMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const geoSearchMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
   const layers = useLayerStore((state) => state.layers);
@@ -162,6 +164,7 @@ function MapView() {
   const { data: districtsData } = useDistricts();
   const { data: poisData } = usePois();
   const { data: isochroneData } = useIsochrone();
+  const geoSearchResult = useGeoSearchStore((s) => s.result);
 
   // Initialize map
   useEffect(() => {
@@ -315,6 +318,8 @@ function MapView() {
       routeOriginMarkerRef.current = null;
       routeDestinationMarkerRef.current?.remove();
       routeDestinationMarkerRef.current = null;
+      geoSearchMarkerRef.current?.remove();
+      geoSearchMarkerRef.current = null;
       useMapStore.getState().setMap(null);
       mapRef.current?.remove();
       mapRef.current = null;
@@ -343,6 +348,7 @@ function MapView() {
     useIsochroneStore.getState().reset();
     useHeatmapStore.getState().setClickOrigin(null);
     useRouteStore.getState().reset();
+    useGeoSearchStore.getState().setResult(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCity.id, mapReady]);
 
@@ -598,6 +604,21 @@ function MapView() {
         .addTo(map);
     }
   }, [routeOrigin, routeDestination, routeEnabled, mapReady]);
+
+  // Sync geo search pin marker
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+
+    geoSearchMarkerRef.current?.remove();
+    geoSearchMarkerRef.current = null;
+
+    if (geoSearchResult) {
+      geoSearchMarkerRef.current = new mapboxgl.Marker()
+        .setLngLat([geoSearchResult.lng, geoSearchResult.lat])
+        .addTo(map);
+    }
+  }, [geoSearchResult, mapReady]);
 
   return (
     <Box
