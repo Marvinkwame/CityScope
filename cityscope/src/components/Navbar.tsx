@@ -2,6 +2,7 @@ import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
+import Box from '@mui/material/Box';
 import Autocomplete from '@mui/material/Autocomplete';
 import TextField from '@mui/material/TextField';
 import InputAdornment from '@mui/material/InputAdornment';
@@ -22,13 +23,45 @@ function Navbar() {
   return (
     <AppBar
       position="fixed"
-      sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
+      elevation={0}
+      sx={{
+        zIndex: (theme) => theme.zIndex.drawer + 1,
+        background: 'rgba(5,5,10,0.95)',
+        backdropFilter: 'blur(12px)',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
+      }}
     >
       <Toolbar>
-        <Typography variant="h6" noWrap sx={{ mr: 3 }}>
-          CityScope
-        </Typography>
+        {/* Logo mark + wordmark */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mr: 3 }}>
+          <Box
+            sx={{
+              width: 24,
+              height: 24,
+              borderRadius: '6px',
+              background: 'linear-gradient(135deg, #00E5FF 0%, #0288D1 100%)',
+              boxShadow: '0 0 12px rgba(0,229,255,0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <Box
+              sx={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: 'rgba(0,0,0,0.5)',
+              }}
+            />
+          </Box>
+          <Typography variant="h6" noWrap sx={{ fontWeight: 700, letterSpacing: '0.3px' }}>
+            CityScope
+          </Typography>
+        </Box>
 
+        {/* City switcher */}
         <Autocomplete
           size="small"
           disableClearable
@@ -50,16 +83,13 @@ function Navbar() {
             mr: 'auto',
             '& .MuiOutlinedInput-root': {
               color: 'inherit',
-              '& fieldset': {
-                borderColor: 'rgba(255,255,255,0.23)',
-              },
-              '&:hover fieldset': {
-                borderColor: 'rgba(255,255,255,0.5)',
-              },
+              background: 'rgba(255,255,255,0.05)',
+              borderRadius: '8px',
+              '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
+              '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
+              '&.Mui-focused fieldset': { borderColor: 'rgba(0,229,255,0.4)' },
             },
-            '& .MuiSvgIcon-root': {
-              color: 'rgba(255,255,255,0.7)',
-            },
+            '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.5)' },
           }}
           renderInput={(params) => (
             <TextField
@@ -70,7 +100,7 @@ function Navbar() {
                   ...params.InputProps,
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchIcon sx={{ color: 'rgba(255,255,255,0.7)', fontSize: 20 }} />
+                      <SearchIcon sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 20 }} />
                     </InputAdornment>
                   ),
                 },
@@ -79,14 +109,21 @@ function Navbar() {
           )}
         />
 
+        {/* 3D toggle */}
         <Button
           color="inherit"
           startIcon={<ThreeDRotationIcon />}
           onClick={toggle3D}
           variant={is3D ? 'outlined' : 'text'}
           sx={{
-            borderColor: is3D ? 'primary.main' : 'transparent',
-            backgroundColor: is3D ? 'rgba(144, 202, 249, 0.12)' : 'transparent',
+            borderRadius: '8px',
+            borderColor: is3D ? 'rgba(0,229,255,0.4)' : 'rgba(255,255,255,0.12)',
+            backgroundColor: is3D ? 'rgba(0,229,255,0.08)' : 'transparent',
+            color: is3D ? '#00E5FF' : 'rgba(255,255,255,0.7)',
+            '&:hover': {
+              backgroundColor: is3D ? 'rgba(0,229,255,0.12)' : 'rgba(255,255,255,0.06)',
+              borderColor: is3D ? 'rgba(0,229,255,0.5)' : 'rgba(255,255,255,0.2)',
+            },
           }}
         >
           3D Mode
