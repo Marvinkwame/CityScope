@@ -19,6 +19,7 @@ import { useIsochrone } from '../hooks/useIsochrone';
 import { useIsochroneResults } from '../hooks/useIsochroneResults';
 import { usePois } from '../hooks/usePois';
 import { ISOCHRONE_COLOR } from '../constants/layerConfig';
+import { MONO } from '../theme';
 
 const PROFILE_LABEL: Record<string, string> = {
   walking: 'walking',
@@ -27,7 +28,7 @@ const PROFILE_LABEL: Record<string, string> = {
 };
 
 /** Band colours mirror the map fill-color step expression */
-const BAND_COLORS = ['#00E5FF', '#00BCD4', '#0097A7'] as const;
+const BAND_COLORS = ['#00C8E0', '#00BCD4', '#0097A7'] as const;
 function bandColor(idx: number): string {
   return BAND_COLORS[Math.min(idx, BAND_COLORS.length - 1)];
 }
@@ -158,6 +159,7 @@ function IsochroneResultsPanel() {
                       size="small"
                       variant="outlined"
                       sx={{
+                        fontFamily: MONO,
                         fontSize: '0.65rem',
                         height: 20,
                         borderColor: 'divider',
@@ -172,6 +174,7 @@ function IsochroneResultsPanel() {
                       size="small"
                       variant="outlined"
                       sx={{
+                        fontFamily: MONO,
                         fontSize: '0.65rem',
                         height: 20,
                         borderColor: 'divider',

@@ -11,6 +11,7 @@ import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk';
 import { useRouteStore } from '../store/routeStore';
 import { useIsochroneStore } from '../store/isochroneStore';
 import type { TravelProfile } from '../store/isochroneStore';
+import { MONO } from '../theme';
 import RouteResultsPanel from './RouteResultsPanel';
 
 function RouteControls() {
@@ -57,7 +58,6 @@ function RouteControls() {
             checked={enabled}
             onChange={(e) => handleToggle(e.target.checked)}
             size="small"
-            sx={{ '& .MuiSwitch-thumb': { color: '#00E5FF' } }}
           />
         }
         label={
@@ -116,11 +116,12 @@ function RouteControls() {
           <Box>
             <Typography
               sx={{
-                fontSize: '0.65rem',
-                fontWeight: 600,
+                fontFamily: MONO,
+                fontSize: '0.58rem',
+                fontWeight: 500,
                 letterSpacing: '1.5px',
                 textTransform: 'uppercase',
-                color: 'rgba(255,255,255,0.25)',
+                color: 'rgba(255,255,255,0.42)',
                 mb: 0.5,
                 display: 'block',
               }}

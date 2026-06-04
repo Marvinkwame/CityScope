@@ -10,6 +10,7 @@ import { useLayerStore } from '../store/layerStore';
 import { useHeatmapStore } from '../store/heatmapStore';
 import { useMapStore } from '../store/mapStore';
 import { useHeatmapSpotlight } from '../hooks/useHeatmapSpotlight';
+import { MONO } from '../theme';
 
 function categoryEmoji(cat: string): string {
   const map: Record<string, string> = {
@@ -58,14 +59,15 @@ function HeatmapSpotlightCard() {
       <Box
         sx={{
           position: 'absolute',
-          bottom: 32,
+          bottom: { xs: 40, sm: 32 },
           left: 12,
-          width: 280,
-          background: 'rgba(5,5,10,0.92)',
+          width: { xs: 'calc(100vw - 24px)', sm: 280 },
+          maxWidth: 300,
+          background: 'rgba(20,21,23,0.92)',
           backdropFilter: 'blur(16px)',
-          border: '1px solid rgba(255,255,255,0.1)',
+          border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: '12px',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.7)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.55)',
           overflow: 'hidden',
           zIndex: 10,
         }}
@@ -144,7 +146,7 @@ function HeatmapSpotlightCard() {
                   <Typography sx={{ flex: 1, color: '#ddd', fontSize: 11 }} noWrap>
                     {poi.name ?? 'Unnamed'}
                   </Typography>
-                  <Typography sx={{ color: '#555', fontSize: 10, flexShrink: 0 }}>
+                  <Typography sx={{ fontFamily: MONO, color: '#555', fontSize: 10, flexShrink: 0 }}>
                     {poi.distanceM}m
                   </Typography>
                 </Box>
@@ -190,7 +192,7 @@ function HeatmapSpotlightCard() {
                     <Typography sx={{ flex: 1, color: '#ddd', fontSize: 11 }} noWrap>
                       {poi.name ?? 'Unnamed'}
                     </Typography>
-                    <Typography sx={{ color: '#555', fontSize: 10, flexShrink: 0 }}>
+                    <Typography sx={{ fontFamily: MONO, color: '#555', fontSize: 10, flexShrink: 0 }}>
                       {poi.distanceM}m
                     </Typography>
                   </Box>

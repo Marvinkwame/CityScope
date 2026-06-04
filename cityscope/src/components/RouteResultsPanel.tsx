@@ -5,6 +5,7 @@ import Typography from '@mui/material/Typography';
 import CloseIcon from '@mui/icons-material/Close';
 import { useRoute } from '../hooks/useRoute';
 import { useRouteStore } from '../store/routeStore';
+import { CYAN, MONO } from '../theme';
 
 function formatDistance(metres: number): string {
   if (metres < 1000) return `${Math.round(metres / 10) * 10}m`;
@@ -41,27 +42,37 @@ function RouteResultsPanel() {
       <Box
         sx={{
           display: 'flex',
-          background: 'rgba(0,229,255,0.04)',
+          background: 'rgba(86,199,190,0.05)',
           borderRadius: '10px',
-          border: '1px solid rgba(0,229,255,0.15)',
+          border: '1px solid rgba(86,199,190,0.18)',
           overflow: 'hidden',
           mb: 1,
         }}
       >
         <Box sx={{ flex: 1, py: 1.5, textAlign: 'center' }}>
-          <Typography sx={{ color: '#00E5FF', fontWeight: 700, fontSize: '1.1rem', textShadow: '0 0 10px rgba(0,229,255,0.4)' }}>
+          <Typography sx={{
+            fontFamily: MONO,
+            color: CYAN,
+            fontWeight: 700,
+            fontSize: '1.1rem',
+          }}>
             {formatDistance(routeData.distanceM)}
           </Typography>
-          <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>
+          <Typography sx={{ fontFamily: MONO, fontSize: '0.55rem', fontWeight: 500, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.42)' }}>
             distance
           </Typography>
         </Box>
         <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255,255,255,0.06)' }} />
         <Box sx={{ flex: 1, py: 1.5, textAlign: 'center' }}>
-          <Typography sx={{ color: '#00E5FF', fontWeight: 700, fontSize: '1.1rem', textShadow: '0 0 10px rgba(0,229,255,0.4)' }}>
+          <Typography sx={{
+            fontFamily: MONO,
+            color: CYAN,
+            fontWeight: 700,
+            fontSize: '1.1rem',
+          }}>
             {formatDuration(routeData.durationS)}
           </Typography>
-          <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)' }}>
+          <Typography sx={{ fontFamily: MONO, fontSize: '0.55rem', fontWeight: 500, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.42)' }}>
             duration
           </Typography>
         </Box>
@@ -92,7 +103,13 @@ function RouteResultsPanel() {
             }}
           >
             <Typography
-              sx={{ color: '#00E5FF', fontSize: '0.8rem', minWidth: 14, mt: 0.1 }}
+              sx={{
+                fontFamily: MONO,
+                color: CYAN,
+                fontSize: '0.8rem',
+                minWidth: 14,
+                mt: 0.1,
+              }}
             >
               {maneuverArrow(step.maneuverType, step.maneuverModifier)}
             </Typography>
@@ -104,7 +121,7 @@ function RouteResultsPanel() {
             </Typography>
             <Typography
               variant="caption"
-              sx={{ color: 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap' }}
+              sx={{ fontFamily: MONO, color: 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap' }}
             >
               {formatDistance(step.distanceM)}
             </Typography>
