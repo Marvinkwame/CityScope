@@ -1,5 +1,4 @@
 import Drawer from '@mui/material/Drawer';
-import Toolbar from '@mui/material/Toolbar';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
@@ -9,9 +8,13 @@ import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
 import { useFeatureStore } from '../store/featureStore';
 import { LAYER_CONFIGS } from '../constants/layerConfig';
+import { MONO } from '../theme';
+import { NAV_HEIGHT } from './Navbar';
 
 const PANEL_WIDTH = 360;
 
@@ -44,6 +47,9 @@ function FeaturePanel() {
   const selectedFeature = useFeatureStore((state) => state.selectedFeature);
   const clearFeature = useFeatureStore((state) => state.clearFeature);
 
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
   const isOpen = selectedFeature !== null;
   const config = selectedFeature
     ? LAYER_CONFIGS.find((c) => c.id === selectedFeature.type)
@@ -54,18 +60,37 @@ function FeaturePanel() {
 
   return (
     <Drawer
-      variant="persistent"
-      anchor="right"
+      variant={isMobile ? 'temporary' : 'persistent'}
+      anchor={isMobile ? 'bottom' : 'right'}
       open={isOpen}
+      onClose={clearFeature}
       sx={{
         '& .MuiDrawer-paper': {
-          width: PANEL_WIDTH,
           boxSizing: 'border-box',
-          borderLeft: '1px solid rgba(255,255,255,0.07)',
+          backgroundImage: 'none',
+          ...(isMobile
+            ? {
+                width: '100%',
+                maxHeight: '78vh',
+                borderTopLeftRadius: 16,
+                borderTopRightRadius: 16,
+                boxShadow: '0 -8px 32px rgba(0,0,0,0.5)',
+              }
+            : {
+                width: PANEL_WIDTH,
+                borderLeft: 'none',
+                boxShadow: '-8px 0 32px rgba(0,0,0,0.45)',
+              }),
         },
       }}
     >
-      <Toolbar />
+      {isMobile ? (
+        <Box sx={{ pt: 1.25, pb: 0.5, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
+          <Box sx={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.20)' }} />
+        </Box>
+      ) : (
+        <Box sx={{ height: `${NAV_HEIGHT}px`, flexShrink: 0 }} />
+      )}
       {selectedFeature && (
         <Box sx={{ p: 2 }}>
           <Box
@@ -97,7 +122,12 @@ function FeaturePanel() {
 
           <Typography
             variant="body2"
-            sx={{ mt: 0.5, color: 'rgba(255,255,255,0.45)' }}
+            sx={{
+              mt: 0.5,
+              color: 'rgba(255,255,255,0.45)',
+              fontFamily: MONO,
+              fontSize: '0.78rem',
+            }}
           >
             {selectedFeature.coordinates.lat.toFixed(5)},{' '}
             {selectedFeature.coordinates.lng.toFixed(5)}
@@ -139,6 +169,8 @@ function FeaturePanel() {
                       sx={{
                         borderBottom: '1px solid rgba(255,255,255,0.05)',
                         pr: 0,
+                        fontFamily: MONO,
+                        fontSize: '0.78rem',
                       }}
                     >
                       {String(value)}
