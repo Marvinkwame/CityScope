@@ -1,6 +1,5 @@
 import Box from '@mui/material/Box';
-import Toolbar from '@mui/material/Toolbar';
-import Navbar from './components/Navbar';
+import Navbar, { NAV_HEIGHT } from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import MapView from './components/MapView';
 import FeaturePanel from './components/FeaturePanel';
@@ -12,24 +11,23 @@ function App() {
   const selectedCity = useCityStore((state) => state.selectedCity);
 
   return (
-    <Box sx={{ display: 'flex', height: '100vh', width: '100vw' }}>
+    <Box sx={{ height: '100vh', width: '100vw', overflow: 'hidden' }}>
       <Navbar />
       <Sidebar />
+      {/* Map is always full-screen below the navbar; sidebar overlays it */}
       <Box
         component="main"
         sx={{
-          flexGrow: 1,
-          height: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
+          position: 'fixed',
+          top: `${NAV_HEIGHT}px`,
+          left: 0,
+          right: 0,
+          bottom: 0,
         }}
       >
-        <Toolbar />
-        <Box sx={{ flexGrow: 1, position: 'relative' }}>
-          <MapView />
-          <HeatmapSpotlightCard />
-          <GeoSearch key={selectedCity.id} />
-        </Box>
+        <MapView />
+        <HeatmapSpotlightCard />
+        <GeoSearch key={selectedCity.id} />
       </Box>
       <FeaturePanel />
     </Box>
