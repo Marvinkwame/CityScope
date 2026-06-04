@@ -5,7 +5,7 @@
 <!-- Replace with an actual screenshot once deployed -->
 ![CityScope](.github/screenshot.png)
 
-🔗 **[Live Demo](https://your-demo-url.vercel.app)** &nbsp;·&nbsp; [Frontend](cityscope/) &nbsp;·&nbsp; [Backend](cityscope-backend/)
+🔗 **[Live Demo](city-scope-seven.vercel.app)** &nbsp;·&nbsp; [Frontend](cityscope/) &nbsp;·&nbsp; [Backend](cityscope-backend/)
 
 ---
 
