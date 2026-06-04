@@ -34,6 +34,34 @@ import {
 } from '../constants/layerConfig';
 import type { LayerId } from '../constants/layerConfig';
 
+/**
+ * Recolour the dark-v11 basemap's blue-cast base layers to graphite so the
+ * canvas shares a world with the graphite UI chrome. Guarded per-layer so a
+ * future style change can never throw. Roads / labels keep their own colours.
+ */
+const BASEMAP_TINT = {
+  background: '#0C0D0F', // matches theme INK
+  land: '#101113',
+  water: '#181A1F',
+};
+
+function neutralizeBasemap(map: mapboxgl.Map) {
+  const layers = map.getStyle().layers ?? [];
+  layers.forEach((l) => {
+    try {
+      if (l.type === 'background') {
+        map.setPaintProperty(l.id, 'background-color', BASEMAP_TINT.background);
+      } else if (l.type === 'fill' && /water/i.test(l.id)) {
+        map.setPaintProperty(l.id, 'fill-color', BASEMAP_TINT.water);
+      } else if (l.type === 'fill' && /(^land$|landuse|landcover|national[-_]?park)/i.test(l.id)) {
+        map.setPaintProperty(l.id, 'fill-color', BASEMAP_TINT.land);
+      }
+    } catch {
+      /* layer absent or not paintable — ignore */
+    }
+  });
+}
+
 function setLayerVisibility(
   map: mapboxgl.Map,
   ids: string[],
@@ -88,7 +116,7 @@ function addExtrusionLayer(map: mapboxgl.Map) {
     source: 'composite',
     'source-layer': 'building',
     paint: {
-      'fill-extrusion-color': '#90CAF9',
+      'fill-extrusion-color': '#3E424B',
       'fill-extrusion-height': ['get', 'height'],
       'fill-extrusion-base': ['get', 'min_height'],
       'fill-extrusion-opacity': 0.7,
@@ -183,6 +211,8 @@ function MapView() {
     map.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
     map.on('style.load', () => {
+      neutralizeBasemap(map);
+
       const styleLayers = map.getStyle().layers;
 
       roadLayerIdsRef.current = styleLayers
