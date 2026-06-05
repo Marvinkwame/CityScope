@@ -7,7 +7,7 @@ import { CITY_CONFIGS } from '../config/cities.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function run(script: string, args: string[] = []) {
-  const cmd = `npx tsx ${path.resolve(__dirname, script)} ${args.join(' ')}`;
+  const cmd = `npx tsx "${path.resolve(__dirname, script)}" ${args.join(' ')}`;
   console.log(`\n> ${cmd}`);
   execSync(cmd, { stdio: 'inherit' });
 }
