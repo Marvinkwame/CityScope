@@ -137,7 +137,6 @@ function Sidebar() {
                       px: 1,
                       py: 0.5,
                       borderRadius: '5px',
-                      borderLeft: `2px solid ${on ? color : 'rgba(255,255,255,0.07)'}`,
                       background: on ? 'rgba(255,255,255,0.025)' : 'transparent',
                       transition: 'all 0.15s ease',
                       '&:hover': { background: 'rgba(255,255,255,0.04)' },
