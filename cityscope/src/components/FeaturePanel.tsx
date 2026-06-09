@@ -15,6 +15,8 @@ import { useFeatureStore } from '../store/featureStore';
 import { LAYER_CONFIGS } from '../constants/layerConfig';
 import { MONO } from '../theme';
 import { NAV_HEIGHT } from './Navbar';
+import { useCityStore } from '../store/cityStore';
+import DistrictStatsView from './DistrictStatsView';
 
 const PANEL_WIDTH = 360;
 
@@ -49,6 +51,7 @@ function FeaturePanel() {
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const cityId = useCityStore((s) => s.selectedCity.id);
 
   const isOpen = selectedFeature !== null;
   const config = selectedFeature
@@ -135,54 +138,60 @@ function FeaturePanel() {
 
           <Divider sx={{ my: 1.5 }} />
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-            <Typography
-              sx={{
-                fontSize: '0.65rem',
-                fontWeight: 600,
-                letterSpacing: '2px',
-                textTransform: 'uppercase',
-                color: 'rgba(255,255,255,0.25)',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Properties
-            </Typography>
-            <Box sx={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.06)' }} />
-          </Box>
-
-          {Object.keys(filteredProps).length > 0 ? (
-            <Table size="small">
-              <TableBody>
-                {Object.entries(filteredProps).map(([key, value]) => (
-                  <TableRow key={key}>
-                    <TableCell
-                      sx={{
-                        color: 'text.secondary',
-                        borderBottom: '1px solid rgba(255,255,255,0.05)',
-                        pl: 0,
-                      }}
-                    >
-                      {key}
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        borderBottom: '1px solid rgba(255,255,255,0.05)',
-                        pr: 0,
-                        fontFamily: MONO,
-                        fontSize: '0.78rem',
-                      }}
-                    >
-                      {String(value)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          {selectedFeature.type === 'districts' && selectedFeature.featureId != null ? (
+            <DistrictStatsView cityId={cityId} districtId={selectedFeature.featureId} />
           ) : (
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              No properties available
-            </Typography>
+            <>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                <Typography
+                  sx={{
+                    fontSize: '0.65rem',
+                    fontWeight: 600,
+                    letterSpacing: '2px',
+                    textTransform: 'uppercase',
+                    color: 'rgba(255,255,255,0.25)',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  Properties
+                </Typography>
+                <Box sx={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+              </Box>
+
+              {Object.keys(filteredProps).length > 0 ? (
+                <Table size="small">
+                  <TableBody>
+                    {Object.entries(filteredProps).map(([key, value]) => (
+                      <TableRow key={key}>
+                        <TableCell
+                          sx={{
+                            color: 'text.secondary',
+                            borderBottom: '1px solid rgba(255,255,255,0.05)',
+                            pl: 0,
+                          }}
+                        >
+                          {key}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            borderBottom: '1px solid rgba(255,255,255,0.05)',
+                            pr: 0,
+                            fontFamily: MONO,
+                            fontSize: '0.78rem',
+                          }}
+                        >
+                          {String(value)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  No properties available
+                </Typography>
+              )}
+            </>
           )}
         </Box>
       )}
