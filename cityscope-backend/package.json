@@ -10,7 +10,10 @@
     "seed:cities": "tsx src/scripts/seed-cities.ts",
     "seed:pois": "tsx src/scripts/seed-pois.ts",
     "seed:all": "tsx src/scripts/seed-all.ts",
-    "fetch:pois": "tsx src/scripts/fetch-pois.ts"
+    "fetch:pois": "tsx src/scripts/fetch-pois.ts",
+    "migrate": "tsx src/scripts/migrate.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "cors": "^2.8.6",
@@ -24,6 +27,7 @@
     "@types/node": "^25.9.1",
     "@types/pg": "^8.20.0",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.8"
   }
 }
