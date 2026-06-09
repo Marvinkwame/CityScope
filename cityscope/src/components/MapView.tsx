@@ -301,6 +301,7 @@ function MapView() {
         useFeatureStore.getState().selectFeature({
           type: winner.type,
           sourceLayerId: winner.feature.layer!.id,
+          featureId: winner.feature.id,
           name,
           coordinates: { lng: e.lngLat.lng, lat: e.lngLat.lat },
           properties: props,

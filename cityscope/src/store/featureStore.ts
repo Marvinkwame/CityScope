@@ -4,6 +4,7 @@ import type { LayerId } from '../constants/layerConfig';
 export interface SelectedFeature {
   type: LayerId;
   sourceLayerId: string;
+  featureId?: string | number;
   name: string | null;
   coordinates: { lng: number; lat: number };
   properties: Record<string, unknown>;
