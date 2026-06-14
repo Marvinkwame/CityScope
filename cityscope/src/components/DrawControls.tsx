@@ -1,4 +1,5 @@
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -29,6 +30,7 @@ function DrawControls() {
   const enabled = useDrawStore((s) => s.enabled);
   const polygon = useDrawStore((s) => s.polygon);
   const setEnabled = useDrawStore((s) => s.setEnabled);
+  const requestClear = useDrawStore((s) => s.requestClear);
   const cityId = useCityStore((s) => s.selectedCity.id);
   const { data, isLoading, isError } = useAreaAnalysis(cityId, polygon);
 
@@ -91,6 +93,23 @@ function DrawControls() {
                 <Typography variant="body2" color="text.secondary">No POIs in this area.</Typography>
               )}
             </Box>
+          )}
+
+          {polygon && (
+            <Button
+              size="small"
+              onClick={requestClear}
+              sx={{
+                alignSelf: 'flex-start',
+                color: 'text.secondary',
+                textTransform: 'none',
+                fontSize: '0.75rem',
+                px: 0.5,
+                minWidth: 0,
+              }}
+            >
+              Clear area
+            </Button>
           )}
         </Box>
       )}

@@ -191,6 +191,7 @@ function MapView() {
   const isochroneOrigin = useIsochroneStore((state) => state.origin);
   const routeEnabled = useRouteStore((s) => s.enabled);
   const drawEnabled = useDrawStore((s) => s.enabled);
+  const drawClearSignal = useDrawStore((s) => s.clearSignal);
   const routeOrigin = useRouteStore((s) => s.origin);
   const routeDestination = useRouteStore((s) => s.destination);
   const { data: routeData } = useRoute();
@@ -226,7 +227,8 @@ function MapView() {
     };
     // Re-arm polygon-drawing so the user can immediately draw another shape
     // without re-clicking the toolbar. Deferred so it doesn't clash with
-    // mapbox-gl-draw's own switch to simple_select after a shape completes.
+    // mapbox-gl-draw's own mode switch after a shape completes. (The built-in
+    // trash button is disabled in this tool; clearing is done via the panel.)
     const reenterDrawMode = () => {
       setTimeout(() => {
         if (drawRef.current && useDrawStore.getState().enabled) {
@@ -709,7 +711,7 @@ function MapView() {
       if (!drawRef.current) {
         drawRef.current = new MapboxDraw({
           displayControlsDefault: false,
-          controls: { polygon: true, trash: true },
+          controls: { polygon: true, trash: false },
         });
       }
       if (!map.hasControl(drawRef.current)) {
@@ -721,6 +723,16 @@ function MapView() {
       useDrawStore.getState().setPolygon(null);
     }
   }, [drawEnabled, mapReady]);
+
+  // Panel "Clear area" button: erase the drawn shape, clear results, re-arm draw
+  useEffect(() => {
+    if (drawClearSignal === 0) return;
+    const draw = drawRef.current;
+    if (!draw) return;
+    draw.deleteAll();
+    useDrawStore.getState().setPolygon(null);
+    if (useDrawStore.getState().enabled) draw.changeMode('draw_polygon');
+  }, [drawClearSignal]);
 
   return (
     <Box
