@@ -6,6 +6,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import theme from './theme';
 import App from './App';
 import './index.css';
+import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 
 const queryClient = new QueryClient();
 

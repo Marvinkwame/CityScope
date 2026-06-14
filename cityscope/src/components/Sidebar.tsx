@@ -15,10 +15,12 @@ import { useTheme } from '@mui/material/styles';
 import { useLayerStore } from '../store/layerStore';
 import { useIsochroneStore } from '../store/isochroneStore';
 import { useRouteStore } from '../store/routeStore';
+import { useDrawStore } from '../store/drawStore';
 import { useCityStore } from '../store/cityStore';
 import { LAYER_CONFIGS } from '../constants/layerConfig';
 import IsochroneControls from './IsochroneControls';
 import RouteControls from './RouteControls';
+import DrawControls from './DrawControls';
 import { AMBER, CYAN, MONO, DISPLAY } from '../theme';
 import { useUIStore } from '../store/uiStore';
 import { NAV_HEIGHT } from './Navbar';
@@ -77,6 +79,7 @@ function Sidebar() {
   const toggleLayer = useLayerStore((state) => state.toggleLayer);
   const isochroneEnabled = useIsochroneStore((s) => s.enabled);
   const routeEnabled = useRouteStore((s) => s.enabled);
+  const drawEnabled = useDrawStore((s) => s.enabled);
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const setSidebarOpen = useUIStore((s) => s.setSidebarOpen);
@@ -247,6 +250,11 @@ function Sidebar() {
           {/* Route module */}
           <ModuleCard active={routeEnabled}>
             <RouteControls />
+          </ModuleCard>
+
+          {/* Draw-area module */}
+          <ModuleCard active={drawEnabled}>
+            <DrawControls />
           </ModuleCard>
         </Module>
       </Box>
