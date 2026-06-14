@@ -12,6 +12,7 @@ import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk';
 import { useIsochroneStore } from '../store/isochroneStore';
 import type { TravelProfile } from '../store/isochroneStore';
 import { useRouteStore } from '../store/routeStore';
+import { useDrawStore } from '../store/drawStore';
 import { AMBER, CYAN, MONO } from '../theme';
 import IsochroneResultsPanel from './IsochroneResultsPanel';
 
@@ -50,6 +51,7 @@ function IsochroneControls() {
   const handleToggle = (checked: boolean) => {
     if (checked) {
       useRouteStore.getState().setEnabled(false);
+      useDrawStore.getState().setEnabled(false);
     }
     setEnabled(checked);
   };
