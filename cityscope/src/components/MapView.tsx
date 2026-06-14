@@ -10,6 +10,9 @@ import { useIsochroneStore } from '../store/isochroneStore';
 import { useHeatmapStore } from '../store/heatmapStore';
 import { useRouteStore } from '../store/routeStore';
 import { useGeoSearchStore } from '../store/geoSearchStore';
+import MapboxDraw from '@mapbox/mapbox-gl-draw';
+import { useDrawStore } from '../store/drawStore';
+import type { PolygonGeometry } from '../store/drawStore';
 import { useRoute } from '../hooks/useRoute';
 import { useDistricts } from '../hooks/useDistricts';
 import { usePois } from '../hooks/usePois';
@@ -178,6 +181,7 @@ function MapView() {
   const routeOriginMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const routeDestinationMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const geoSearchMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const drawRef = useRef<MapboxDraw | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
   const layers = useLayerStore((state) => state.layers);
@@ -186,6 +190,7 @@ function MapView() {
   const isochroneEnabled = useIsochroneStore((state) => state.enabled);
   const isochroneOrigin = useIsochroneStore((state) => state.origin);
   const routeEnabled = useRouteStore((s) => s.enabled);
+  const drawEnabled = useDrawStore((s) => s.enabled);
   const routeOrigin = useRouteStore((s) => s.origin);
   const routeDestination = useRouteStore((s) => s.destination);
   const { data: routeData } = useRoute();
@@ -209,6 +214,44 @@ function MapView() {
     });
 
     map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+    interface DrawChangeEvent {
+      features: Array<{ id?: string | number; geometry: { type: string; coordinates: number[][][] } }>;
+    }
+    const readPolygon = (e: DrawChangeEvent) => {
+      const geom = e.features[0]?.geometry;
+      if (geom && geom.type === 'Polygon') {
+        useDrawStore.getState().setPolygon(geom as PolygonGeometry);
+      }
+    };
+    // Re-arm polygon-drawing so the user can immediately draw another shape
+    // without re-clicking the toolbar. Deferred so it doesn't clash with
+    // mapbox-gl-draw's own switch to simple_select after a shape completes.
+    const reenterDrawMode = () => {
+      setTimeout(() => {
+        if (drawRef.current && useDrawStore.getState().enabled) {
+          drawRef.current.changeMode('draw_polygon');
+        }
+      }, 0);
+    };
+    const handleDrawCreate = (e: DrawChangeEvent) => {
+      const draw = drawRef.current;
+      const created = e.features[0];
+      if (draw && created) {
+        draw.getAll().features.forEach((f) => {
+          if (f.id !== created.id && f.id != null) draw.delete(String(f.id));
+        });
+      }
+      readPolygon(e);
+      reenterDrawMode();
+    };
+    const handleDrawDelete = () => {
+      useDrawStore.getState().setPolygon(null);
+      reenterDrawMode();
+    };
+    map.on('draw.create' as never, handleDrawCreate as never);
+    map.on('draw.update' as never, readPolygon as never);
+    map.on('draw.delete' as never, handleDrawDelete as never);
 
     map.on('style.load', () => {
       neutralizeBasemap(map);
@@ -235,6 +278,8 @@ function MapView() {
 
       // Click handler — select features
       map.on('click', (e) => {
+        if (useDrawStore.getState().enabled) return;
+
         // Isochrone mode intercepts all clicks
         if (useIsochroneStore.getState().enabled) {
           useIsochroneStore.getState().setOrigin({ lng: e.lngLat.lng, lat: e.lngLat.lat });
@@ -352,6 +397,10 @@ function MapView() {
       geoSearchMarkerRef.current?.remove();
       geoSearchMarkerRef.current = null;
       useMapStore.getState().setMap(null);
+      if (drawRef.current && mapRef.current?.hasControl(drawRef.current)) {
+        mapRef.current.removeControl(drawRef.current);
+      }
+      drawRef.current = null;
       mapRef.current?.remove();
       mapRef.current = null;
       setMapReady(false);
@@ -650,6 +699,28 @@ function MapView() {
         .addTo(map);
     }
   }, [geoSearchResult, mapReady]);
+
+  // Toggle the polygon-draw control on/off
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+
+    if (drawEnabled) {
+      if (!drawRef.current) {
+        drawRef.current = new MapboxDraw({
+          displayControlsDefault: false,
+          controls: { polygon: true, trash: true },
+        });
+      }
+      if (!map.hasControl(drawRef.current)) {
+        map.addControl(drawRef.current, 'top-right');
+      }
+      drawRef.current.changeMode('draw_polygon');
+    } else if (drawRef.current && map.hasControl(drawRef.current)) {
+      map.removeControl(drawRef.current);
+      useDrawStore.getState().setPolygon(null);
+    }
+  }, [drawEnabled, mapReady]);
 
   return (
     <Box
