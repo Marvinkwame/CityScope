@@ -2,8 +2,6 @@
 
 **A full-stack geospatial platform for exploring urban infrastructure** — draw reachability zones, plan multi-modal routes, search places, and analyse POI density across any city, powered by Mapbox GL JS and a PostgreSQL backend.
 
-<!-- Replace with an actual screenshot once deployed -->
-![CityScope](.github/screenshot.png)
 
 🔗 **[Live Demo](city-scope-seven.vercel.app)** &nbsp;·&nbsp; [Frontend](cityscope/) &nbsp;·&nbsp; [Backend](cityscope-backend/)
 
