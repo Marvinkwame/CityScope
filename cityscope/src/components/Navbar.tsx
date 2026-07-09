@@ -11,6 +11,7 @@ import { useMapStore } from '../store/mapStore';
 import { useCityStore } from '../store/cityStore';
 import type { City } from '../store/cityStore';
 import { useCities } from '../hooks/useCities';
+import ShareButton from './ShareButton';
 import { AMBER, CYAN, MONO, DISPLAY } from '../theme';
 
 const NAV_HEIGHT = 56;
@@ -220,6 +221,9 @@ function Navbar() {
 
         {/* Live coordinate readout */}
         <LiveReadout />
+
+        {/* Copy shareable link */}
+        <ShareButton />
 
         {/* 2D / 3D segmented instrument toggle */}
         <Box
