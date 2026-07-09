@@ -750,12 +750,6 @@
     "lng": 4.8997837
   },
   {
-    "name": "Coffeeshop Rock-it",
-    "category": "cafe",
-    "lat": 52.3728646,
-    "lng": 4.8998649
-  },
-  {
     "name": "A Fusion",
     "category": "restaurant",
     "lat": 52.3732425,
@@ -946,12 +940,6 @@
     "category": "pub",
     "lat": 52.3665415,
     "lng": 4.9109737
-  },
-  {
-    "name": "Nōbo",
-    "category": "cafe",
-    "lat": 52.364133,
-    "lng": 4.9057542
   },
   {
     "name": "Het Paardje",
@@ -1278,12 +1266,6 @@
     "lng": 4.9382277
   },
   {
-    "name": "DekaMarkt",
-    "category": "supermarket",
-    "lat": 52.3560493,
-    "lng": 4.9269333
-  },
-  {
     "name": "Cafe Sport",
     "category": "pub",
     "lat": 52.3558199,
@@ -1312,6 +1294,12 @@
     "category": "pub",
     "lat": 52.3599046,
     "lng": 4.9257979
+  },
+  {
+    "name": "Nini's Coffeebar",
+    "category": "cafe",
+    "lat": 52.3576071,
+    "lng": 4.917979
   },
   {
     "name": "Rosarium",
@@ -1622,8 +1610,8 @@
   {
     "name": "Verzetsmuseum",
     "category": "museum",
-    "lat": 52.3677709,
-    "lng": 4.912759
+    "lat": 52.3678083,
+    "lng": 4.912728
   },
   {
     "name": "Pancakes Amsterdam",
@@ -1650,7 +1638,7 @@
     "lng": 4.8737264
   },
   {
-    "name": "ibis Amsterdam Centre Stopera",
+    "name": "Ibis",
     "category": "hotel",
     "lat": 52.3703348,
     "lng": 4.9075666
@@ -1742,8 +1730,8 @@
   {
     "name": "Bir Tat",
     "category": "restaurant",
-    "lat": 52.3786322,
-    "lng": 4.8483173
+    "lat": 52.3786221,
+    "lng": 4.8483065
   },
   {
     "name": "Maison Elle",
@@ -1766,8 +1754,8 @@
   {
     "name": "Bagels & Beans",
     "category": "cafe",
-    "lat": 52.3572612,
-    "lng": 4.9098795
+    "lat": 52.3572993,
+    "lng": 4.9098533
   },
   {
     "name": "Het Schoolhuis",
@@ -2208,12 +2196,6 @@
     "lng": 4.8967404
   },
   {
-    "name": "Superskunk Coffeeshop",
-    "category": "cafe",
-    "lat": 52.3642612,
-    "lng": 4.8851485
-  },
-  {
     "name": "Café Krull",
     "category": "pub",
     "lat": 52.3544004,
@@ -2490,12 +2472,6 @@
     "lng": 4.8496044
   },
   {
-    "name": "Coffeeshop 158",
-    "category": "cafe",
-    "lat": 52.3696784,
-    "lng": 4.8524335
-  },
-  {
     "name": "De Biertuin West",
     "category": "pub",
     "lat": 52.3700812,
@@ -2746,12 +2722,6 @@
     "category": "restaurant",
     "lat": 52.3453224,
     "lng": 4.8100429
-  },
-  {
-    "name": "amra",
-    "category": "cafe",
-    "lat": 52.3781096,
-    "lng": 4.8833608
   },
   {
     "name": "Albert Heijn",
@@ -3278,8 +3248,8 @@
   {
     "name": "Bagels & Beans",
     "category": "cafe",
-    "lat": 52.3552474,
-    "lng": 4.8899543
+    "lat": 52.3552671,
+    "lng": 4.8899457
   },
   {
     "name": "Maria",
@@ -3314,8 +3284,8 @@
   {
     "name": "Ekoplaza Foodmarqt",
     "category": "supermarket",
-    "lat": 52.3547235,
-    "lng": 4.9015438
+    "lat": 52.3547358,
+    "lng": 4.9015313
   },
   {
     "name": "Hartog's Volkoren",
@@ -3486,7 +3456,7 @@
     "lng": 4.9009479
   },
   {
-    "name": "Huis Marseille, Museum voor Fotografie",
+    "name": "Huis Marseille",
     "category": "museum",
     "lat": 52.3676412,
     "lng": 4.8848369
@@ -4022,8 +3992,8 @@
   {
     "name": "Hannekes Boom",
     "category": "restaurant",
-    "lat": 52.3762931,
-    "lng": 4.9115789
+    "lat": 52.3762934,
+    "lng": 4.9116163
   },
   {
     "name": "Kings Cross",
@@ -4495,7 +4465,7 @@
   },
   {
     "name": "Fosco",
-    "category": "pub",
+    "category": "cafe",
     "lat": 52.3741094,
     "lng": 4.9355406
   },
@@ -4578,12 +4548,6 @@
     "lng": 4.871938
   },
   {
-    "name": "Westergasterras",
-    "category": "restaurant",
-    "lat": 52.3871553,
-    "lng": 4.8697708
-  },
-  {
     "name": "Caramba!",
     "category": "restaurant",
     "lat": 52.3798108,
@@ -4592,8 +4556,8 @@
   {
     "name": "Long Pura",
     "category": "restaurant",
-    "lat": 52.3736441,
-    "lng": 4.8811373
+    "lat": 52.3736527,
+    "lng": 4.8811186
   },
   {
     "name": "Amstel Café",
@@ -5004,9 +4968,9 @@
     "lng": 4.900983
   },
   {
-    "name": "VOC Café",
-    "category": "pub",
-    "lat": 52.3763379,
+    "name": "Schreierstoren Eetcafé",
+    "category": "restaurant",
+    "lat": 52.3763376,
     "lng": 4.9022053
   },
   {
@@ -5138,8 +5102,8 @@
   {
     "name": "Il Pecorino",
     "category": "restaurant",
-    "lat": 52.386837,
-    "lng": 4.908566
+    "lat": 52.3868092,
+    "lng": 4.90866
   },
   {
     "name": "De Zotte",
@@ -5538,6 +5502,12 @@
     "lng": 4.8709575
   },
   {
+    "name": "WestWeelde",
+    "category": "nightclub;restaurant",
+    "lat": 52.3871347,
+    "lng": 4.869988
+  },
+  {
     "name": "Dirk",
     "category": "supermarket",
     "lat": 52.3585556,
@@ -5812,6 +5782,12 @@
     "category": "museum",
     "lat": 52.3671947,
     "lng": 4.8927025
+  },
+  {
+    "name": "Café Orloff",
+    "category": "cafe",
+    "lat": 52.3702812,
+    "lng": 4.9123395
   },
   {
     "name": "Eetcafé Lotgenoten",
@@ -6714,12 +6690,6 @@
     "lng": 4.902163
   },
   {
-    "name": "Coffeeshop D&L",
-    "category": "cafe",
-    "lat": 52.3572229,
-    "lng": 4.9013168
-  },
-  {
     "name": "De Pizzakamer",
     "category": "restaurant",
     "lat": 52.3524483,
@@ -7064,8 +7034,8 @@
   {
     "name": "Genco versmarkt",
     "category": "supermarket",
-    "lat": 52.3522299,
-    "lng": 4.9028477
+    "lat": 52.3522264,
+    "lng": 4.9028383
   },
   {
     "name": "Renato's Pizzeria",
@@ -7082,8 +7052,8 @@
   {
     "name": "Roti corner",
     "category": "bakery",
-    "lat": 52.3516129,
-    "lng": 4.9034701
+    "lat": 52.3516276,
+    "lng": 4.9034988
   },
   {
     "name": "GoodNews",
@@ -7114,6 +7084,12 @@
     "category": "cafe",
     "lat": 52.3809162,
     "lng": 4.8872099
+  },
+  {
+    "name": "a Sense of Place - Hi-Fidelity Coffee",
+    "category": "cafe",
+    "lat": 52.3808758,
+    "lng": 4.8826176
   },
   {
     "name": "Lucky House",
@@ -7164,7 +7140,7 @@
     "lng": 4.8826599
   },
   {
-    "name": "Shahjahan Indian restaurant",
+    "name": "Shahjahan",
     "category": "restaurant",
     "lat": 52.3779678,
     "lng": 4.8834292
@@ -7210,6 +7186,12 @@
     "category": "bar",
     "lat": 52.378212,
     "lng": 4.8859084
+  },
+  {
+    "name": "Amra",
+    "category": "restaurant",
+    "lat": 52.3781002,
+    "lng": 4.8833656
   },
   {
     "name": "Assaggi",
@@ -7338,7 +7320,7 @@
     "lng": 4.882913
   },
   {
-    "name": "Vesper",
+    "name": "Santo",
     "category": "bar",
     "lat": 52.3821708,
     "lng": 4.8869065
@@ -7474,12 +7456,6 @@
     "category": "bar",
     "lat": 52.3786817,
     "lng": 4.8950381
-  },
-  {
-    "name": "Green Planet Coffeeshop",
-    "category": "cafe",
-    "lat": 52.3746084,
-    "lng": 4.8902812
   },
   {
     "name": "Multatuli",
@@ -7692,12 +7668,6 @@
     "lng": 4.891857
   },
   {
-    "name": "Resin Coffeeshop",
-    "category": "cafe",
-    "lat": 52.3777753,
-    "lng": 4.8953565
-  },
-  {
     "name": "Mediterrané coffeeshop",
     "category": "cafe",
     "lat": 52.3755984,
@@ -7878,6 +7848,12 @@
     "lng": 4.893945
   },
   {
+    "name": "Humphrey's",
+    "category": "restaurant",
+    "lat": 52.3761673,
+    "lng": 4.8942495
+  },
+  {
     "name": "The Bottle",
     "category": "bar",
     "lat": 52.3758813,
@@ -7984,6 +7960,12 @@
     "category": "restaurant",
     "lat": 52.3688483,
     "lng": 4.8819771
+  },
+  {
+    "name": "Gifu Ramen Bar",
+    "category": "restaurant",
+    "lat": 52.3701754,
+    "lng": 4.8818981
   },
   {
     "name": "Amigo",
@@ -8110,6 +8092,12 @@
     "category": "restaurant",
     "lat": 52.3738794,
     "lng": 4.8838132
+  },
+  {
+    "name": "Bistro Amsterdam",
+    "category": "restaurant",
+    "lat": 52.3737969,
+    "lng": 4.8833984
   },
   {
     "name": "Felix Meritis",
@@ -8358,10 +8346,22 @@
     "lng": 4.8926194
   },
   {
+    "name": "Da Filippo",
+    "category": "restaurant",
+    "lat": 52.3711458,
+    "lng": 4.8909803
+  },
+  {
     "name": "Houten Huis",
     "category": "attraction",
     "lat": 52.3691145,
     "lng": 4.8897114
+  },
+  {
+    "name": "Espresso Corner",
+    "category": "cafe",
+    "lat": 52.370628,
+    "lng": 4.8904081
   },
   {
     "name": "De Engelse Reet",
@@ -8398,6 +8398,12 @@
     "category": "cafe",
     "lat": 52.3702754,
     "lng": 4.8921946
+  },
+  {
+    "name": "Cinnamood",
+    "category": "cafe",
+    "lat": 52.3698612,
+    "lng": 4.892023
   },
   {
     "name": "Ter Marsch & Co",
@@ -8452,6 +8458,12 @@
     "category": "bar",
     "lat": 52.3684894,
     "lng": 4.8906728
+  },
+  {
+    "name": "Law & Order Cocktail Bar",
+    "category": "bar",
+    "lat": 52.3683405,
+    "lng": 4.8905842
   },
   {
     "name": "STACH",
@@ -8844,6 +8856,12 @@
     "lng": 4.9008127
   },
   {
+    "name": "De Schreierstoren",
+    "category": "cafe",
+    "lat": 52.3764477,
+    "lng": 4.9022422
+  },
+  {
     "name": "Soep van Kana",
     "category": "restaurant",
     "lat": 52.3734641,
@@ -8962,6 +8980,12 @@
     "category": "bakery",
     "lat": 52.3747006,
     "lng": 4.9006886
+  },
+  {
+    "name": "Morning Owl Coffee",
+    "category": "cafe",
+    "lat": 52.3746703,
+    "lng": 4.9008685
   },
   {
     "name": "Wing Kee",
@@ -9132,6 +9156,12 @@
     "lng": 4.8975401
   },
   {
+    "name": "Gauchos",
+    "category": "restaurant",
+    "lat": 52.3667062,
+    "lng": 4.8939794
+  },
+  {
     "name": "Cinema Club",
     "category": "bar",
     "lat": 52.365337,
@@ -9252,12 +9282,6 @@
     "lng": 4.8935261
   },
   {
-    "name": "Free I Coffeeshop",
-    "category": "cafe",
-    "lat": 52.3659666,
-    "lng": 4.8934468
-  },
-  {
     "name": "Restaurant Shiva",
     "category": "restaurant",
     "lat": 52.3659664,
@@ -9286,6 +9310,12 @@
     "category": "restaurant",
     "lat": 52.366715,
     "lng": 4.889753
+  },
+  {
+    "name": "Nomi",
+    "category": "restaurant",
+    "lat": 52.3655348,
+    "lng": 4.8927075
   },
   {
     "name": "Garlic Queen",
@@ -9426,6 +9456,12 @@
     "lng": 4.885756
   },
   {
+    "name": "Cinnamood",
+    "category": "cafe",
+    "lat": 52.3656202,
+    "lng": 4.8859039
+  },
+  {
     "name": "Pizza Beppe",
     "category": "restaurant",
     "lat": 52.3659632,
@@ -9546,7 +9582,7 @@
     "lng": 4.885241
   },
   {
-    "name": "Nomi Leidseplein",
+    "name": "Nomi",
     "category": "restaurant",
     "lat": 52.3633312,
     "lng": 4.8838817
@@ -9682,12 +9718,6 @@
     "category": "restaurant",
     "lat": 52.364384,
     "lng": 4.8849504
-  },
-  {
-    "name": "Coffeeshop Easytimes",
-    "category": "cafe",
-    "lat": 52.3643312,
-    "lng": 4.8850229
   },
   {
     "name": "The Waterhole",
@@ -10092,10 +10122,22 @@
     "lng": 4.8914713
   },
   {
-    "name": "Back to Black coffee bar and roastery",
+    "name": "Café de Wetering",
     "category": "cafe",
-    "lat": 52.3610387,
-    "lng": 4.8885688
+    "lat": 52.3612182,
+    "lng": 4.8888125
+  },
+  {
+    "name": "La Cacerola",
+    "category": "restaurant",
+    "lat": 52.3610493,
+    "lng": 4.8887415
+  },
+  {
+    "name": "Back to Black",
+    "category": "cafe",
+    "lat": 52.3610395,
+    "lng": 4.8885851
   },
   {
     "name": "Luuk's Coffee",
@@ -10152,7 +10194,7 @@
     "lng": 4.8833259
   },
   {
-    "name": "Holiday Inn Express Amsterdam - City Hall",
+    "name": "Holiday Inn Express",
     "category": "hotel",
     "lat": 52.370341,
     "lng": 4.9083779
@@ -10198,6 +10240,18 @@
     "category": "cafe",
     "lat": 52.36665,
     "lng": 4.9022485
+  },
+  {
+    "name": "Citria Restaurant",
+    "category": "restaurant",
+    "lat": 52.3666038,
+    "lng": 4.9020593
+  },
+  {
+    "name": "Eetcafé Blauwbrug",
+    "category": "restaurant",
+    "lat": 52.3665993,
+    "lng": 4.9019084
   },
   {
     "name": "Alpha",
@@ -10302,6 +10356,12 @@
     "lng": 4.9022137
   },
   {
+    "name": "Cotti Coffee",
+    "category": "cafe",
+    "lat": 52.3641388,
+    "lng": 4.9057701
+  },
+  {
     "name": "Sagra",
     "category": "cafe",
     "lat": 52.3659329,
@@ -10315,7 +10375,7 @@
   },
   {
     "name": "Bertus",
-    "category": "restaurant",
+    "category": "bar",
     "lat": 52.363254,
     "lng": 4.9192079
   },
@@ -10374,7 +10434,7 @@
     "lng": 4.9309585
   },
   {
-    "name": "d&a hummus bistro",
+    "name": "Pizza Project Bar",
     "category": "restaurant",
     "lat": 52.3679133,
     "lng": 4.9253769
@@ -10404,16 +10464,16 @@
     "lng": 4.9163574
   },
   {
-    "name": "Sotto Pizzeria",
-    "category": "restaurant",
-    "lat": 52.3700326,
-    "lng": 4.9119173
-  },
-  {
     "name": "De Bakker van Oost",
     "category": "bakery",
     "lat": 52.3701447,
     "lng": 4.9121612
+  },
+  {
+    "name": "A Tavola",
+    "category": "restaurant",
+    "lat": 52.3702271,
+    "lng": 4.9122719
   },
   {
     "name": "Bánh Mì Bà Mỹ",
@@ -10432,6 +10492,12 @@
     "category": "bar",
     "lat": 52.3725169,
     "lng": 4.8761195
+  },
+  {
+    "name": "Choux",
+    "category": "restaurant",
+    "lat": 52.3775991,
+    "lng": 4.9071808
   },
   {
     "name": "Coffee Company",
@@ -10612,12 +10678,6 @@
     "category": "cafe",
     "lat": 52.3519638,
     "lng": 4.8895188
-  },
-  {
-    "name": "Vrankrijk",
-    "category": "pub",
-    "lat": 52.3716913,
-    "lng": 4.8892221
   },
   {
     "name": "Belcampo",
@@ -11300,8 +11360,8 @@
   {
     "name": "A sentimento Pizza",
     "category": "restaurant",
-    "lat": 52.3825568,
-    "lng": 4.8783539
+    "lat": 52.3825392,
+    "lng": 4.8783263
   },
   {
     "name": "Bella Storia Trattoria Italiana",
@@ -11880,12 +11940,6 @@
     "lng": 4.8582791
   },
   {
-    "name": "House of Fermentation",
-    "category": "restaurant",
-    "lat": 52.3704291,
-    "lng": 4.8592417
-  },
-  {
     "name": "Maz Mez",
     "category": "restaurant",
     "lat": 52.3711789,
@@ -11958,7 +12012,7 @@
     "lng": 4.8542465
   },
   {
-    "name": "Ekoplaza",
+    "name": "Ekoplaza Foodmarqt",
     "category": "supermarket",
     "lat": 52.3511901,
     "lng": 4.8519714
@@ -11986,6 +12040,12 @@
     "category": "restaurant",
     "lat": 52.3514598,
     "lng": 4.8481229
+  },
+  {
+    "name": "Nom Nom Vietnamese eetwinkel",
+    "category": "restaurant",
+    "lat": 52.3509098,
+    "lng": 4.851091
   },
   {
     "name": "Sitari",
@@ -12034,6 +12094,12 @@
     "category": "restaurant",
     "lat": 52.3529159,
     "lng": 4.8559163
+  },
+  {
+    "name": "Albert Heijn",
+    "category": "supermarket",
+    "lat": 52.3523332,
+    "lng": 4.8558521
   },
   {
     "name": "Anne&Max",
@@ -12228,7 +12294,7 @@
     "lng": 4.935934
   },
   {
-    "name": "Ekoplaza Foodmarqt Brazilë",
+    "name": "Ekoplaza Foodmarqt",
     "category": "supermarket",
     "lat": 52.3740522,
     "lng": 4.9377197
@@ -12294,6 +12360,12 @@
     "lng": 4.8775926
   },
   {
+    "name": "Blushing",
+    "category": "cafe",
+    "lat": 52.3587949,
+    "lng": 4.8803835
+  },
+  {
     "name": "Hotel Van Gogh",
     "category": "hotel",
     "lat": 52.3591278,
@@ -12336,16 +12408,16 @@
     "lng": 4.8857519
   },
   {
-    "name": "L' Entrecote et les dames",
+    "name": "L'Entrecote et les dames",
     "category": "restaurant",
-    "lat": 52.3556659,
-    "lng": 4.8805264
+    "lat": 52.355664,
+    "lng": 4.8805177
   },
   {
     "name": "Esh Pitabar",
     "category": "restaurant",
-    "lat": 52.3556121,
-    "lng": 4.8805564
+    "lat": 52.3556108,
+    "lng": 4.8805499
   },
   {
     "name": "Jinweise Beef Noodle",
@@ -12382,6 +12454,12 @@
     "category": "cafe",
     "lat": 52.3521355,
     "lng": 4.8851898
+  },
+  {
+    "name": "The Marlin Bar",
+    "category": "restaurant",
+    "lat": 52.3551716,
+    "lng": 4.8803669
   },
   {
     "name": "Pinocchio",
@@ -12720,12 +12798,6 @@
     "lng": 4.8928969
   },
   {
-    "name": "Vegan Junk Food Bar",
-    "category": "restaurant",
-    "lat": 52.3572638,
-    "lng": 4.8916167
-  },
-  {
     "name": "Libertine Café des Prés",
     "category": "restaurant",
     "lat": 52.3557959,
@@ -12918,12 +12990,6 @@
     "lng": 4.9025641
   },
   {
-    "name": "Coffeeshop Carmona",
-    "category": "cafe",
-    "lat": 52.3556965,
-    "lng": 4.9010631
-  },
-  {
     "name": "Pizza Beppe",
     "category": "restaurant",
     "lat": 52.3560723,
@@ -12946,12 +13012,6 @@
     "category": "hotel",
     "lat": 52.3579594,
     "lng": 4.9021726
-  },
-  {
-    "name": "Coffeeshop Yo-Yo",
-    "category": "cafe",
-    "lat": 52.3563362,
-    "lng": 4.9031109
   },
   {
     "name": "Café Dakduif",
@@ -13284,7 +13344,7 @@
     "lng": 4.8891227
   },
   {
-    "name": "Armoury Bar",
+    "name": "Side Quest bar",
     "category": "pub",
     "lat": 52.352284,
     "lng": 4.8885353
@@ -13300,6 +13360,12 @@
     "category": "restaurant",
     "lat": 52.3498779,
     "lng": 4.8869036
+  },
+  {
+    "name": "Miro",
+    "category": "cafe",
+    "lat": 52.3526132,
+    "lng": 4.8909339
   },
   {
     "name": "Elevate Coffee Lab",
@@ -13346,8 +13412,8 @@
   {
     "name": "Kitchen Impossible",
     "category": "restaurant",
-    "lat": 52.3517699,
-    "lng": 4.8944118
+    "lat": 52.3517664,
+    "lng": 4.8944426
   },
   {
     "name": "Bakkerij Mater",
@@ -13424,8 +13490,8 @@
   {
     "name": "STACH",
     "category": "cafe",
-    "lat": 52.3525589,
-    "lng": 4.9026954
+    "lat": 52.3525609,
+    "lng": 4.902727
   },
   {
     "name": "Renato's Osteria",
@@ -13458,12 +13524,6 @@
     "lng": 4.9026903
   },
   {
-    "name": "Coffeeshop Warda",
-    "category": "cafe",
-    "lat": 52.3529197,
-    "lng": 4.9029709
-  },
-  {
     "name": "Momo Tibet",
     "category": "restaurant",
     "lat": 52.3550748,
@@ -13476,10 +13536,28 @@
     "lng": 4.9019143
   },
   {
-    "name": "Coffeeshop De Keeper",
+    "name": "Namaste",
+    "category": "restaurant",
+    "lat": 52.351936,
+    "lng": 4.9033706
+  },
+  {
+    "name": "Le Falafel",
+    "category": "restaurant",
+    "lat": 52.3518071,
+    "lng": 4.9034234
+  },
+  {
+    "name": "GialloArancio",
+    "category": "restaurant",
+    "lat": 52.3518261,
+    "lng": 4.9036094
+  },
+  {
+    "name": "Joe & The Juice",
     "category": "cafe",
-    "lat": 52.3512239,
-    "lng": 4.9036505
+    "lat": 52.3513482,
+    "lng": 4.9035967
   },
   {
     "name": "Bettina Bakt",
@@ -13500,6 +13578,12 @@
     "lng": 4.8898804
   },
   {
+    "name": "De Nieuwe Rai",
+    "category": "restaurant",
+    "lat": 52.3439053,
+    "lng": 4.8913423
+  },
+  {
     "name": "d'Overkant",
     "category": "restaurant",
     "lat": 52.3447001,
@@ -13512,7 +13596,37 @@
     "lng": 4.8949753
   },
   {
-    "name": "Scandinavian Embassy Bakery & Shop",
+    "name": "Krusta",
+    "category": "restaurant",
+    "lat": 52.3436333,
+    "lng": 4.8916112
+  },
+  {
+    "name": "Kaia",
+    "category": "restaurant",
+    "lat": 52.3434829,
+    "lng": 4.8917558
+  },
+  {
+    "name": "Knabbel en Babbel",
+    "category": "restaurant",
+    "lat": 52.3428086,
+    "lng": 4.8924197
+  },
+  {
+    "name": "Toet",
+    "category": "restaurant",
+    "lat": 52.3426072,
+    "lng": 4.8926181
+  },
+  {
+    "name": "Brasserie Nenette",
+    "category": "restaurant",
+    "lat": 52.3424069,
+    "lng": 4.8927988
+  },
+  {
+    "name": "Scandinavian Embassy",
     "category": "bakery",
     "lat": 52.3421122,
     "lng": 4.8932424
@@ -13594,18 +13708,6 @@
     "category": "restaurant",
     "lat": 52.3469713,
     "lng": 4.9052269
-  },
-  {
-    "name": "Coffeeshop Happy Days",
-    "category": "cafe",
-    "lat": 52.3465947,
-    "lng": 4.9112324
-  },
-  {
-    "name": "Coffeeshop Topweazle",
-    "category": "cafe",
-    "lat": 52.3459957,
-    "lng": 4.9065252
   },
   {
     "name": "Cafe Remouillage",
@@ -13992,7 +14094,7 @@
     "lng": 4.9185533
   },
   {
-    "name": "Miss Hotpot",
+    "name": "Phở Việt",
     "category": "restaurant",
     "lat": 52.3570307,
     "lng": 4.9269363
@@ -14040,7 +14142,7 @@
     "lng": 4.9246199
   },
   {
-    "name": "Nefis EtliEkmek",
+    "name": "Nefis Etli Ekmek",
     "category": "restaurant",
     "lat": 52.3622458,
     "lng": 4.9262782
@@ -14568,7 +14670,7 @@
     "lng": 4.8741832
   },
   {
-    "name": "Eetcafé La Chambre",
+    "name": "Café de Bierhut",
     "category": "cafe",
     "lat": 52.4196212,
     "lng": 4.9061374
@@ -14680,6 +14782,12 @@
     "category": "restaurant",
     "lat": 52.3893748,
     "lng": 4.9097707
+  },
+  {
+    "name": "Royalvis & Traiteur",
+    "category": "restaurant",
+    "lat": 52.3896002,
+    "lng": 4.9099446
   },
   {
     "name": "Papillon",
@@ -14904,12 +15012,6 @@
     "lng": 4.927931
   },
   {
-    "name": "Sans in het park",
-    "category": "cafe",
-    "lat": 52.3907657,
-    "lng": 4.9251809
-  },
-  {
     "name": "Sjoerd van Willes",
     "category": "bakery",
     "lat": 52.3908918,
@@ -14940,7 +15042,7 @@
     "lng": 4.924556
   },
   {
-    "name": "Andalusia Pinar",
+    "name": "Bakkerij Aysen",
     "category": "bakery",
     "lat": 52.3861828,
     "lng": 4.9185158
@@ -14988,10 +15090,22 @@
     "lng": 4.9056661
   },
   {
+    "name": "Bakkerij Noord",
+    "category": "bakery",
+    "lat": 52.3832782,
+    "lng": 4.9134938
+  },
+  {
     "name": "Mount Everest",
     "category": "restaurant",
     "lat": 52.3837966,
     "lng": 4.9128714
+  },
+  {
+    "name": "Sans",
+    "category": "cafe",
+    "lat": 52.3835913,
+    "lng": 4.9132852
   },
   {
     "name": "Restaurant Barracuda",
@@ -15174,12 +15288,6 @@
     "lng": 4.9769913
   },
   {
-    "name": "Arena Food Express",
-    "category": "restaurant",
-    "lat": 52.3143762,
-    "lng": 4.9529005
-  },
-  {
     "name": "Panda Bubble Tea Bar",
     "category": "cafe",
     "lat": 52.3140392,
@@ -15244,6 +15352,12 @@
     "category": "bakery",
     "lat": 52.3151176,
     "lng": 4.9547368
+  },
+  {
+    "name": "Coco",
+    "category": "cafe",
+    "lat": 52.3133774,
+    "lng": 4.9501533
   },
   {
     "name": "Lidl",
@@ -15582,12 +15696,6 @@
     "lng": 4.8930568
   },
   {
-    "name": "Coffeeshop The Saint",
-    "category": "cafe",
-    "lat": 52.3668283,
-    "lng": 4.8949199
-  },
-  {
     "name": "Dolce Verona",
     "category": "restaurant",
     "lat": 52.3131269,
@@ -15750,19 +15858,13 @@
     "lng": 4.8817584
   },
   {
-    "name": "Bluebird Coffeeshop",
-    "category": "cafe",
-    "lat": 52.369998,
-    "lng": 4.900897
-  },
-  {
     "name": "Berry",
     "category": "cafe",
     "lat": 52.3684758,
     "lng": 4.8701496
   },
   {
-    "name": "Ekoplaza",
+    "name": "Ekoplaza Foodmarqt",
     "category": "supermarket",
     "lat": 52.3686464,
     "lng": 4.870832
@@ -16106,8 +16208,8 @@
   {
     "name": "Mama Pancake",
     "category": "cafe",
-    "lat": 52.3760413,
-    "lng": 4.9068398
+    "lat": 52.3760444,
+    "lng": 4.9068297
   },
   {
     "name": "San George",
@@ -17172,8 +17274,8 @@
     "lng": 4.8566049
   },
   {
-    "name": "Mi Ami Amsterdam",
-    "category": "bar",
+    "name": null,
+    "category": "pub",
     "lat": 52.3742376,
     "lng": 4.8561329
   },
@@ -17468,8 +17570,8 @@
   {
     "name": "Micropia",
     "category": "museum",
-    "lat": 52.3669134,
-    "lng": 4.91257
+    "lat": 52.3668906,
+    "lng": 4.9126888
   },
   {
     "name": "Expocafé Zamen",
@@ -17790,12 +17892,6 @@
     "lng": 4.8620911
   },
   {
-    "name": "Albert Heijn",
-    "category": "supermarket",
-    "lat": 52.3523186,
-    "lng": 4.8557983
-  },
-  {
     "name": "Scheepskameel",
     "category": "restaurant",
     "lat": 52.375501,
@@ -17896,12 +17992,6 @@
     "category": "cafe",
     "lat": 52.3640142,
     "lng": 4.8837681
-  },
-  {
-    "name": "cafe Orloff",
-    "category": "cafe",
-    "lat": 52.3702817,
-    "lng": 4.9123276
   },
   {
     "name": "Voyagers",
@@ -18046,18 +18136,6 @@
     "category": "restaurant",
     "lat": 52.3678876,
     "lng": 4.8821546
-  },
-  {
-    "name": "Coffeeshop Blue Sea",
-    "category": "cafe",
-    "lat": 52.3545914,
-    "lng": 4.9016009
-  },
-  {
-    "name": "Choux",
-    "category": "restaurant",
-    "lat": 52.3775713,
-    "lng": 4.9071538
   },
   {
     "name": "The Good Companion",
@@ -18582,12 +18660,6 @@
     "lng": 4.887199
   },
   {
-    "name": "Coffeeshop Vondel",
-    "category": "cafe",
-    "lat": 52.3585898,
-    "lng": 4.8592885
-  },
-  {
     "name": "Bagels & Beans",
     "category": "cafe",
     "lat": 52.3716472,
@@ -18678,6 +18750,12 @@
     "lng": 4.8594397
   },
   {
+    "name": "Taal",
+    "category": "cafe",
+    "lat": 52.3600567,
+    "lng": 4.8580913
+  },
+  {
     "name": "Lillie",
     "category": "restaurant",
     "lat": 52.3559083,
@@ -18724,12 +18802,6 @@
     "category": "restaurant",
     "lat": 52.3613142,
     "lng": 4.8650861
-  },
-  {
-    "name": "Humphrey's",
-    "category": "restaurant",
-    "lat": 52.3761673,
-    "lng": 4.8942495
   },
   {
     "name": null,
@@ -18910,12 +18982,6 @@
     "category": "restaurant",
     "lat": 52.3759353,
     "lng": 4.8849117
-  },
-  {
-    "name": "Nomi",
-    "category": "restaurant",
-    "lat": 52.3655348,
-    "lng": 4.8927075
   },
   {
     "name": "Majestic",
@@ -19164,6 +19230,12 @@
     "lng": 4.8548801
   },
   {
+    "name": "Pera restaurant & grillroom",
+    "category": "restaurant",
+    "lat": 52.3708708,
+    "lng": 4.8541076
+  },
+  {
     "name": "Hampshire Hotel Beethoven",
     "category": "hotel",
     "lat": 52.3482037,
@@ -19356,12 +19428,6 @@
     "lng": 4.9071181
   },
   {
-    "name": "Sotto",
-    "category": "restaurant",
-    "lat": 52.3529034,
-    "lng": 4.8562555
-  },
-  {
     "name": "Harmani",
     "category": "restaurant",
     "lat": 52.3549047,
@@ -19440,12 +19506,6 @@
     "lng": 4.9034977
   },
   {
-    "name": "Citria Restaurant",
-    "category": "restaurant",
-    "lat": 52.3666038,
-    "lng": 4.9020593
-  },
-  {
     "name": "Agabi Santa Maria",
     "category": "restaurant",
     "lat": 52.3666343,
@@ -19468,12 +19528,6 @@
     "category": "pub",
     "lat": 52.3665178,
     "lng": 4.9017535
-  },
-  {
-    "name": "Eetcafé Blauwbrug",
-    "category": "restaurant",
-    "lat": 52.3665993,
-    "lng": 4.9019084
   },
   {
     "name": "Café de Gaeper",
@@ -19516,12 +19570,6 @@
     "category": "restaurant",
     "lat": 52.3547199,
     "lng": 4.8896492
-  },
-  {
-    "name": "Bistro Amsterdam",
-    "category": "restaurant",
-    "lat": 52.3737955,
-    "lng": 4.8834631
   },
   {
     "name": "Saffraan aan de Amstel",
@@ -19678,12 +19726,6 @@
     "category": "playground",
     "lat": 52.3832681,
     "lng": 4.9206637
-  },
-  {
-    "name": "The Marlin Bar",
-    "category": "restaurant",
-    "lat": 52.3551716,
-    "lng": 4.8803669
   },
   {
     "name": "de Ceuvel",
@@ -19878,6 +19920,18 @@
     "lng": 4.9376295
   },
   {
+    "name": "Motel One",
+    "category": "hotel",
+    "lat": 52.3698323,
+    "lng": 4.9070255
+  },
+  {
+    "name": "Monet Garden Hotel",
+    "category": "hotel",
+    "lat": 52.3699235,
+    "lng": 4.9072718
+  },
+  {
     "name": "Tjin's",
     "category": "restaurant",
     "lat": 52.3316916,
@@ -19950,12 +20004,6 @@
     "lng": 4.9064937
   },
   {
-    "name": "Motel One Waterlooplein",
-    "category": "hotel",
-    "lat": 52.3698549,
-    "lng": 4.906997
-  },
-  {
     "name": "Cafe De Zeemeeuw",
     "category": "bar",
     "lat": 52.373971,
@@ -19984,12 +20032,6 @@
     "category": "restaurant",
     "lat": 52.3289021,
     "lng": 4.9571472
-  },
-  {
-    "name": "Monet Garden Hotel",
-    "category": "hotel",
-    "lat": 52.3700561,
-    "lng": 4.9071202
   },
   {
     "name": "The Tailor",
@@ -20208,8 +20250,8 @@
     "lng": 4.8860898
   },
   {
-    "name": "Maud",
-    "category": "restaurant",
+    "name": "Café de Vos",
+    "category": "cafe",
     "lat": 52.3661631,
     "lng": 4.8731855
   },
@@ -20412,12 +20454,6 @@
     "lng": 4.8915636
   },
   {
-    "name": "da filippo",
-    "category": "restaurant",
-    "lat": 52.3711555,
-    "lng": 4.8909734
-  },
-  {
     "name": "Luciën's",
     "category": "restaurant",
     "lat": 52.3706358,
@@ -20428,18 +20464,6 @@
     "category": "restaurant",
     "lat": 52.3720636,
     "lng": 4.8909485
-  },
-  {
-    "name": "Espresso Corner",
-    "category": "cafe",
-    "lat": 52.370628,
-    "lng": 4.8904081
-  },
-  {
-    "name": "Nota Bene Café",
-    "category": "pub",
-    "lat": 52.3683347,
-    "lng": 4.8905567
   },
   {
     "name": "Havelaar Café",
@@ -20748,7 +20772,7 @@
     "lng": 4.8693094
   },
   {
-    "name": "Dewous",
+    "name": "Douwes",
     "category": "bar",
     "lat": 52.3596115,
     "lng": 4.9136486
@@ -21396,12 +21420,6 @@
     "lng": 4.8553798
   },
   {
-    "name": "Royalvis & Traiteur",
-    "category": "restaurant",
-    "lat": 52.3895103,
-    "lng": 4.9104342
-  },
-  {
     "name": null,
     "category": "playground",
     "lat": 52.3492806,
@@ -21930,12 +21948,6 @@
     "lng": 4.8826861
   },
   {
-    "name": "A Tavola",
-    "category": "restaurant",
-    "lat": 52.3702271,
-    "lng": 4.9122719
-  },
-  {
     "name": "Verena",
     "category": "restaurant",
     "lat": 52.3704071,
@@ -21970,12 +21982,6 @@
     "category": "restaurant",
     "lat": 52.4111982,
     "lng": 4.8772798
-  },
-  {
-    "name": "Kanteen25",
-    "category": "restaurant",
-    "lat": 52.3744293,
-    "lng": 4.914258
   },
   {
     "name": null,
@@ -22380,8 +22386,8 @@
     "lng": 4.9003513
   },
   {
-    "name": "Backwerk",
-    "category": "bakery",
+    "name": "Bakker Bart To Go",
+    "category": "restaurant",
     "lat": 52.3786001,
     "lng": 4.9004527
   },
@@ -22686,12 +22692,6 @@
     "lng": 4.8632801
   },
   {
-    "name": "Coffeeshop Kashmir",
-    "category": "cafe",
-    "lat": 52.3640238,
-    "lng": 4.8629998
-  },
-  {
     "name": "Beyrouth",
     "category": "restaurant",
     "lat": 52.368212,
@@ -22704,7 +22704,7 @@
     "lng": 4.9377606
   },
   {
-    "name": "De Japanner Strandeiland",
+    "name": "Eethuis Frimangron",
     "category": "restaurant",
     "lat": 52.358392,
     "lng": 5.0150798
@@ -23004,10 +23004,16 @@
     "lng": 4.9184745
   },
   {
-    "name": "Lola The Green Aardvark",
+    "name": "De Kleine Bes",
     "category": "pub",
     "lat": 52.3648407,
     "lng": 4.9251193
+  },
+  {
+    "name": "Nikotin",
+    "category": "restaurant",
+    "lat": 52.3839625,
+    "lng": 4.9221958
   },
   {
     "name": "Conscious Hotel Westerpark",
@@ -23104,12 +23110,6 @@
     "category": "restaurant",
     "lat": 52.3909611,
     "lng": 4.9433797
-  },
-  {
-    "name": "Blushing",
-    "category": "cafe",
-    "lat": 52.3587949,
-    "lng": 4.8803835
   },
   {
     "name": null,
@@ -23916,12 +23916,6 @@
     "lng": 4.8882808
   },
   {
-    "name": "Gauchos",
-    "category": "restaurant",
-    "lat": 52.3666792,
-    "lng": 4.8939566
-  },
-  {
     "name": null,
     "category": "dog_park",
     "lat": 52.3521959,
@@ -24259,12 +24253,6 @@
   },
   {
     "name": null,
-    "category": "public_bookcase",
-    "lat": 52.3539141,
-    "lng": 4.9330028
-  },
-  {
-    "name": null,
     "category": "playground",
     "lat": 52.3749434,
     "lng": 4.7970873
@@ -24568,12 +24556,6 @@
     "category": "restaurant",
     "lat": 52.3780432,
     "lng": 4.8833944
-  },
-  {
-    "name": "Amra",
-    "category": "restaurant",
-    "lat": 52.3781002,
-    "lng": 4.8833656
   },
   {
     "name": null,
@@ -25076,12 +25058,6 @@
   {
     "name": null,
     "category": "public_bookcase",
-    "lat": 52.3556851,
-    "lng": 4.9399472
-  },
-  {
-    "name": null,
-    "category": "public_bookcase",
     "lat": 52.347333,
     "lng": 4.9238312
   },
@@ -25308,12 +25284,6 @@
     "lng": 4.8706331
   },
   {
-    "name": null,
-    "category": "public_bookcase",
-    "lat": 52.3537259,
-    "lng": 4.9326685
-  },
-  {
     "name": "Bar of NEMO Science Center",
     "category": "cafe",
     "lat": 52.3741151,
@@ -25360,12 +25330,6 @@
     "category": "cafe",
     "lat": 52.3639818,
     "lng": 4.8838071
-  },
-  {
-    "name": "Mr K Coffeeshop",
-    "category": "cafe",
-    "lat": 52.3717998,
-    "lng": 4.8790176
   },
   {
     "name": "Afhaalcentrum Terang Boelan",
@@ -25890,6 +25854,12 @@
     "lng": 4.926395
   },
   {
+    "name": "Kokomo",
+    "category": "cafe",
+    "lat": 52.3703067,
+    "lng": 4.9637664
+  },
+  {
     "name": "Poppy's de Pijp",
     "category": "cafe",
     "lat": 52.3510248,
@@ -25902,7 +25872,7 @@
     "lng": 4.9310373
   },
   {
-    "name": "Dirk van den Broek",
+    "name": "Dirk",
     "category": "supermarket",
     "lat": 52.3801433,
     "lng": 4.7514657
@@ -26226,12 +26196,6 @@
     "lng": 4.8819975
   },
   {
-    "name": "Krusta",
-    "category": "restaurant",
-    "lat": 52.3436311,
-    "lng": 4.8915899
-  },
-  {
     "name": "Takumi Ramen",
     "category": "restaurant",
     "lat": 52.3743808,
@@ -26401,7 +26365,7 @@
   },
   {
     "name": "Madame Tussauds Amsterdam",
-    "category": "attraction",
+    "category": "museum",
     "lat": 52.3725869,
     "lng": 4.8925927
   },
@@ -26418,7 +26382,7 @@
     "lng": 4.8321017
   },
   {
-    "name": "Neapolitan Pizzabar",
+    "name": "Pizza Project",
     "category": "restaurant",
     "lat": 52.3466678,
     "lng": 4.8948627
@@ -26518,24 +26482,6 @@
     "category": "cafe",
     "lat": 52.3695667,
     "lng": 4.8890045
-  },
-  {
-    "name": "Toet",
-    "category": "restaurant",
-    "lat": 52.3426072,
-    "lng": 4.8926181
-  },
-  {
-    "name": "Knabbel En Babbel",
-    "category": "restaurant",
-    "lat": 52.3428196,
-    "lng": 4.8924081
-  },
-  {
-    "name": "De Uitsmijter",
-    "category": "restaurant",
-    "lat": 52.3423857,
-    "lng": 4.8928587
   },
   {
     "name": null,
@@ -26664,16 +26610,16 @@
     "lng": 4.875343
   },
   {
-    "name": "Pr1mi",
+    "name": "Juhique",
     "category": "restaurant",
     "lat": 52.3844274,
     "lng": 4.8718571
   },
   {
-    "name": "Bacco",
-    "category": "restaurant",
-    "lat": 52.384492,
-    "lng": 4.873154
+    "name": "Cheeky",
+    "category": "cafe",
+    "lat": 52.3844985,
+    "lng": 4.8732129
   },
   {
     "name": "Uzo Bar & Kitchen",
@@ -27036,7 +26982,7 @@
     "lng": 4.8960844
   },
   {
-    "name": "Daily Dates",
+    "name": "30ml",
     "category": "cafe",
     "lat": 52.3135639,
     "lng": 4.9507678
@@ -27232,24 +27178,6 @@
     "category": "public_bookcase",
     "lat": 52.3924806,
     "lng": 4.9442123
-  },
-  {
-    "name": "GialloArancio",
-    "category": "restaurant",
-    "lat": 52.3518261,
-    "lng": 4.9036094
-  },
-  {
-    "name": "Namaste",
-    "category": "restaurant",
-    "lat": 52.351936,
-    "lng": 4.9033706
-  },
-  {
-    "name": "Le Falafel",
-    "category": "restaurant",
-    "lat": 52.3518244,
-    "lng": 4.9034163
   },
   {
     "name": "Over-Amstel Boerderij",
@@ -27864,7 +27792,7 @@
     "lng": 4.9019886
   },
   {
-    "name": "Pizza Pazzi",
+    "name": "Pazzi",
     "category": "restaurant",
     "lat": 52.3843379,
     "lng": 4.8746498
@@ -28074,12 +28002,6 @@
     "lng": 4.9530656
   },
   {
-    "name": "Kaia",
-    "category": "restaurant",
-    "lat": 52.3434829,
-    "lng": 4.8917558
-  },
-  {
     "name": "Ummah Supermarkt",
     "category": "supermarket",
     "lat": 52.3635906,
@@ -28116,10 +28038,10 @@
     "lng": 4.9135641
   },
   {
-    "name": "Aziatische kleinklauwotter",
+    "name": "Kleine panda, Aziatische kleinklauwotter",
     "category": "attraction",
-    "lat": 52.3669019,
-    "lng": 4.9139897
+    "lat": 52.3669295,
+    "lng": 4.9139738
   },
   {
     "name": null,
@@ -28188,13 +28110,13 @@
     "lng": 4.916691
   },
   {
-    "name": "Grootoorvos",
+    "name": "Visaya wrattenzwijn",
     "category": "attraction",
     "lat": 52.3661088,
     "lng": 4.9166816
   },
   {
-    "name": "Laaglandtapir, reuzenmiereneter, capibara, grote mara, kuifhoenderkoet",
+    "name": "Laaglandtapir, Vicuña, reuzenmiereneter, capibara, grote mara, kuifhoenderkoet",
     "category": "attraction",
     "lat": 52.3659855,
     "lng": 4.9146759
@@ -28266,7 +28188,7 @@
     "lng": 4.918415
   },
   {
-    "name": "Netgiraffe, Grévy zebra, Grote Koedoe",
+    "name": "Netgiraffe, Grantzebra, Grote Koedoe",
     "category": "attraction",
     "lat": 52.3664195,
     "lng": 4.9180529
@@ -28297,7 +28219,7 @@
   },
   {
     "name": "Duivenhuis",
-    "category": "restaurant",
+    "category": "cafe",
     "lat": 52.3656354,
     "lng": 4.9160979
   },
@@ -28326,7 +28248,7 @@
     "lng": 4.9182319
   },
   {
-    "name": "Vicuña",
+    "name": "Europese kraanvogel",
     "category": "attraction",
     "lat": 52.3649529,
     "lng": 4.9186282
@@ -28482,7 +28404,7 @@
     "lng": 4.8959166
   },
   {
-    "name": null,
+    "name": "Bosplaatbieb",
     "category": "public_bookcase",
     "lat": 52.3998272,
     "lng": 4.9476619
@@ -28622,8 +28544,8 @@
   {
     "name": "Albert Heijn",
     "category": "supermarket",
-    "lat": 52.355708,
-    "lng": 4.8385995
+    "lat": 52.3556741,
+    "lng": 4.8386608
   },
   {
     "name": "Origami",
@@ -28798,12 +28720,6 @@
     "category": "hotel",
     "lat": 52.3537525,
     "lng": 4.9117913
-  },
-  {
-    "name": "KabelKantine",
-    "category": "restaurant",
-    "lat": 52.394719,
-    "lng": 4.8466448
   },
   {
     "name": "Rhythms",
@@ -29302,5 +29218,185 @@
     "category": "cafe",
     "lat": 52.3810665,
     "lng": 4.9128053
+  },
+  {
+    "name": "KiMu",
+    "category": "museum",
+    "lat": 52.4013514,
+    "lng": 4.9338423
+  },
+  {
+    "name": "Beef Chief - Transit Bar",
+    "category": "restaurant",
+    "lat": 52.3844861,
+    "lng": 4.9287518
+  },
+  {
+    "name": "Ringstaartmaki",
+    "category": "attraction",
+    "lat": 52.3670347,
+    "lng": 4.9156665
+  },
+  {
+    "name": "Grootoorvos",
+    "category": "attraction",
+    "lat": 52.3648939,
+    "lng": 4.9197081
+  },
+  {
+    "name": null,
+    "category": "public_bookcase",
+    "lat": 52.4100415,
+    "lng": 4.9664835
+  },
+  {
+    "name": "Minibieb",
+    "category": "public_bookcase",
+    "lat": 52.3447901,
+    "lng": 4.7898531
+  },
+  {
+    "name": "Veda Cafe & Restaurant",
+    "category": "restaurant",
+    "lat": 52.394727,
+    "lng": 4.8462597
+  },
+  {
+    "name": null,
+    "category": "playground",
+    "lat": 52.4097929,
+    "lng": 4.9183353
+  },
+  {
+    "name": null,
+    "category": "playground",
+    "lat": 52.4110354,
+    "lng": 4.9162553
+  },
+  {
+    "name": "The Old Soul",
+    "category": "restaurant",
+    "lat": 52.3550859,
+    "lng": 4.9544554
+  },
+  {
+    "name": "House of Bols",
+    "category": "museum",
+    "lat": 52.3590426,
+    "lng": 4.8812819
+  },
+  {
+    "name": "Amstelstation",
+    "category": "public_bookcase",
+    "lat": 52.3468155,
+    "lng": 4.9186431
+  },
+  {
+    "name": "Mokum Pool & Darts",
+    "category": "bar",
+    "lat": 52.3504713,
+    "lng": 4.9233396
+  },
+  {
+    "name": null,
+    "category": "public_bookcase",
+    "lat": 52.3546786,
+    "lng": 4.9277393
+  },
+  {
+    "name": null,
+    "category": "public_bookcase",
+    "lat": 52.355029,
+    "lng": 4.9389952
+  },
+  {
+    "name": null,
+    "category": "public_bookcase",
+    "lat": 52.3572221,
+    "lng": 4.8945569
+  },
+  {
+    "name": "Spritz Bar",
+    "category": "bar",
+    "lat": 52.3633618,
+    "lng": 4.8808346
+  },
+  {
+    "name": "Bini Bakery",
+    "category": "bakery",
+    "lat": 52.380772,
+    "lng": 4.8904067
+  },
+  {
+    "name": "Lavitos",
+    "category": "cafe",
+    "lat": 52.3305565,
+    "lng": 4.9320665
+  },
+  {
+    "name": null,
+    "category": "public_bookcase",
+    "lat": 52.3508844,
+    "lng": 4.912017
+  },
+  {
+    "name": "Kabouter-ruilkast",
+    "category": "public_bookcase",
+    "lat": 52.3510432,
+    "lng": 4.9386337
+  },
+  {
+    "name": "Koninklijke Wachtkamer",
+    "category": "waiting_room",
+    "lat": 52.3780474,
+    "lng": 4.9011903
+  },
+  {
+    "name": "Sushito",
+    "category": "restaurant",
+    "lat": 52.4006633,
+    "lng": 4.9326049
+  },
+  {
+    "name": "Wakuli",
+    "category": "cafe",
+    "lat": 52.3385935,
+    "lng": 4.9238493
+  },
+  {
+    "name": "Ichiraku ramen",
+    "category": "restaurant",
+    "lat": 52.3588244,
+    "lng": 4.8053498
+  },
+  {
+    "name": "Ottolenghi",
+    "category": "restaurant",
+    "lat": 52.3586352,
+    "lng": 4.8786955
+  },
+  {
+    "name": "Coffee Corner",
+    "category": "cafe",
+    "lat": 52.3593459,
+    "lng": 4.8846891
+  },
+  {
+    "name": "Kiosk",
+    "category": "cafe",
+    "lat": 52.3792094,
+    "lng": 4.8983548
+  },
+  {
+    "name": null,
+    "category": "public_bookcase",
+    "lat": 52.393139,
+    "lng": 4.924323
+  },
+  {
+    "name": "Wakuli",
+    "category": "cafe",
+    "lat": 52.3385903,
+    "lng": 4.9238631
   }
 ]

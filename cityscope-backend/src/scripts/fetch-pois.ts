@@ -59,7 +59,7 @@ async function fetchPois() {
       node["leisure"~"park|playground"](${bbox});
       node["shop"~"supermarket|bakery"](${bbox});
     );
-    out center 5000;
+    out center;
   `;
 
   console.log(`Fetching POIs for ${cityConfig.name} from Overpass API...`);
