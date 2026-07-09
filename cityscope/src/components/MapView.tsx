@@ -10,6 +10,7 @@ import { useIsochroneStore } from '../store/isochroneStore';
 import { useHeatmapStore } from '../store/heatmapStore';
 import { useRouteStore } from '../store/routeStore';
 import { useGeoSearchStore } from '../store/geoSearchStore';
+import { isHydrating } from '../lib/shareState';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import { useDrawStore } from '../store/drawStore';
 import type { PolygonGeometry } from '../store/drawStore';
@@ -191,6 +192,7 @@ function MapView() {
   const isochroneOrigin = useIsochroneStore((state) => state.origin);
   const routeEnabled = useRouteStore((s) => s.enabled);
   const drawEnabled = useDrawStore((s) => s.enabled);
+  const drawPolygon = useDrawStore((s) => s.polygon);
   const drawClearSignal = useDrawStore((s) => s.clearSignal);
   const routeOrigin = useRouteStore((s) => s.origin);
   const routeDestination = useRouteStore((s) => s.destination);
@@ -413,6 +415,7 @@ function MapView() {
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
+    if (isHydrating()) return;
 
     if (isInitialMountRef.current) {
       isInitialMountRef.current = false;
@@ -723,6 +726,15 @@ function MapView() {
       useDrawStore.getState().setPolygon(null);
     }
   }, [drawEnabled, mapReady]);
+
+  // Render a polygon that arrived from a shared URL (draw control has no feature yet)
+  useEffect(() => {
+    const draw = drawRef.current;
+    if (!draw || !drawEnabled || !drawPolygon) return;
+    if (draw.getAll().features.length > 0) return; // a user-drawn shape is already present
+    draw.add({ type: 'Feature', properties: {}, geometry: drawPolygon });
+    draw.changeMode('simple_select');
+  }, [drawEnabled, drawPolygon]);
 
   // Panel "Clear area" button: erase the drawn shape, clear results, re-arm draw
   useEffect(() => {

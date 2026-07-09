@@ -6,9 +6,11 @@ import FeaturePanel from './components/FeaturePanel';
 import HeatmapSpotlightCard from './components/HeatmapSpotlightCard';
 import GeoSearch from './components/GeoSearch';
 import { useCityStore } from './store/cityStore';
+import { useShareSync } from './hooks/useShareSync';
 
 function App() {
   const selectedCity = useCityStore((state) => state.selectedCity);
+  useShareSync();
 
   return (
     <Box sx={{ height: '100vh', width: '100vw', overflow: 'hidden' }}>
