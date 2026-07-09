@@ -4,6 +4,7 @@ import type { Map as MapboxMap } from 'mapbox-gl';
 interface MapState {
   is3D: boolean;
   toggle3D: () => void;
+  setIs3D: (value: boolean) => void;
   map: MapboxMap | null;
   setMap: (map: MapboxMap | null) => void;
 }
@@ -11,6 +12,7 @@ interface MapState {
 export const useMapStore = create<MapState>((set) => ({
   is3D: false,
   toggle3D: () => set((state) => ({ is3D: !state.is3D })),
+  setIs3D: (value) => set({ is3D: value }),
   map: null,
   setMap: (map) => set({ map }),
 }));

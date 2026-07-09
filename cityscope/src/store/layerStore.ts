@@ -4,6 +4,7 @@ import type { LayerId } from '../constants/layerConfig';
 interface LayerState {
   layers: Record<LayerId, boolean>;
   toggleLayer: (id: LayerId) => void;
+  setLayers: (layers: Record<LayerId, boolean>) => void;
 }
 
 export const useLayerStore = create<LayerState>((set) => ({
@@ -17,4 +18,5 @@ export const useLayerStore = create<LayerState>((set) => ({
     set((state) => ({
       layers: { ...state.layers, [id]: !state.layers[id] },
     })),
+  setLayers: (layers) => set({ layers }),
 }));
