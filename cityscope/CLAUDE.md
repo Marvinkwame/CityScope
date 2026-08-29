@@ -1,65 +1,25 @@
-# CityScope
+# CityScope — Frontend
 
-Geospatial portfolio app for exploring Berlin's urban infrastructure through interactive 2D/3D map visualizations.
+> **See the root [`../CLAUDE.md`](../CLAUDE.md) for the full monorepo guide, architecture, commands, and conventions.** This file only notes frontend specifics.
 
-## Tech Stack
+React 19 · TypeScript · Vite 8 · Mapbox GL JS 3 · MUI 7 (`sx`) · Zustand 5 · TanStack Query 5 · Turf.js · @mapbox/mapbox-gl-draw · Vitest.
 
-- **Frontend:** React 19, TypeScript 5.9, Vite 8
-- **Map:** Mapbox GL JS 3 (dark-v11 style)
-- **UI:** Material UI 7 (dark theme), Emotion
-- **State:** Zustand 5
+## Frontend conventions
+
+- Strict TypeScript — **no `any`**; type-only imports use `import type`.
+- **All Mapbox mutation lives in `src/components/MapView.tsx`**; UI components write to Zustand stores, the map reacts via `useEffect`. Read stores imperatively (`useStore.getState()`) inside map event handlers to avoid stale closures.
+- MUI `sx` styling on the dark "cartographer's instrument" theme (`src/theme.ts`): graphite surfaces, single gold accent (`AMBER`), cyan for live data. Responsive down to a mobile bottom-sheet.
+- Analysis tools (isochrone / route / draw) are mutually exclusive; the active view is serialisable to the URL hash (`src/lib/shareCodec.ts`).
 
 ## Commands
 
 ```bash
-npm run dev       # Start dev server
-npm run build     # TypeScript check + Vite build
-npm run lint      # ESLint
-npm run preview   # Preview production build
+npm run dev     # :5173
+npm run build   # tsc -b && vite build
+npm run lint
+npm test        # Vitest
 ```
-
-## Project Structure
-
-```
-src/
-  components/     # React components (MapView, Sidebar, Navbar)
-  store/          # Zustand stores (layerStore)
-  constants/      # Shared config (layerConfig)
-  theme.ts        # MUI dark theme
-  env.d.ts        # Vite env type declarations
-public/
-  data/           # Static GeoJSON files (berlin-districts.geojson)
-```
-
-## Architecture
-
-- **State management:** Zustand stores for shared state between components. Components subscribe to stores directly — no prop drilling through App.
-- **Map layers:** All Mapbox layer manipulation happens exclusively in `MapView.tsx`. Sidebar toggles update Zustand store; MapView reacts via `useEffect`.
-- **Layer visibility:** Built-in Mapbox layers (roads, buildings) are identified by ID prefix on `style.load` and cached in refs. Custom layers (districts) are added as GeoJSON sources.
-
-## Conventions
-
-- Strict TypeScript — no `any` types
-- Desktop-first layout
-- MUI dark theme (#121212 background, #90caf9 primary accent)
-- Components use MUI's `sx` prop for styling
-- Type-only imports use `import type`
 
 ## Environment
 
-Requires a Mapbox access token in `.env.local`:
-
-```
-VITE_MAPBOX_TOKEN=pk.your_token_here
-```
-
-Get a token at https://account.mapbox.com/access-tokens/
-
-## Phase Progress
-
-- [x] Phase 1 — Map Shell (Mapbox map, MUI navbar + sidebar)
-- [x] Phase 2 — Layer Toggling (roads, buildings, districts with Zustand)
-- [ ] Phase 3 — Feature Click Panel
-- [ ] Phase 4 — 3D Building Extrusion
-- [ ] Phase 5 — Node + PostGIS Backend
-- [ ] Phase 6 — Heatmap Overlay (Deck.gl)
+`.env.local`: `VITE_MAPBOX_TOKEN`, `VITE_API_URL=http://localhost:3001`
