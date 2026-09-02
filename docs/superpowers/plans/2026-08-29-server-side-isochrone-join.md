@@ -223,7 +223,7 @@ export function isContourInputArray(value: unknown): value is ContourInput[] {
 cd cityscope-backend && npm test
 ```
 
-Expected: PASS — 2 test files, 25 tests (10 pre-existing + 15 new). Confirm the 5 original `isPolygonGeometry` tests still pass; that proves the `isRing` refactor did not change its behaviour.
+Expected: PASS — 2 test files, 24 tests (10 pre-existing + 14 new). Confirm the 5 original `isPolygonGeometry` tests still pass; that proves the `isRing` refactor did not change its behaviour.
 
 - [ ] **Step 5: Commit**
 
@@ -397,7 +397,7 @@ export function groupPoisByBand(rows: BandRow[], contours: number[]): IsochroneB
 cd cityscope-backend && npm test
 ```
 
-Expected: PASS — 3 test files, 34 tests.
+Expected: PASS — 3 test files, 33 tests.
 
 - [ ] **Step 5: Commit**
 
@@ -505,7 +505,7 @@ app.use(express.json({ limit: '512kb' }));
 cd cityscope-backend && npm run build && npm test
 ```
 
-Expected: build succeeds with no output; tests PASS — 3 files, 34 tests.
+Expected: build succeeds with no output; tests PASS — 3 files, 33 tests.
 
 - [ ] **Step 4: Start the dev server**
 
@@ -1106,7 +1106,7 @@ Run against the whole repo once every task is done.
 cd cityscope-backend && npm test && npm run build
 ```
 
-Expected: 3 test files, 34 tests, all passing; build silent.
+Expected: 3 test files, 33 tests, all passing; build silent.
 
 - [ ] **Frontend suite, types, lint and build**
 
