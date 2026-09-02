@@ -3,6 +3,7 @@ import AccordionDetails from '@mui/material/AccordionDetails';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
+import CircularProgress from '@mui/material/CircularProgress';
 import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import List from '@mui/material/List';
@@ -16,8 +17,7 @@ import PlaceIcon from '@mui/icons-material/Place';
 import { useIsochroneStore } from '../store/isochroneStore';
 import { useMapStore } from '../store/mapStore';
 import { useIsochrone } from '../hooks/useIsochrone';
-import { useIsochroneResults } from '../hooks/useIsochroneResults';
-import { usePois } from '../hooks/usePois';
+import { useIsochronePois } from '../hooks/useIsochronePois';
 import { ISOCHRONE_COLOR } from '../constants/layerConfig';
 import { MONO } from '../theme';
 
@@ -62,13 +62,36 @@ function IsochroneResultsPanel() {
   const loading = useIsochroneStore((s) => s.loading);
 
   const { data: isochroneData } = useIsochrone();
-  const { data: poisData } = usePois();
+  const { data: bands, isLoading: bandsLoading, isError: bandsError } = useIsochronePois(isochroneData);
 
-  const bands = useIsochroneResults(isochroneData, poisData);
+  // The tool is live but the Mapbox stage has not resolved yet — stay hidden.
+  if (!enabled || origin === null || loading) return null;
 
-  const hasResults = enabled && origin !== null && !loading && bands.length > 0;
+  // Second async stage. Without this the whole panel would vanish while the
+  // join is in flight, which reads as the feature being broken.
+  if (bandsLoading) {
+    return (
+      <Box sx={{ mt: 1.5 }}>
+        <Divider sx={{ mb: 1.5 }} />
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+          <CircularProgress size={18} sx={{ color: ISOCHRONE_COLOR }} />
+        </Box>
+      </Box>
+    );
+  }
 
-  if (!hasResults) return null;
+  if (bandsError) {
+    return (
+      <Box sx={{ mt: 1.5 }}>
+        <Divider sx={{ mb: 1.5 }} />
+        <Typography variant="caption" sx={{ color: 'error.main' }}>
+          Couldn't analyse reachable places.
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (!bands || bands.length === 0) return null;
 
   return (
     <Box sx={{ mt: 1.5 }}>
@@ -145,12 +168,12 @@ function IsochroneResultsPanel() {
                   variant="caption"
                   sx={{ ml: 'auto', fontWeight: 700, color: 'text.primary', pr: 0.5 }}
                 >
-                  {band.pois.length} place{band.pois.length !== 1 ? 's' : ''}
+                  {band.poiCount} place{band.poiCount !== 1 ? 's' : ''}
                 </Typography>
               </Box>
 
               {/* Category chips summary */}
-              {band.pois.length > 0 && (
+              {band.poiCount > 0 && (
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.4, mt: 0.4 }}>
                   {topCategories.map(([cat, count]) => (
                     <Chip
@@ -188,7 +211,7 @@ function IsochroneResultsPanel() {
             </AccordionSummary>
 
             <AccordionDetails sx={{ px: 0, pt: 0.5, pb: 0.25 }}>
-              {band.pois.length === 0 ? (
+              {band.poiCount === 0 ? (
                 <Typography
                   variant="caption"
                   sx={{ color: 'text.disabled', fontStyle: 'italic' }}
