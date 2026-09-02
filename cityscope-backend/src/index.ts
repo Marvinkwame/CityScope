@@ -11,7 +11,10 @@ const PORT = process.env.PORT ?? 3001;
 app.use(cors({
   origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
 }));
-app.use(express.json());
+// Isochrone contour payloads are small (measured: 3 KB walking, 27 KB for a
+// 30-minute driving isochrone) but the 100 KB default leaves little headroom,
+// so state the limit explicitly.
+app.use(express.json({ limit: '512kb' }));
 
 // City-scoped routes
 app.use('/api/cities', cityRouter);
