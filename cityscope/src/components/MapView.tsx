@@ -727,14 +727,20 @@ function MapView() {
     }
   }, [drawEnabled, mapReady]);
 
-  // Render a polygon that arrived from a shared URL (draw control has no feature yet)
+  // Render a polygon that arrived from a shared URL (draw control has no feature yet).
+  // `mapReady` must stay in the deps: hydration usually lands BEFORE style.load,
+  // because the city list is a fast API call while mapReady waits on Mapbox's
+  // style over the network. At that point the draw-toggle effect above has
+  // bailed too, so drawRef.current is still null and this effect returns early.
+  // Without mapReady it would never re-run — neither store value changes again —
+  // leaving the shape invisible while the sidebar shows results for it.
   useEffect(() => {
     const draw = drawRef.current;
     if (!draw || !drawEnabled || !drawPolygon) return;
     if (draw.getAll().features.length > 0) return; // a user-drawn shape is already present
     draw.add({ type: 'Feature', properties: {}, geometry: drawPolygon });
     draw.changeMode('simple_select');
-  }, [drawEnabled, drawPolygon]);
+  }, [drawEnabled, drawPolygon, mapReady]);
 
   // Panel "Clear area" button: erase the drawn shape, clear results, re-arm draw
   useEffect(() => {
