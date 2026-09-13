@@ -39,23 +39,116 @@ function isNum(v: unknown): v is number {
   return typeof v === 'number' && Number.isFinite(v);
 }
 
+const PROFILES: readonly string[] = ['walking', 'cycling', 'driving'];
+
+function isProfile(v: unknown): v is TravelProfile {
+  return typeof v === 'string' && PROFILES.includes(v);
+}
+
+function isLngLat(v: unknown): v is LngLat {
+  if (typeof v !== 'object' || v === null) return false;
+  const p = v as { lng?: unknown; lat?: unknown };
+  return isNum(p.lng) && isNum(p.lat);
+}
+
+function isPolygon(v: unknown): v is PolygonGeometry {
+  if (typeof v !== 'object' || v === null) return false;
+  const g = v as { type?: unknown; coordinates?: unknown };
+  if (g.type !== 'Polygon') return false;
+  if (!Array.isArray(g.coordinates) || g.coordinates.length === 0) return false;
+  const ring = g.coordinates[0];
+  if (!Array.isArray(ring) || ring.length < 4) return false;
+  return ring.every(
+    (pt: unknown) => Array.isArray(pt) && pt.length >= 2 && isNum(pt[0]) && isNum(pt[1]),
+  );
+}
+
+/**
+ * Validates a tool's own fields, not just its `kind`.
+ *
+ * This matters more than it looks: every downstream `enabled` guard is written
+ * as `x !== null`, which `undefined` satisfies. A tool that passed a kind-only
+ * check could therefore put `undefined` into a store, fire a query, and throw.
+ * An invalid tool is dropped rather than nulling the whole state, so a shared
+ * view still restores.
+ */
+function parseTool(v: unknown): ShareTool | undefined {
+  if (typeof v !== 'object' || v === null) return undefined;
+  const t = v as Record<string, unknown>;
+
+  if (t.kind === 'isochrone') {
+    if (!isProfile(t.profile) || !isLngLat(t.origin)) return undefined;
+    if (!Array.isArray(t.contourMinutes) || t.contourMinutes.length === 0) return undefined;
+    if (!t.contourMinutes.every(isNum)) return undefined;
+    return {
+      kind: 'isochrone',
+      profile: t.profile,
+      contourMinutes: [...t.contourMinutes],
+      origin: { lng: t.origin.lng, lat: t.origin.lat },
+    };
+  }
+
+  if (t.kind === 'route') {
+    if (!isProfile(t.profile) || !isLngLat(t.origin) || !isLngLat(t.destination)) return undefined;
+    return {
+      kind: 'route',
+      profile: t.profile,
+      origin: { lng: t.origin.lng, lat: t.origin.lat },
+      destination: { lng: t.destination.lng, lat: t.destination.lat },
+    };
+  }
+
+  if (t.kind === 'draw') {
+    if (!isPolygon(t.polygon)) return undefined;
+    return { kind: 'draw', polygon: t.polygon };
+  }
+
+  return undefined;
+}
+
+/**
+ * Decodes a share hash, returning null for anything malformed so a bad link
+ * can never crash the app. The result is rebuilt field by field rather than
+ * spread from the parsed object, so unrecognised keys never reach the stores.
+ */
 export function decodeState(raw: string): ShareState | null {
   try {
     const obj = JSON.parse(fromBase64Url(raw)) as Record<string, unknown>;
     if (obj.v !== 1 || typeof obj.city !== 'string') return null;
+
     const view = obj.view as Record<string, unknown> | undefined;
     if (!view || !isNum(view.lng) || !isNum(view.lat) || !isNum(view.zoom) || !isNum(view.bearing) || !isNum(view.pitch)) {
       return null;
     }
+
     const layers = obj.layers as Record<string, unknown> | undefined;
     if (!layers || ['roads', 'buildings', 'districts', 'heatmap'].some((k) => typeof layers[k] !== 'boolean')) {
       return null;
     }
+
     if (typeof obj.is3D !== 'boolean') return null;
-    const tool = obj.tool as ShareTool | undefined;
-    const validTool =
-      tool && (tool.kind === 'isochrone' || tool.kind === 'route' || tool.kind === 'draw') ? tool : undefined;
-    return { ...(obj as unknown as ShareState), tool: validTool };
+
+    const tool = parseTool(obj.tool);
+
+    return {
+      v: 1,
+      city: obj.city,
+      view: {
+        lng: view.lng,
+        lat: view.lat,
+        zoom: view.zoom,
+        bearing: view.bearing,
+        pitch: view.pitch,
+      },
+      layers: {
+        roads: layers.roads as boolean,
+        buildings: layers.buildings as boolean,
+        districts: layers.districts as boolean,
+        heatmap: layers.heatmap as boolean,
+      },
+      is3D: obj.is3D,
+      ...(tool ? { tool } : {}),
+    };
   } catch {
     return null;
   }
