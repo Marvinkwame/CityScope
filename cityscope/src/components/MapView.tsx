@@ -11,6 +11,7 @@ import { useHeatmapStore } from '../store/heatmapStore';
 import { useRouteStore } from '../store/routeStore';
 import { useGeoSearchStore } from '../store/geoSearchStore';
 import { isHydrating } from '../lib/shareState';
+import { hasCompletePolygon } from '../lib/drawFeatures';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import { useDrawStore } from '../store/drawStore';
 import type { PolygonGeometry } from '../store/drawStore';
@@ -737,8 +738,14 @@ function MapView() {
   useEffect(() => {
     const draw = drawRef.current;
     if (!draw || !drawEnabled || !drawPolygon) return;
-    if (draw.getAll().features.length > 0) return; // a user-drawn shape is already present
+    // Only bail for a polygon the user actually finished. A plain
+    // `features.length > 0` check counts the in-progress stub that
+    // changeMode('draw_polygon') inserts the moment the tool is armed, which
+    // meant a shared polygon was never added at all.
+    if (hasCompletePolygon(draw.getAll().features)) return;
     draw.add({ type: 'Feature', properties: {}, geometry: drawPolygon });
+    // Leaves draw_polygon mode, which discards gl-draw's in-progress stub and
+    // leaves only the shape restored from the link.
     draw.changeMode('simple_select');
   }, [drawEnabled, drawPolygon, mapReady]);
 
