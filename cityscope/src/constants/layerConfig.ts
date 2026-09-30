@@ -1,3 +1,5 @@
+import { ROLE } from '../theme';
+
 export type LayerId = 'roads' | 'buildings' | 'districts' | 'heatmap';
 
 export interface LayerConfig {
@@ -7,10 +9,11 @@ export interface LayerConfig {
 }
 
 export const LAYER_CONFIGS: LayerConfig[] = [
-  { id: 'roads', label: 'Roads', color: '#FFB74D' },
-  { id: 'buildings', label: 'Buildings', color: '#90CAF9' },
-  { id: 'districts', label: 'Districts', color: '#CE93D8' },
-  { id: 'heatmap', label: 'POI Heatmap', color: '#FF7043' },
+  // All four are context: the backdrop an analysis result sits on.
+  { id: 'roads', label: 'Roads', color: ROLE.context },
+  { id: 'buildings', label: 'Buildings', color: ROLE.context },
+  { id: 'districts', label: 'Districts', color: ROLE.context },
+  { id: 'heatmap', label: 'POI Heatmap', color: ROLE.context },
 ];
 
 export const ROAD_LAYER_FILTER = (layerId: string): boolean =>
@@ -33,7 +36,6 @@ export const POI_HEATMAP_LAYER_ID = 'pois-heatmap-layer';
 export const ISOCHRONE_SOURCE_ID = 'isochrone-source';
 export const ISOCHRONE_FILL_LAYER_ID = 'isochrone-fill';
 export const ISOCHRONE_LINE_LAYER_ID = 'isochrone-line';
-export const ISOCHRONE_COLOR = '#00BCD4';
 
 export const ROUTE_SOURCE_ID = 'route-source';
 export const ROUTE_LAYER_ID = 'route-layer';

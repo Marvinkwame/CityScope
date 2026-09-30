@@ -18,8 +18,7 @@ import { useIsochroneStore } from '../store/isochroneStore';
 import { useMapStore } from '../store/mapStore';
 import { useIsochrone } from '../hooks/useIsochrone';
 import { useIsochronePois } from '../hooks/useIsochronePois';
-import { ISOCHRONE_COLOR } from '../constants/layerConfig';
-import { MONO } from '../theme';
+import { MONO, ROLE } from '../theme';
 
 const PROFILE_LABEL: Record<string, string> = {
   walking: 'walking',
@@ -74,7 +73,7 @@ function IsochroneResultsPanel() {
       <Box sx={{ mt: 1.5 }}>
         <Divider sx={{ mb: 1.5 }} />
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-          <CircularProgress size={18} sx={{ color: ISOCHRONE_COLOR }} />
+          <CircularProgress size={18} sx={{ color: ROLE.answer }} />
         </Box>
       </Box>
     );
@@ -99,11 +98,11 @@ function IsochroneResultsPanel() {
 
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-        <PlaceIcon sx={{ fontSize: 14, color: ISOCHRONE_COLOR }} />
+        <PlaceIcon sx={{ fontSize: 14, color: ROLE.answer }} />
         <Typography
           variant="caption"
           sx={{
-            color: ISOCHRONE_COLOR,
+            color: ROLE.answer,
             fontWeight: 600,
             textTransform: 'uppercase',
             letterSpacing: 0.5,

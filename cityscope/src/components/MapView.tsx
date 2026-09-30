@@ -31,13 +31,13 @@ import {
   ISOCHRONE_SOURCE_ID,
   ISOCHRONE_FILL_LAYER_ID,
   ISOCHRONE_LINE_LAYER_ID,
-  ISOCHRONE_COLOR,
   ROUTE_SOURCE_ID,
   ROUTE_LAYER_ID,
   FEATURE_TYPE_PRIORITY,
   classifyLayerId,
 } from '../constants/layerConfig';
 import type { LayerId } from '../constants/layerConfig';
+import { ROLE } from '../theme';
 
 /**
  * Recolour the dark-v11 basemap's blue-cast base layers to graphite so the
@@ -585,7 +585,7 @@ function MapView() {
           type: 'line',
           source: ISOCHRONE_SOURCE_ID,
           paint: {
-            'line-color': ISOCHRONE_COLOR,
+            'line-color': ROLE.answer,
             'line-width': 2,
             'line-opacity': 0.6,
           },
@@ -607,7 +607,7 @@ function MapView() {
     }
 
     if (isochroneOrigin && isochroneEnabled) {
-      isochroneMarkerRef.current = new mapboxgl.Marker({ color: ISOCHRONE_COLOR })
+      isochroneMarkerRef.current = new mapboxgl.Marker({ color: ROLE.answer })
         .setLngLat([isochroneOrigin.lng, isochroneOrigin.lat])
         .addTo(map);
     }
