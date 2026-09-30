@@ -312,14 +312,15 @@ function sourceFiles(dir: string): string[] {
   });
 }
 
+/** Path relative to src/, with forward slashes on every OS. */
+const relPath = (file: string) => relative(SRC, file).split(sep).join('/');
+
 function offendersIn(file: string): string[] {
-  const rel = relative(SRC, file).split(sep).join('/');
+  const rel = relPath(file);
   return readFileSync(file, 'utf8')
     .split(/\r?\n/)
     .flatMap((line, i) => colourLiterals(line).map((c) => `${rel}:${i + 1}  ${c}`));
 }
-
-const relPath = (file: string) => relative(SRC, file).split(sep).join('/');
 
 describe('colourLiterals', () => {
   it('flags hex colours of every length', () => {
@@ -1419,7 +1420,7 @@ describe('colour guard', () => {
 });
 ```
 
-If `relPath` is now unused, delete it too (`tsc -b` doesn't check test files, but lint does).
+Keep `relPath`: `offendersIn` still uses it.
 
 - [ ] **Step 2: Prove the guard still bites**
 
