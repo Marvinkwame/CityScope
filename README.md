@@ -8,7 +8,7 @@
 
 ## What it does
 
-Real OpenStreetMap POI data (~120,000 places across **8 cities**), analysed four different ways:
+Real OpenStreetMap POI data (~180,000 places across **8 cities**), analysed four different ways:
 
 | Feature | Description |
 |---------|-------------|
@@ -105,7 +105,9 @@ City-scoped routes (`:cityId` e.g. `berlin`):
 
 ## Data & honesty note
 
-POIs are real OpenStreetMap data fetched via Overpass for a fixed set of categories (food & drink, culture, leisure, retail) within each city's bounding box. Counts are complete **for those categories within that bbox** — not every POI type, and the bbox is a rectangle rather than an exact administrative boundary.
+POIs are real OpenStreetMap data fetched via Overpass for a fixed set of 11 categories (food & drink, culture, leisure, retail) within each city's bounding box. Counts are complete **for those categories within that bbox** — not every POI type, and the bbox is a rectangle rather than an exact administrative boundary.
+
+Both point features and area features are included; an area such as a park or a museum building is represented by its centre point, so a distance to a large park is measured to its middle, not its nearest edge. Categories match exact OSM tag values (so `amenity=pub` counts, `amenity=public_bookcase` does not). Roughly 0.3% of rows are places mapped twice in OSM itself; they are kept rather than merged by a distance heuristic, which would also merge genuine neighbouring chain outlets.
 
 ---
 
