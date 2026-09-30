@@ -23,7 +23,6 @@ const PENDING = new Set<string>([
   'components/HeatmapSpotlightCard.tsx',
   'components/IsochroneControls.tsx',
   'components/IsochroneResultsPanel.tsx',
-  'components/MapView.tsx',
   'components/Navbar.tsx',
   'components/RouteControls.tsx',
   'components/RouteResultsPanel.tsx',

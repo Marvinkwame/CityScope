@@ -15,6 +15,7 @@ import { hasCompletePolygon } from '../lib/drawFeatures';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import { useDrawStore } from '../store/drawStore';
 import type { PolygonGeometry } from '../store/drawStore';
+import { createPin } from '../lib/mapPins';
 import { useRoute } from '../hooks/useRoute';
 import { useDistricts } from '../hooks/useDistricts';
 import { usePois } from '../hooks/usePois';
@@ -620,7 +621,7 @@ function MapView() {
     }
 
     if (isochroneOrigin && isochroneEnabled) {
-      isochroneMarkerRef.current = new mapboxgl.Marker({ color: ROLE.answer })
+      isochroneMarkerRef.current = new mapboxgl.Marker({ element: createPin('origin') })
         .setLngLat([isochroneOrigin.lng, isochroneOrigin.lat])
         .addTo(map);
     }
@@ -671,34 +672,20 @@ function MapView() {
     const map = mapRef.current;
     if (!map || !mapReady) return;
 
-    // Origin marker (A — green)
+    // Origin marker (A)
     routeOriginMarkerRef.current?.remove();
     routeOriginMarkerRef.current = null;
     if (routeOrigin && routeEnabled) {
-      const elA = document.createElement('div');
-      elA.style.cssText =
-        'width:20px;height:20px;background:#4CAF50;border:2px solid white;' +
-        'border-radius:50%;display:flex;align-items:center;justify-content:center;' +
-        'font-size:10px;font-weight:bold;color:white;box-shadow:0 2px 6px rgba(0,0,0,0.5);' +
-        'cursor:pointer;';
-      elA.textContent = 'A';
-      routeOriginMarkerRef.current = new mapboxgl.Marker({ element: elA })
+      routeOriginMarkerRef.current = new mapboxgl.Marker({ element: createPin('a') })
         .setLngLat([routeOrigin.lng, routeOrigin.lat])
         .addTo(map);
     }
 
-    // Destination marker (B — orange)
+    // Destination marker (B)
     routeDestinationMarkerRef.current?.remove();
     routeDestinationMarkerRef.current = null;
     if (routeDestination && routeEnabled) {
-      const elB = document.createElement('div');
-      elB.style.cssText =
-        'width:20px;height:20px;background:#FF7043;border:2px solid white;' +
-        'border-radius:50%;display:flex;align-items:center;justify-content:center;' +
-        'font-size:10px;font-weight:bold;color:white;box-shadow:0 2px 6px rgba(0,0,0,0.5);' +
-        'cursor:pointer;';
-      elB.textContent = 'B';
-      routeDestinationMarkerRef.current = new mapboxgl.Marker({ element: elB })
+      routeDestinationMarkerRef.current = new mapboxgl.Marker({ element: createPin('b') })
         .setLngLat([routeDestination.lng, routeDestination.lat])
         .addTo(map);
     }
@@ -713,7 +700,7 @@ function MapView() {
     geoSearchMarkerRef.current = null;
 
     if (geoSearchResult) {
-      geoSearchMarkerRef.current = new mapboxgl.Marker()
+      geoSearchMarkerRef.current = new mapboxgl.Marker({ element: createPin('search') })
         .setLngLat([geoSearchResult.lng, geoSearchResult.lat])
         .addTo(map);
     }
