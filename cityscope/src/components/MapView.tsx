@@ -16,6 +16,7 @@ import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import { useDrawStore } from '../store/drawStore';
 import type { PolygonGeometry } from '../store/drawStore';
 import { createPin } from '../lib/mapPins';
+import { DRAW_STYLES } from '../constants/drawStyles';
 import { useRoute } from '../hooks/useRoute';
 import { useDistricts } from '../hooks/useDistricts';
 import { usePois } from '../hooks/usePois';
@@ -716,6 +717,7 @@ function MapView() {
         drawRef.current = new MapboxDraw({
           displayControlsDefault: false,
           controls: { polygon: true, trash: false },
+          styles: DRAW_STYLES,
         });
       }
       if (!map.hasControl(drawRef.current)) {
