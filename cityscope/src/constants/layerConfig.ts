@@ -29,6 +29,7 @@ export const BUILDING_EXTRUSION_LAYER_ID = 'building-3d-extrusion';
 export const DISTRICT_SOURCE_ID = 'city-districts';
 export const DISTRICT_FILL_LAYER_ID = 'city-districts-fill';
 export const DISTRICT_LINE_LAYER_ID = 'city-districts-line';
+export const DISTRICT_SELECTED_LAYER_ID = 'city-districts-selected';
 
 export const POI_HEATMAP_SOURCE_ID = 'pois-heatmap';
 export const POI_HEATMAP_LAYER_ID = 'pois-heatmap-layer';

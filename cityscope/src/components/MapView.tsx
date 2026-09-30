@@ -26,6 +26,7 @@ import {
   DISTRICT_SOURCE_ID,
   DISTRICT_FILL_LAYER_ID,
   DISTRICT_LINE_LAYER_ID,
+  DISTRICT_SELECTED_LAYER_ID,
   POI_HEATMAP_SOURCE_ID,
   POI_HEATMAP_LAYER_ID,
   ISOCHRONE_SOURCE_ID,
@@ -37,7 +38,7 @@ import {
   classifyLayerId,
 } from '../constants/layerConfig';
 import type { LayerId } from '../constants/layerConfig';
-import { ROLE } from '../theme';
+import { INK, ROLE, SURFACE, heatmapColorExpression } from '../theme';
 
 /**
  * Recolour the dark-v11 basemap's blue-cast base layers to graphite so the
@@ -45,9 +46,9 @@ import { ROLE } from '../theme';
  * future style change can never throw. Roads / labels keep their own colours.
  */
 const BASEMAP_TINT = {
-  background: '#0C0D0F', // matches theme INK
-  land: '#101113',
-  water: '#181A1F',
+  background: INK,
+  land: SURFACE.land,
+  water: SURFACE.water,
 };
 
 function neutralizeBasemap(map: mapboxgl.Map) {
@@ -91,7 +92,7 @@ function applyLayerVisibility(
   setLayerVisibility(map, [BUILDING_EXTRUSION_LAYER_ID], currentLayers.buildings);
   setLayerVisibility(
     map,
-    [DISTRICT_FILL_LAYER_ID, DISTRICT_LINE_LAYER_ID],
+    [DISTRICT_FILL_LAYER_ID, DISTRICT_LINE_LAYER_ID, DISTRICT_SELECTED_LAYER_ID],
     currentLayers.districts,
   );
   setLayerVisibility(map, [POI_HEATMAP_LAYER_ID], currentLayers.heatmap);
@@ -121,7 +122,7 @@ function addExtrusionLayer(map: mapboxgl.Map) {
     source: 'composite',
     'source-layer': 'building',
     paint: {
-      'fill-extrusion-color': '#3E424B',
+      'fill-extrusion-color': SURFACE.extrusion,
       'fill-extrusion-height': ['get', 'height'],
       'fill-extrusion-base': ['get', 'min_height'],
       'fill-extrusion-opacity': 0.7,
@@ -150,8 +151,10 @@ function addDistrictLayers(map: mapboxgl.Map, data: GeoJSON.FeatureCollection) {
     type: 'fill',
     source: DISTRICT_SOURCE_ID,
     paint: {
-      'fill-color': '#CE93D8',
-      'fill-opacity': 0.15,
+      // Invisible but required: this is the layer queryRenderedFeatures hits
+      // to make districts clickable. Removing it would silently break selection.
+      'fill-color': ROLE.context,
+      'fill-opacity': 0,
     },
     layout: {
       visibility: 'none',
@@ -163,9 +166,26 @@ function addDistrictLayers(map: mapboxgl.Map, data: GeoJSON.FeatureCollection) {
     type: 'line',
     source: DISTRICT_SOURCE_ID,
     paint: {
-      'line-color': '#CE93D8',
-      'line-width': 2,
-      'line-opacity': 0.7,
+      'line-color': ROLE.context,
+      'line-width': 1,
+      'line-opacity': 0.3,
+      'line-dasharray': [2, 2],
+    },
+    layout: {
+      visibility: 'none',
+    },
+  });
+
+  // The district the user clicked, outlined in the "you" colour. Starts
+  // matching nothing; the selection effect updates the filter.
+  map.addLayer({
+    id: DISTRICT_SELECTED_LAYER_ID,
+    type: 'line',
+    source: DISTRICT_SOURCE_ID,
+    filter: ['==', ['id'], -1],
+    paint: {
+      'line-color': ROLE.you,
+      'line-width': 2.5,
     },
     layout: {
       visibility: 'none',
@@ -202,6 +222,7 @@ function MapView() {
   const { data: poisData } = usePois();
   const { data: isochroneData } = useIsochrone();
   const geoSearchResult = useGeoSearchStore((s) => s.result);
+  const selectedFeature = useFeatureStore((s) => s.selectedFeature);
 
   // Initialize map
   useEffect(() => {
@@ -452,6 +473,18 @@ function MapView() {
     }
   }, [districtsData, mapReady]);
 
+  // Outline the selected district. Depends on districtsData so it re-runs once
+  // the layer exists; any non-district selection resets the filter to nothing.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !map.getLayer(DISTRICT_SELECTED_LAYER_ID)) return;
+    const id =
+      selectedFeature?.type === 'districts' && selectedFeature.featureId != null
+        ? selectedFeature.featureId
+        : -1;
+    map.setFilter(DISTRICT_SELECTED_LAYER_ID, ['==', ['id'], id]);
+  }, [selectedFeature, mapReady, districtsData]);
+
   // Add/update POI heatmap source and layer when data is ready
   useEffect(() => {
     const map = mapRef.current;
@@ -488,19 +521,9 @@ function MapView() {
         paint: {
           'heatmap-weight': 1,
           'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 22, 3],
-          'heatmap-color': [
-            'interpolate',
-            ['linear'],
-            ['heatmap-density'],
-            0, 'rgba(65,105,225,0)',
-            0.2, 'rgb(65,105,225)',
-            0.4, 'rgb(0,180,120)',
-            0.6, 'rgb(255,255,0)',
-            0.8, 'rgb(255,165,0)',
-            1, 'rgb(255,0,0)',
-          ],
+          'heatmap-color': heatmapColorExpression(),
           'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 15, 15, 25],
-          'heatmap-opacity': 0.7,
+          'heatmap-opacity': 1,
         },
       });
     }
@@ -561,19 +584,9 @@ function MapView() {
           type: 'fill',
           source: ISOCHRONE_SOURCE_ID,
           paint: {
-            'fill-color': [
-              'step', ['get', 'contour'],
-              '#00E5FF',      // ≤ 10 min: brightest cyan (innermost)
-              11, '#00BCD4',  // 11–20 min: standard cyan
-              21, '#0097A7',  // 21+ min: dark teal (outermost)
-            ],
-            'fill-opacity': [
-              'interpolate',
-              ['linear'],
-              ['get', 'contour'],
-              5, 0.45,
-              30, 0.08,
-            ],
+            // One hue; bands differ only by opacity, fading outward.
+            'fill-color': ROLE.answer,
+            'fill-opacity': ['interpolate', ['linear'], ['get', 'contour'], 5, 0.3, 30, 0.08],
           },
         },
         firstRoadLayer?.id,
@@ -586,8 +599,8 @@ function MapView() {
           source: ISOCHRONE_SOURCE_ID,
           paint: {
             'line-color': ROLE.answer,
-            'line-width': 2,
-            'line-opacity': 0.6,
+            'line-width': 1.5,
+            'line-opacity': 0.55,
           },
         },
         firstRoadLayer?.id,
@@ -643,7 +656,7 @@ function MapView() {
           source: ROUTE_SOURCE_ID,
           layout: { 'line-join': 'round', 'line-cap': 'round' },
           paint: {
-            'line-color': '#4FC3F7',
+            'line-color': ROLE.answer,
             'line-width': 4,
             'line-opacity': 0.9,
           },
