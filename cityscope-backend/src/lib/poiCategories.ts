@@ -46,6 +46,9 @@ export function classifyPoi(tags: Record<string, string>): PoiCategory | null {
 /**
  * Builds the Overpass QL query for one bounding box ("south,west,north,east").
  *
+ * - `nwr` rather than `node`: parks, and many museums, hotels and
+ *   attractions, are mapped as areas. `out center` returns each area as its
+ *   centre point, which the fetch script already reads.
  * - `(^|;)value(;|$)` anchors each value to a whole semicolon-separated token,
  *   so substrings cannot match but multi-values like "restaurant;bar" still do.
  *
@@ -54,7 +57,7 @@ export function classifyPoi(tags: Record<string, string>): PoiCategory | null {
  */
 export function buildOverpassQuery(bbox: string): string {
   const selectors = RULES.map(
-    (r) => `      node["${r.tag}"~"(^|;)(${r.values.join('|')})(;|$)"](${bbox});`,
+    (r) => `      nwr["${r.tag}"~"(^|;)(${r.values.join('|')})(;|$)"](${bbox});`,
   ).join('\n');
   return `
     [out:json][timeout:180];

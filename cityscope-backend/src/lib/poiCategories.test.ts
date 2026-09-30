@@ -61,11 +61,15 @@ describe('classifyPoi', () => {
 describe('buildOverpassQuery', () => {
   const q = buildOverpassQuery('52.34,13.08,52.68,13.76');
 
-  it('anchors every value so substrings cannot match', () => {
-    expect(q).toContain('node["amenity"~"(^|;)(cafe|restaurant|bar|pub)(;|$)"](52.34,13.08,52.68,13.76);');
-    expect(q).toContain('node["tourism"~"(^|;)(museum|hotel|attraction)(;|$)"]');
-    expect(q).toContain('node["leisure"~"(^|;)(park|playground)(;|$)"]');
-    expect(q).toContain('node["shop"~"(^|;)(supermarket|bakery)(;|$)"]');
+  it('selects nodes, ways and relations, so area-mapped places are included', () => {
+    expect(q).not.toMatch(/\bnode\[/);
     expect(q).toContain('out center;');
+  });
+
+  it('anchors every value so substrings cannot match', () => {
+    expect(q).toContain('nwr["amenity"~"(^|;)(cafe|restaurant|bar|pub)(;|$)"](52.34,13.08,52.68,13.76);');
+    expect(q).toContain('nwr["tourism"~"(^|;)(museum|hotel|attraction)(;|$)"]');
+    expect(q).toContain('nwr["leisure"~"(^|;)(park|playground)(;|$)"]');
+    expect(q).toContain('nwr["shop"~"(^|;)(supermarket|bakery)(;|$)"]');
   });
 });
