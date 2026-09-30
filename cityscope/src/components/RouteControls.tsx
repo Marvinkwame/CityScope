@@ -12,7 +12,8 @@ import { useRouteStore } from '../store/routeStore';
 import { useIsochroneStore } from '../store/isochroneStore';
 import type { TravelProfile } from '../store/isochroneStore';
 import { useDrawStore } from '../store/drawStore';
-import { MONO } from '../theme';
+import { alpha, darken } from '@mui/material/styles';
+import { INK, MONO, ROLE } from '../theme';
 import RouteResultsPanel from './RouteResultsPanel';
 
 function RouteControls() {
@@ -80,13 +81,12 @@ function RouteControls() {
               onClick={handleSetA}
               sx={{
                 flex: 1,
-                borderColor: '#4CAF50',
-                color: setMode === 'origin' ? '#000' : '#4CAF50',
-                bgcolor: setMode === 'origin' ? '#4CAF50' : 'transparent',
+                borderColor: ROLE.you,
+                color: setMode === 'origin' ? INK : ROLE.you,
+                bgcolor: setMode === 'origin' ? ROLE.you : 'transparent',
                 '&:hover': {
-                  bgcolor:
-                    setMode === 'origin' ? '#43A047' : 'rgba(76,175,80,0.1)',
-                  borderColor: '#4CAF50',
+                  bgcolor: setMode === 'origin' ? darken(ROLE.you, 0.15) : alpha(ROLE.you, 0.1),
+                  borderColor: ROLE.you,
                 },
               }}
             >
@@ -98,15 +98,12 @@ function RouteControls() {
               onClick={handleSetB}
               sx={{
                 flex: 1,
-                borderColor: '#FF7043',
-                color: setMode === 'destination' ? '#000' : '#FF7043',
-                bgcolor: setMode === 'destination' ? '#FF7043' : 'transparent',
+                borderColor: ROLE.you,
+                color: setMode === 'destination' ? INK : ROLE.you,
+                bgcolor: setMode === 'destination' ? ROLE.you : 'transparent',
                 '&:hover': {
-                  bgcolor:
-                    setMode === 'destination'
-                      ? '#F4511E'
-                      : 'rgba(255,112,67,0.1)',
-                  borderColor: '#FF7043',
+                  bgcolor: setMode === 'destination' ? darken(ROLE.you, 0.15) : alpha(ROLE.you, 0.1),
+                  borderColor: ROLE.you,
                 },
               }}
             >
@@ -154,7 +151,7 @@ function RouteControls() {
             <Typography
               variant="caption"
               sx={{
-                color: origin ? '#4CAF50' : '#555',
+                color: origin ? ROLE.you : 'text.disabled',
                 fontStyle: origin ? 'normal' : 'italic',
               }}
             >
@@ -163,7 +160,7 @@ function RouteControls() {
             <Typography
               variant="caption"
               sx={{
-                color: destination ? '#FF7043' : '#555',
+                color: destination ? ROLE.you : 'text.disabled',
                 fontStyle: destination ? 'normal' : 'italic',
               }}
             >

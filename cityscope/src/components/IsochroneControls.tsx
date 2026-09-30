@@ -13,7 +13,8 @@ import { useIsochroneStore } from '../store/isochroneStore';
 import type { TravelProfile } from '../store/isochroneStore';
 import { useRouteStore } from '../store/routeStore';
 import { useDrawStore } from '../store/drawStore';
-import { AMBER, CYAN, MONO } from '../theme';
+import { alpha, darken } from '@mui/material/styles';
+import { AMBER, CYAN, INK, MONO } from '../theme';
 import IsochroneResultsPanel from './IsochroneResultsPanel';
 
 const TIME_PRESETS = [5, 10, 15, 20, 30] as const;
@@ -141,10 +142,10 @@ function IsochroneControls() {
                     fontSize: '0.72rem',
                     fontWeight: 500,
                     borderColor: AMBER,
-                    color: maxMinutes === preset ? '#040C14' : AMBER,
+                    color: maxMinutes === preset ? INK : AMBER,
                     bgcolor: maxMinutes === preset ? AMBER : 'transparent',
                     '&:hover': {
-                      bgcolor: maxMinutes === preset ? '#C09A28' : 'rgba(232,185,58,0.08)',
+                      bgcolor: maxMinutes === preset ? darken(AMBER, 0.15) : alpha(AMBER, 0.08),
                     },
                   }}
                 />

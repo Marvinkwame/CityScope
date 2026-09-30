@@ -19,14 +19,8 @@ const NEUTRAL_HEX = new Set(['#fff', '#ffffff', '#000', '#000000']);
  */
 const PENDING = new Set<string>([
   'components/DistrictStatsView.tsx',
-  'components/GeoSearch.tsx',
   'components/HeatmapSpotlightCard.tsx',
-  'components/IsochroneControls.tsx',
   'components/IsochroneResultsPanel.tsx',
-  'components/Navbar.tsx',
-  'components/RouteControls.tsx',
-  'components/RouteResultsPanel.tsx',
-  'components/Sidebar.tsx',
 ]);
 
 function isNeutralRgb(args: string): boolean {
