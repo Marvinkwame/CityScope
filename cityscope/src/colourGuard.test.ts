@@ -13,11 +13,6 @@ const HEX = /#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})\b/g;
 const COLOUR_FN = /\b(rgba?|hsla?)\(([^)]*)\)/g;
 const NEUTRAL_HEX = new Set(['#fff', '#ffffff', '#000', '#000000']);
 
-/**
- * Files not yet migrated to tokens. Each Phase 1 task deletes its files from
- * this set as its first step; the final task deletes the set itself.
- */
-const PENDING = new Set<string>([]);
 
 function isNeutralRgb(args: string): boolean {
   const [r, g, b] = args.split(',').map((part) => part.trim());
@@ -81,18 +76,6 @@ describe('colourLiterals', () => {
 
 describe('colour guard', () => {
   it('finds no colour literals outside theme.ts', () => {
-    const offenders = sourceFiles(SRC)
-      .filter((f) => !PENDING.has(relPath(f)))
-      .flatMap(offendersIn);
-    expect(offenders).toEqual([]);
-  });
-
-  // Keeps PENDING honest: a migrated file must leave the list.
-  it('lists only files that still contain colour literals', () => {
-    const clean = sourceFiles(SRC)
-      .filter((f) => PENDING.has(relPath(f)))
-      .filter((f) => offendersIn(f).length === 0)
-      .map(relPath);
-    expect(clean).toEqual([]);
+    expect(sourceFiles(SRC).flatMap(offendersIn)).toEqual([]);
   });
 });
