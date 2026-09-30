@@ -5,7 +5,7 @@ import type { ExpressionSpecification } from 'mapbox-gl';
  * "Cartographer's Instrument" design tokens.
  *
  * The only file allowed to contain colour literals — src/colourGuard.test.ts
- * fails the build if one appears anywhere else.
+ * fails `npm test` if one appears anywhere else.
  */
 export const AMBER = '#E3B04A'; // honey gold
 export const CYAN = '#56C7BE'; // quiet cyan
