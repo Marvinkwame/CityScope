@@ -46,30 +46,42 @@ async function seed() {
   });
   await client.connect();
 
-  await client.query('DELETE FROM pois WHERE city_id = $1', [cityId]);
+  // One transaction per city: the live demo reads this table, so a failure
+  // partway through must leave the previous data in place rather than a
+  // half-deleted city.
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM pois WHERE city_id = $1', [cityId]);
 
-  const batchSize = 500;
-  for (let i = 0; i < pois.length; i += batchSize) {
-    const batch = pois.slice(i, i + batchSize);
-    const values: (string | number | null)[] = [];
-    const placeholders: string[] = [];
+    const batchSize = 500;
+    for (let i = 0; i < pois.length; i += batchSize) {
+      const batch = pois.slice(i, i + batchSize);
+      const values: (string | number | null)[] = [];
+      const placeholders: string[] = [];
 
-    batch.forEach((poi, idx) => {
-      const offset = idx * 5;
-      placeholders.push(
-        `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5})`,
+      batch.forEach((poi, idx) => {
+        const offset = idx * 5;
+        placeholders.push(
+          `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5})`,
+        );
+        values.push(poi.name, poi.category, poi.lat, poi.lng, cityId);
+      });
+
+      await client.query(
+        `INSERT INTO pois (name, category, lat, lng, city_id) VALUES ${placeholders.join(', ')}`,
+        values,
       );
-      values.push(poi.name, poi.category, poi.lat, poi.lng, cityId);
-    });
+    }
 
-    await client.query(
-      `INSERT INTO pois (name, category, lat, lng, city_id) VALUES ${placeholders.join(', ')}`,
-      values,
-    );
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    await client.end();
   }
 
   console.log(`Seeded ${pois.length} POIs for ${cityConfig.name}`);
-  await client.end();
 }
 
 seed().catch((err) => {
