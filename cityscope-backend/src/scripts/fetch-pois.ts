@@ -2,6 +2,7 @@ import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CITY_CONFIGS } from '../config/cities.js';
+import { buildOverpassQuery, classifyPoi } from '../lib/poiCategories.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -25,15 +26,6 @@ interface Poi {
   lng: number;
 }
 
-const CATEGORY_TAGS = ['amenity', 'tourism', 'leisure', 'shop', 'public_transport'] as const;
-
-function extractCategory(tags: Record<string, string>): string | null {
-  for (const key of CATEGORY_TAGS) {
-    if (tags[key]) return tags[key];
-  }
-  return null;
-}
-
 async function fetchPois() {
   const cityId = process.argv[2];
   if (!cityId) {
@@ -51,16 +43,7 @@ async function fetchPois() {
   const { south, west, north, east } = cityConfig.bounds;
   const bbox = `${south},${west},${north},${east}`;
 
-  const query = `
-    [out:json][timeout:120];
-    (
-      node["amenity"~"cafe|restaurant|bar|pub"](${bbox});
-      node["tourism"~"museum|hotel|attraction"](${bbox});
-      node["leisure"~"park|playground"](${bbox});
-      node["shop"~"supermarket|bakery"](${bbox});
-    );
-    out center;
-  `;
+  const query = buildOverpassQuery(bbox);
 
   console.log(`Fetching POIs for ${cityConfig.name} from Overpass API...`);
 
@@ -82,6 +65,7 @@ async function fetchPois() {
   console.log(`Received ${data.elements.length} elements from Overpass API`);
 
   const pois: Poi[] = [];
+  let rejected = 0;
 
   for (const el of data.elements) {
     const lat = el.lat ?? el.center?.lat;
@@ -89,8 +73,11 @@ async function fetchPois() {
     if (lat == null || lon == null) continue;
 
     const tags = el.tags ?? {};
-    const category = extractCategory(tags);
-    if (!category) continue;
+    const category = classifyPoi(tags);
+    if (!category) {
+      rejected += 1;
+      continue;
+    }
 
     pois.push({
       name: tags.name ?? null,
@@ -102,7 +89,7 @@ async function fetchPois() {
 
   const outputPath = path.resolve(__dirname, `pois-data-${cityId}.json`);
   writeFileSync(outputPath, JSON.stringify(pois, null, 2));
-  console.log(`Saved ${pois.length} POIs to ${outputPath}`);
+  console.log(`Saved ${pois.length} POIs to ${outputPath} (${rejected} elements rejected by classifyPoi)`);
 }
 
 fetchPois().catch((err) => {
