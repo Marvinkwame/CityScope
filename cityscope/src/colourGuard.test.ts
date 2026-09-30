@@ -17,11 +17,7 @@ const NEUTRAL_HEX = new Set(['#fff', '#ffffff', '#000', '#000000']);
  * Files not yet migrated to tokens. Each Phase 1 task deletes its files from
  * this set as its first step; the final task deletes the set itself.
  */
-const PENDING = new Set<string>([
-  'components/DistrictStatsView.tsx',
-  'components/HeatmapSpotlightCard.tsx',
-  'components/IsochroneResultsPanel.tsx',
-]);
+const PENDING = new Set<string>([]);
 
 function isNeutralRgb(args: string): boolean {
   const [r, g, b] = args.split(',').map((part) => part.trim());

@@ -3,9 +3,9 @@ import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
 import { useDistrictStats } from '../hooks/useDistrictStats';
-import { AMBER, MONO } from '../theme';
+import { alpha } from '@mui/material/styles';
+import { AMBER, MONO, ROLE } from '../theme';
 
-const DOWN = '#E08A6B';
 
 function Stat({ label, value, unit }: { label: string; value: string; unit?: string }) {
   return (
@@ -50,7 +50,9 @@ function DistrictStatsView({ cityId, districtId }: { cityId: string; districtId:
 
   const pct = data.densityVsCityPct;
   const hasPois = data.poiCount > 0;
-  const pctColor = pct === null ? 'rgba(255,255,255,0.5)' : pct >= 0 ? AMBER : DOWN;
+  // Density above or below average is neither good nor bad, so both directions
+  // use the answer colour; the sign carries the direction.
+  const pctColor = pct === null ? 'rgba(255,255,255,0.5)' : ROLE.answer;
   const pctLabel =
     pct === null ? '~ city avg' : `${pct > 0 ? '+' : ''}${pct.toFixed(0)}% vs city avg`;
 
@@ -71,8 +73,8 @@ function DistrictStatsView({ cityId, districtId }: { cityId: string; districtId:
               px: 1,
               py: 0.5,
               borderRadius: '5px',
-              border: `1px solid ${pctColor}55`,
-              background: `${pctColor}14`,
+              border: `1px solid ${alpha(pctColor, 0.33)}`,
+              background: alpha(pctColor, 0.08),
               mb: 2,
             }}
           >
