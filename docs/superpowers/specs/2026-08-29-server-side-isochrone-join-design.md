@@ -86,7 +86,9 @@ JOIN pois p ON p.city_id = $2 AND ST_Within(p.geom, b.g)
 ORDER BY b.contour, p.category, p.name
 ```
 
-`ST_GeomFromGeoJSON` is wrapped so malformed geometry surfaces as a 400, never a 500.
+The 400 contract is enforced entirely by the structural guard above.
+
+> **Corrected during implementation (2026-08-29).** This section originally said `ST_GeomFromGeoJSON` would be wrapped so malformed geometry surfaces as a 400 rather than a 500. Testing against Neon showed that is unnecessary: an unclosed ring, a non-numeric third ordinate, a zero-area ring and out-of-range coordinates all parse without error and return 200. Anything the structural guard admits, PostGIS accepts. A message-sniffing catch block was therefore removed — it was unreachable, and matching on "geometry" risked reporting a genuine server fault as a client error.
 
 **Cumulative band semantics are preserved deliberately.** Each contour polygon is tested independently, so a POI inside the 5-minute band also appears in the 10- and 15-minute bands. This is exactly what the current client-side code does. It is recorded here because it is the kind of semantic that gets silently inverted in a rewrite, quietly changing every number in the UI.
 

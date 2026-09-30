@@ -46,7 +46,9 @@ npm run seed:all                    # load cities + districts + POIs into the DB
 - **Save & Share:** app state → base64url blob in the URL hash (`cityscope/src/lib/shareCodec.ts` + `shareState.ts` + `useShareSync.ts`), rehydrated on load behind a hydration guard.
 
 ### Key API endpoints (city-scoped, `:cityId` e.g. `berlin`)
-`GET /api/cities` · `GET /api/cities/:cityId/districts` · `GET /api/cities/:cityId/districts/:id/stats` · `GET /api/cities/:cityId/pois` · `POST /api/cities/:cityId/pois/within`
+`GET /api/cities` · `GET /api/cities/:cityId/districts` · `GET /api/cities/:cityId/districts/:id/stats` · `GET /api/cities/:cityId/pois` · `POST /api/cities/:cityId/pois/within` · `POST /api/cities/:cityId/pois/in-isochrone`
+
+`GET /pois` returns the whole city's POI set (1.2 MB Berlin, 2.8 MB Tokyo) and is fetched **only when the heatmap layer is on** — it feeds the heatmap and the 300 m spotlight, nothing else. The isochrone POI-in-band join runs server-side via `/pois/in-isochrone` (`ST_Within` per contour), so it never needs the bulk set.
 
 ## Conventions
 

@@ -7,6 +7,7 @@ import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import Switch from '@mui/material/Switch';
+import CircularProgress from '@mui/material/CircularProgress';
 import CircleIcon from '@mui/icons-material/Circle';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -18,6 +19,7 @@ import { useRouteStore } from '../store/routeStore';
 import { useDrawStore } from '../store/drawStore';
 import { useCityStore } from '../store/cityStore';
 import { LAYER_CONFIGS } from '../constants/layerConfig';
+import { usePois } from '../hooks/usePois';
 import IsochroneControls from './IsochroneControls';
 import RouteControls from './RouteControls';
 import DrawControls from './DrawControls';
@@ -77,6 +79,8 @@ function Module({ delay, children }: { delay: number; children: React.ReactNode 
 function Sidebar() {
   const layers = useLayerStore((state) => state.layers);
   const toggleLayer = useLayerStore((state) => state.toggleLayer);
+  // Same shared query the map uses — reading isFetching here costs no extra request.
+  const { isFetching: poisFetching } = usePois();
   const isochroneEnabled = useIsochroneStore((s) => s.enabled);
   const routeEnabled = useRouteStore((s) => s.enabled);
   const drawEnabled = useDrawStore((s) => s.enabled);
@@ -169,6 +173,9 @@ function Sidebar() {
                         </Typography>
                       }
                     />
+                    {id === 'heatmap' && poisFetching && (
+                      <CircularProgress size={12} sx={{ color: AMBER, mr: 1 }} />
+                    )}
                     <Switch
                       edge="end"
                       size="small"

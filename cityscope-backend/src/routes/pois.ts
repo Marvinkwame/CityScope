@@ -2,7 +2,8 @@ import { Router } from 'express';
 import type { Request, Response } from 'express';
 import pool from '../db.js';
 import { densityPerKm2 } from '../lib/statsMath.js';
-import { isPolygonGeometry } from '../lib/geometry.js';
+import { isPolygonGeometry, isContourInputArray } from '../lib/geometry.js';
+import { groupPoisByBand, type BandRow } from '../lib/isochroneBands.js';
 
 export const poiRouter = Router({ mergeParams: true });
 
@@ -65,6 +66,55 @@ poiRouter.post('/within', async (req: Request, res: Response) => {
     });
   } catch (err) {
     console.error('Failed to analyse area:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+poiRouter.post('/in-isochrone', async (req: Request, res: Response) => {
+  try {
+    const cityId = req.params.cityId ?? 'berlin';
+    const contours = (req.body as { contours?: unknown }).contours;
+
+    if (!isContourInputArray(contours)) {
+      res.status(400).json({
+        error:
+          'Body must be { contours: [{ contour: <integer>, geometry: <GeoJSON Polygon|MultiPolygon> }] }, 1-6 entries',
+      });
+      return;
+    }
+
+    const result = await pool.query(
+      `WITH bands AS (
+         SELECT (c->>'contour')::int AS contour,
+                ST_SetSRID(ST_GeomFromGeoJSON(c->'geometry'), 4326) AS g
+         FROM jsonb_array_elements($1::jsonb) AS c
+       )
+       SELECT b.contour, p.id, p.name, p.category, p.lat, p.lng
+       FROM bands b
+       JOIN pois p ON p.city_id = $2 AND ST_Within(p.geom, b.g)
+       ORDER BY b.contour, p.category, p.name`,
+      [JSON.stringify(contours), cityId],
+    );
+
+    const rows: BandRow[] = result.rows.map((r) => ({
+      contour: Number(r.contour),
+      id: Number(r.id),
+      name: r.name,
+      category: r.category,
+      lat: Number(r.lat),
+      lng: Number(r.lng),
+    }));
+
+    res.json({ bands: groupPoisByBand(rows, contours.map((c) => c.contour)) });
+  } catch (err) {
+    // The 400 contract is enforced entirely by isContourInputArray above.
+    // ST_GeomFromGeoJSON turns out to be very lenient with anything that gets
+    // past that guard — verified against Neon: an unclosed ring, a
+    // non-numeric third ordinate, a zero-area ring and out-of-range
+    // coordinates all parse fine and return 200. So there is no
+    // geometry-specific error to translate here, and sniffing the message for
+    // "geometry" would only risk reporting a genuine server fault as a 400.
+    console.error('Failed to analyse isochrone bands:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

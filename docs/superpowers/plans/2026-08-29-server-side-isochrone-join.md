@@ -223,7 +223,7 @@ export function isContourInputArray(value: unknown): value is ContourInput[] {
 cd cityscope-backend && npm test
 ```
 
-Expected: PASS — 2 test files, 25 tests (10 pre-existing + 15 new). Confirm the 5 original `isPolygonGeometry` tests still pass; that proves the `isRing` refactor did not change its behaviour.
+Expected: PASS — 2 test files, 24 tests (10 pre-existing + 14 new). Confirm the 5 original `isPolygonGeometry` tests still pass; that proves the `isRing` refactor did not change its behaviour.
 
 - [ ] **Step 5: Commit**
 
@@ -397,7 +397,7 @@ export function groupPoisByBand(rows: BandRow[], contours: number[]): IsochroneB
 cd cityscope-backend && npm test
 ```
 
-Expected: PASS — 3 test files, 34 tests.
+Expected: PASS — 3 test files, 33 tests.
 
 - [ ] **Step 5: Commit**
 
@@ -468,19 +468,25 @@ poiRouter.post('/in-isochrone', async (req: Request, res: Response) => {
 
     res.json({ bands: groupPoisByBand(rows, contours.map((c) => c.contour)) });
   } catch (err) {
-    // A geometry that passes the structural guard can still be rejected by
-    // ST_GeomFromGeoJSON (e.g. a self-intersecting ring). Treat that as a
-    // client error rather than a 500.
-    const message = err instanceof Error ? err.message : '';
-    if (/GeoJSON|geometry|invalid/i.test(message)) {
-      res.status(400).json({ error: 'Invalid contour geometry' });
-      return;
-    }
+    // The 400 contract is enforced entirely by isContourInputArray above.
+    // ST_GeomFromGeoJSON turns out to be very lenient with anything that gets
+    // past that guard — verified against Neon: an unclosed ring, a
+    // non-numeric third ordinate, a zero-area ring and out-of-range
+    // coordinates all parse fine and return 200. So there is no
+    // geometry-specific error to translate here, and sniffing the message for
+    // "geometry" would only risk reporting a genuine server fault as a 400.
     console.error('Failed to analyse isochrone bands:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 ```
+
+> **Revised during execution.** This handler originally carried a catch branch
+> that matched `/GeoJSON|geometry|invalid/i` on the error message and returned
+> 400. Live testing showed PostGIS accepts every malformed shape the structural
+> guard admits, so the branch was unreachable — and its regex could have
+> reported a real server fault (a `pg` error naming the `geom` column, say) as a
+> client error. Removed.
 
 - [ ] **Step 2: Set an explicit body limit**
 
@@ -505,7 +511,7 @@ app.use(express.json({ limit: '512kb' }));
 cd cityscope-backend && npm run build && npm test
 ```
 
-Expected: build succeeds with no output; tests PASS — 3 files, 34 tests.
+Expected: build succeeds with no output; tests PASS — 3 files, 33 tests.
 
 - [ ] **Step 4: Start the dev server**
 
@@ -1106,7 +1112,7 @@ Run against the whole repo once every task is done.
 cd cityscope-backend && npm test && npm run build
 ```
 
-Expected: 3 test files, 34 tests, all passing; build silent.
+Expected: 3 test files, 33 tests, all passing; build silent.
 
 - [ ] **Frontend suite, types, lint and build**
 
