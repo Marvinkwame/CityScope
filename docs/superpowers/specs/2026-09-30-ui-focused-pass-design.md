@@ -229,6 +229,10 @@ The heatmap was the top layer, above the labels, and the isochrone sat under the
 
 Layers are created lazily, so the order is enforced with `beforeId` at creation (`lib/layerOrder.ts`): answers go before the first label layer, context goes before the lowest answer layer already on the map, and "you" layers pass no `beforeId` and stay on top. Putting answers just under the labels was compared live against putting them under the first road layer, and read clearly better.
 
+### Districts
+
+The 1 px dashed line at 0.3 with no fill was too faint. At city zoom it could barely be told from the road network, so switching the layer on looked like nothing happened. Districts are now a **solid 1.5 px `ROLE.context` line at 0.6**, over a **0.05 `ROLE.context` fill** so each district reads as an area. They stay in the context role. Bringing back the old purple was considered and rejected, because it would add a fourth colour and reintroduce the clash with gold and cyan. The gold selected-district outline (2.5 px) still stands out clearly above the new line.
+
 ### Guard
 
 The guard also flags a template interpolation with hex digits glued on (`${AMBER}80`), a hand-rolled tint that bypassed it because the source contains no `#`.
