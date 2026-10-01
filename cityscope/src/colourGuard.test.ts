@@ -11,6 +11,9 @@ import { fileURLToPath } from 'node:url';
 const SRC = fileURLToPath(new URL('.', import.meta.url));
 const HEX = /#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})\b/g;
 const COLOUR_FN = /\b(rgba?|hsla?)\(([^)]*)\)/g;
+// A token with hex digits glued on, like `${AMBER}80`: a hand-rolled tint that
+// only works while the token happens to be a 6-digit hex. Use alpha() instead.
+const TOKEN_HEX_SUFFIX = /\$\{[^}]+\}[0-9a-fA-F]{2}\b/g;
 const NEUTRAL_HEX = new Set(['#fff', '#ffffff', '#000', '#000000']);
 
 
@@ -28,6 +31,7 @@ function colourLiterals(line: string): string[] {
   for (const m of line.matchAll(COLOUR_FN)) {
     if (m[1].startsWith('hsl') || !isNeutralRgb(m[2])) found.push(m[0]);
   }
+  for (const m of line.matchAll(TOKEN_HEX_SUFFIX)) found.push(m[0]);
   return found;
 }
 
@@ -66,6 +70,15 @@ describe('colourLiterals', () => {
   it('allows plain white and black', () => {
     expect(colourLiterals("a: '#fff', b: '#FFFFFF', c: '#000'")).toEqual([]);
     expect(colourLiterals("a: 'rgba(255,255,255,0.5)', b: 'rgba(0, 0, 0, 0.4)'")).toEqual([]);
+  });
+
+  it('flags a token with hex digits glued on as a tint', () => {
+    expect(colourLiterals('borderColor: `${AMBER}80`')).toEqual(['${AMBER}80']);
+  });
+
+  it('ignores template literals that are not tints', () => {
+    expect(colourLiterals('width: `${size}px`')).toEqual([]);
+    expect(colourLiterals('transition: `${n}00ms`')).toEqual([]);
   });
 
   it('ignores hashes that are not colours', () => {
