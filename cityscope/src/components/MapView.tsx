@@ -159,10 +159,11 @@ function addDistrictLayers(map: mapboxgl.Map, data: GeoJSON.FeatureCollection) {
       type: 'fill',
       source: DISTRICT_SOURCE_ID,
       paint: {
-        // Invisible but required: this is the layer queryRenderedFeatures hits
-        // to make districts clickable. Removing it would silently break selection.
+        // A faint wash so the districts read as areas. Required either way:
+        // this is the layer queryRenderedFeatures hits to make districts
+        // clickable. Removing it would silently break selection.
         'fill-color': ROLE.context,
-        'fill-opacity': 0,
+        'fill-opacity': 0.05,
       },
       layout: {
         visibility: 'none',
@@ -177,10 +178,11 @@ function addDistrictLayers(map: mapboxgl.Map, data: GeoJSON.FeatureCollection) {
       type: 'line',
       source: DISTRICT_SOURCE_ID,
       paint: {
+        // Solid and fairly bright: a thinner dashed line at 0.3 was hard to
+        // tell apart from roads at city zoom, so the layer looked switched off.
         'line-color': ROLE.context,
-        'line-width': 1,
-        'line-opacity': 0.3,
-        'line-dasharray': [2, 2],
+        'line-width': 1.5,
+        'line-opacity': 0.6,
       },
       layout: {
         visibility: 'none',
