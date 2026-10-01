@@ -193,7 +193,7 @@ function Navbar() {
               borderRadius: '5px',
               '& fieldset': { borderColor: 'rgba(255,255,255,0.09)' },
               '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.18)' },
-              '&.Mui-focused fieldset': { borderColor: `${AMBER}80` },
+              '&.Mui-focused fieldset': { borderColor: alpha(AMBER, 0.5) },
             },
             '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.4)' },
             '& .MuiInputBase-input': {

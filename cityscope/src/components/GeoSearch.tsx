@@ -120,7 +120,7 @@ function GeoSearch() {
                   borderColor: 'rgba(255,255,255,0.35)',
                 },
                 '&.Mui-focused fieldset': {
-                  borderColor: `${AMBER}80`,
+                  borderColor: alpha(AMBER, 0.5),
                 },
               },
               '& .MuiInputBase-input': {
