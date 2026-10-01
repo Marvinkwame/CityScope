@@ -522,10 +522,13 @@ function MapView() {
         },
         paint: {
           'heatmap-weight': 1,
-          'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 22, 3],
+          // Zooming out one level packs about 4x the points into each pixel, so
+          // intensity has to fall steeply as zoom falls, or the city centre
+          // clips to a solid sheet.
+          'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 9, 0.05, 10, 0.15, 11, 0.4, 12.5, 0.8, 14, 1.4],
           'heatmap-color': heatmapColorExpression(),
-          'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 15, 15, 25],
-          'heatmap-opacity': 1,
+          'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 10, 6, 12.5, 10, 15, 18],
+          'heatmap-opacity': 0.9,
         },
       });
     }

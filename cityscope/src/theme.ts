@@ -39,17 +39,22 @@ export const SURFACE = {
 export const PANEL_GRADIENT = `linear-gradient(180deg, ${SURFACE.panelTop} 0%, ${SURFACE.land} 100%)`;
 
 /**
- * Heatmap stops as [density, colour]: one hue that only gains opacity, so more
- * density always looks like more. The rainbow ramp this replaced peaked in
- * brightness at yellow, which made middling densities look like the maximum.
+ * Heatmap stops as [density, colour]: luminance only, one hue that only gains
+ * opacity, so more density always looks like more. The rainbow ramp this
+ * replaced peaked in brightness at yellow, which made middling densities look
+ * like the maximum.
+ *
+ * The curve is concave on purpose: low densities light up early so the
+ * outskirts still read, and the top rises slowly so dense cores keep their
+ * texture instead of clipping to a flat plateau.
  */
 export const HEAT_RAMP: ReadonlyArray<readonly [number, string]> = [
   [0, 'rgba(243,238,228,0)'],
-  [0.2, 'rgba(243,238,228,0.12)'],
-  [0.4, 'rgba(243,238,228,0.25)'],
-  [0.6, 'rgba(243,238,228,0.45)'],
-  [0.8, 'rgba(243,238,228,0.65)'],
-  [1, 'rgba(243,238,228,0.85)'],
+  [0.2, 'rgba(243,238,228,0.14)'],
+  [0.4, 'rgba(243,238,228,0.26)'],
+  [0.6, 'rgba(243,238,228,0.38)'],
+  [0.8, 'rgba(243,238,228,0.52)'],
+  [1, 'rgba(243,238,228,0.7)'],
 ];
 
 /** HEAT_RAMP as a Mapbox `heatmap-color` expression. */
