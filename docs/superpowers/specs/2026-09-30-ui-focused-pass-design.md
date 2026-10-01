@@ -203,3 +203,32 @@ Choosing the Tokyo example while viewing Berlin changes city, and `MapView`'s ci
 - Test files are `*.test.ts`, never `*.test.tsx` — both tsconfigs exclude only `*.test.ts` from the build.
 - Commits are granular, one concern each, with **no `Co-Authored-By` trailer**. One branch per phase, merged in order.
 - For live checks: if :5173 is free, run the frontend there (backend CORS defaults to that origin). If the owner's server holds :5173, hand browser checks to the owner rather than starting a server on another port, which breaks CORS.
+
+---
+
+## Amendments after the live check (2026-10-01)
+
+Phase 1 was run in the browser, in central Berlin. The values below were tuned live and **supersede** the ones given earlier in this spec.
+
+### Heatmap saturation
+
+The first paint (ramp alphas 0.12 to 0.85, radius 15 to 25 and intensity 1 to 3 across the zoom range, layer opacity 1) clipped density to 1 everywhere dense, so the city centre became a near-opaque cream sheet instead of points of light. The ramp stops were right; the clipping was not.
+
+- **Ramp alphas** are now 0, 0.14, 0.26, 0.38, 0.52 and 0.7 at densities 0, 0.2, 0.4, 0.6, 0.8 and 1, in the same single hue. The curve is concave on purpose: low densities light up early so the outskirts still read, and the top rises slowly so dense cores keep their texture instead of clipping to a flat plateau. The legend follows automatically because it renders from the same `HEAT_RAMP`, and it now carries explicit stop positions.
+- **Paint:** `heatmap-radius` is 6 px at zoom 10, 10 at 12.5 and 18 at 15. `heatmap-intensity` is 0.05 at zoom 9, 0.15 at 10, 0.4 at 11, 0.8 at 12.5 and 1.4 at 14, because zooming out one level packs about 4x the points into each pixel, so intensity has to fall steeply with zoom or the centre clips to a solid sheet. `heatmap-opacity` is 0.9.
+
+### Per-city exposure
+
+One curve cannot suit every city. The p99 of POIs per 400 m cell is Berlin 45, London 49, New York 49, Munich 41, Sydney 39, Amsterdam 79, Tokyo 96 and Paris 131, so Tokyo and Paris whited out on the Berlin-tuned curve. Each city's `heatmap-weight` is now `45 / p99`, clamped to 0.25 to 1.5 so a tiny or freak dataset cannot blow the heatmap out or black it. The legend's Low / Medium / High is relative to the city, so exposure is too. The calculation is a pure helper, `lib/heatmapExposure.ts`, with unit tests.
+
+### Layer stack order
+
+The heatmap was the top layer, above the labels, and the isochrone sat under the roads, so cream heatmap blobs cut across the cyan bands, and a heatmap switched on after a polygon was drawn landed over the drawing. The roles now have a fixed stack order, whatever order the layers are created in:
+
+> basemap and roads < **context** (heatmap, district fill and line) < **answer** (isochrone, route) < basemap labels < **you** (selected-district outline, gl-draw)
+
+Layers are created lazily, so the order is enforced with `beforeId` at creation (`lib/layerOrder.ts`): answers go before the first label layer, context goes before the lowest answer layer already on the map, and "you" layers pass no `beforeId` and stay on top. Putting answers just under the labels was compared live against putting them under the first road layer, and read clearly better.
+
+### Guard
+
+The guard also flags a template interpolation with hex digits glued on (`${AMBER}80`), a hand-rolled tint that bypassed it because the source contains no `#`.

@@ -1,5 +1,7 @@
 # UI Phase 1 — Colour Roles Implementation Plan
 
+> **Erratum:** where this plan says the colour guard "fails the build", it fails `npm test` (the guard is a Vitest test and `npm run build` does not run it); corrected in `0ed461b`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Put every colour in the app — UI, map layers, markers and the drawn polygon — onto three semantic roles defined in `theme.ts`, and add a test that makes hard-coding a colour anywhere else fail the build.
