@@ -1,4 +1,4 @@
-import { createTheme } from '@mui/material/styles';
+import { alpha, createTheme } from '@mui/material/styles';
 import type { ExpressionSpecification } from 'mapbox-gl';
 
 /**
@@ -167,9 +167,9 @@ const theme = createTheme({
           color: 'rgba(255,255,255,0.50)',
           '&.Mui-selected': {
             color: AMBER,
-            backgroundColor: 'rgba(227,176,74,0.14)',
+            backgroundColor: alpha(AMBER, 0.14),
             '&:hover': {
-              backgroundColor: 'rgba(227,176,74,0.22)',
+              backgroundColor: alpha(AMBER, 0.22),
             },
           },
         },
