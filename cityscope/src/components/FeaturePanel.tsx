@@ -106,8 +106,8 @@ function FeaturePanel() {
               size="small"
               sx={{
                 background: 'rgba(255,255,255,0.06)',
-                border: `1px solid ${config?.color ?? '#999'}`,
-                color: config?.color ?? '#999',
+                border: `1px solid ${config?.color ?? 'rgba(255,255,255,0.6)'}`,
+                color: config?.color ?? 'rgba(255,255,255,0.6)',
                 fontWeight: 600,
                 fontSize: '0.7rem',
               }}

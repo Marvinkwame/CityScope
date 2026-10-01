@@ -12,8 +12,23 @@ import { useRouteStore } from '../store/routeStore';
 import { useIsochroneStore } from '../store/isochroneStore';
 import type { TravelProfile } from '../store/isochroneStore';
 import { useDrawStore } from '../store/drawStore';
-import { MONO } from '../theme';
+import { alpha, darken } from '@mui/material/styles';
+import { INK, MONO, ROLE } from '../theme';
 import RouteResultsPanel from './RouteResultsPanel';
+
+/** Set A / Set B buttons: outlined in the "you" colour, filled while that endpoint is being placed. */
+function endpointButtonSx(active: boolean) {
+  return {
+    flex: 1,
+    borderColor: ROLE.you,
+    color: active ? INK : ROLE.you,
+    bgcolor: active ? ROLE.you : 'transparent',
+    '&:hover': {
+      bgcolor: active ? darken(ROLE.you, 0.15) : alpha(ROLE.you, 0.1),
+      borderColor: ROLE.you,
+    },
+  };
+}
 
 function RouteControls() {
   const enabled = useRouteStore((s) => s.enabled);
@@ -78,17 +93,7 @@ function RouteControls() {
               size="small"
               variant={setMode === 'origin' ? 'contained' : 'outlined'}
               onClick={handleSetA}
-              sx={{
-                flex: 1,
-                borderColor: '#4CAF50',
-                color: setMode === 'origin' ? '#000' : '#4CAF50',
-                bgcolor: setMode === 'origin' ? '#4CAF50' : 'transparent',
-                '&:hover': {
-                  bgcolor:
-                    setMode === 'origin' ? '#43A047' : 'rgba(76,175,80,0.1)',
-                  borderColor: '#4CAF50',
-                },
-              }}
+              sx={endpointButtonSx(setMode === 'origin')}
             >
               Set A
             </Button>
@@ -96,19 +101,7 @@ function RouteControls() {
               size="small"
               variant={setMode === 'destination' ? 'contained' : 'outlined'}
               onClick={handleSetB}
-              sx={{
-                flex: 1,
-                borderColor: '#FF7043',
-                color: setMode === 'destination' ? '#000' : '#FF7043',
-                bgcolor: setMode === 'destination' ? '#FF7043' : 'transparent',
-                '&:hover': {
-                  bgcolor:
-                    setMode === 'destination'
-                      ? '#F4511E'
-                      : 'rgba(255,112,67,0.1)',
-                  borderColor: '#FF7043',
-                },
-              }}
+              sx={endpointButtonSx(setMode === 'destination')}
             >
               Set B
             </Button>
@@ -154,7 +147,7 @@ function RouteControls() {
             <Typography
               variant="caption"
               sx={{
-                color: origin ? '#4CAF50' : '#555',
+                color: origin ? ROLE.you : 'text.disabled',
                 fontStyle: origin ? 'normal' : 'italic',
               }}
             >
@@ -163,7 +156,7 @@ function RouteControls() {
             <Typography
               variant="caption"
               sx={{
-                color: destination ? '#FF7043' : '#555',
+                color: destination ? ROLE.you : 'text.disabled',
                 fontStyle: destination ? 'normal' : 'italic',
               }}
             >

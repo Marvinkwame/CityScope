@@ -12,7 +12,7 @@ import CircleIcon from '@mui/icons-material/Circle';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import { useTheme } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import { useLayerStore } from '../store/layerStore';
 import { useIsochroneStore } from '../store/isochroneStore';
 import { useRouteStore } from '../store/routeStore';
@@ -23,7 +23,7 @@ import { usePois } from '../hooks/usePois';
 import IsochroneControls from './IsochroneControls';
 import RouteControls from './RouteControls';
 import DrawControls from './DrawControls';
-import { AMBER, CYAN, MONO, DISPLAY } from '../theme';
+import { AMBER, CYAN, MONO, DISPLAY, PANEL_GRADIENT, SURFACE, heatRampGradientCss } from '../theme';
 import { useUIStore } from '../store/uiStore';
 import { NAV_HEIGHT } from './Navbar';
 
@@ -122,7 +122,7 @@ function Sidebar() {
         zIndex: (theme) => theme.zIndex.drawer,
         display: 'flex',
         flexDirection: 'column',
-        background: 'linear-gradient(180deg, #16171A 0%, #101113 100%)',
+        background: PANEL_GRADIENT,
         transition: 'left 0.24s cubic-bezier(0.4,0,0.2,1)',
         boxShadow: sidebarOpen ? '1px 0 0 rgba(255,255,255,0.04), 8px 0 32px rgba(0,0,0,0.45)' : 'none',
       }}
@@ -216,8 +216,8 @@ function Sidebar() {
                             mb: 0.5,
                             height: 6,
                             borderRadius: 1,
-                            background:
-                              'linear-gradient(to right, rgb(65,105,225), rgb(0,180,120), rgb(255,255,0), rgb(255,165,0), rgb(255,0,0))',
+                            // Built from the same stops the map uses, so they can't drift apart.
+                            background: heatRampGradientCss(),
                           }}
                         />
                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -354,7 +354,7 @@ function Sidebar() {
         justifyContent: 'center',
         cursor: 'pointer',
         color: 'rgba(255,255,255,0.50)',
-        background: 'linear-gradient(180deg, #16171A 0%, #101113 100%)',
+        background: PANEL_GRADIENT,
         borderTop: '1px solid rgba(255,255,255,0.06)',
         borderRight: '1px solid rgba(255,255,255,0.06)',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -362,7 +362,7 @@ function Sidebar() {
         boxShadow: '4px 0 16px rgba(0,0,0,0.35)',
         transition:
           'left 0.24s cubic-bezier(0.4,0,0.2,1), color 0.15s ease, background 0.15s ease',
-        '&:hover': { color: AMBER, background: '#1C1D22' },
+        '&:hover': { color: AMBER, background: SURFACE.hover },
       }}
     >
       {sidebarOpen ? (
@@ -383,8 +383,8 @@ function ModuleCard({ active, children }: { active: boolean; children: React.Rea
         position: 'relative',
         mb: 1.25,
         borderRadius: '8px',
-        border: `1px solid ${active ? 'rgba(227,176,74,0.32)' : 'rgba(255,255,255,0.06)'}`,
-        background: active ? 'rgba(227,176,74,0.04)' : 'rgba(255,255,255,0.015)',
+        border: `1px solid ${active ? alpha(AMBER, 0.32) : 'rgba(255,255,255,0.06)'}`,
+        background: active ? alpha(AMBER, 0.04) : 'rgba(255,255,255,0.015)',
         transition: 'all 0.2s ease',
         // status LED, top-right corner
         '&::after': {

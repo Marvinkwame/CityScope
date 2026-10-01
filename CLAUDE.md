@@ -53,7 +53,7 @@ npm run seed:all                    # load cities + districts + POIs into the DB
 ## Conventions
 
 - Strict TypeScript, **no `any`**; type-only imports use `import type`; NodeNext ESM on the backend means relative imports carry a `.js` extension.
-- MUI `sx` styling; dark "cartographer's instrument" theme — graphite surfaces + a single gold accent (`AMBER`), cyan reserved for live data (`cityscope/src/theme.ts`).
+- MUI `sx` styling; dark "cartographer's instrument" theme with three colour roles in `cityscope/src/theme.ts`: `ROLE.you` gold (what the user did — pins, drawn areas, selection, actions), `ROLE.answer` cyan (analysis results), `ROLE.context` warm white (heatmap, district lines). **No colour literals outside `theme.ts`** — use a token, or `alpha()`/`darken()` on one; `cityscope/src/colourGuard.test.ts` fails `npm test` otherwise (plain white and black are allowed).
 - **Commits: granular, one concern each, NO `Co-Authored-By` trailer.** One concern per branch. The user usually commits themselves.
 - New features: brainstorm → spec (`docs/superpowers/specs/`) → plan (`docs/superpowers/plans/`) → subagent-driven execution.
 

@@ -10,7 +10,8 @@ import { useLayerStore } from '../store/layerStore';
 import { useHeatmapStore } from '../store/heatmapStore';
 import { useMapStore } from '../store/mapStore';
 import { useHeatmapSpotlight } from '../hooks/useHeatmapSpotlight';
-import { MONO } from '../theme';
+import { alpha } from '@mui/material/styles';
+import { INK_1, MONO, ROLE } from '../theme';
 
 function categoryEmoji(cat: string): string {
   const map: Record<string, string> = {
@@ -34,7 +35,6 @@ function categoryEmoji(cat: string): string {
   return map[cat.toLowerCase()] ?? '📍';
 }
 
-const ACCENT = '#FF7043';
 
 function HeatmapSpotlightCard() {
   const [expanded, setExpanded] = useState(false);
@@ -63,7 +63,7 @@ function HeatmapSpotlightCard() {
           left: 12,
           width: { xs: 'calc(100vw - 24px)', sm: 280 },
           maxWidth: 300,
-          background: 'rgba(20,21,23,0.92)',
+          background: alpha(INK_1, 0.92),
           backdropFilter: 'blur(16px)',
           border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: '12px',
@@ -83,14 +83,14 @@ function HeatmapSpotlightCard() {
             borderBottom: '1px solid rgba(255,255,255,0.07)',
           }}
         >
-          <Typography sx={{ color: ACCENT, fontWeight: 700, fontSize: 12 }}>
+          <Typography sx={{ color: ROLE.answer, fontWeight: 700, fontSize: 12 }}>
             📍 {spotlight?.total ?? 0} places within 300m
           </Typography>
           <IconButton
             size="small"
             onClick={handleClose}
             aria-label="Close spotlight"
-            sx={{ color: '#555', p: 0.25 }}
+            sx={{ color: 'rgba(255,255,255,0.4)', p: 0.25 }}
           >
             <CloseIcon sx={{ fontSize: 14 }} />
           </IconButton>
@@ -143,10 +143,10 @@ function HeatmapSpotlightCard() {
                   }}
                 >
                   <Typography sx={{ fontSize: 11 }}>{categoryEmoji(poi.category)}</Typography>
-                  <Typography sx={{ flex: 1, color: '#ddd', fontSize: 11 }} noWrap>
+                  <Typography sx={{ flex: 1, color: 'rgba(255,255,255,0.86)', fontSize: 11 }} noWrap>
                     {poi.name ?? 'Unnamed'}
                   </Typography>
-                  <Typography sx={{ fontFamily: MONO, color: '#555', fontSize: 10, flexShrink: 0 }}>
+                  <Typography sx={{ fontFamily: MONO, color: 'rgba(255,255,255,0.4)', fontSize: 10, flexShrink: 0 }}>
                     {poi.distanceM}m
                   </Typography>
                 </Box>
@@ -162,10 +162,10 @@ function HeatmapSpotlightCard() {
                 borderTop: '1px solid rgba(255,255,255,0.07)',
                 textAlign: 'center',
                 cursor: 'pointer',
-                '&:hover': { background: 'rgba(255,112,67,0.06)' },
+                '&:hover': { background: alpha(ROLE.you, 0.06) },
               }}
             >
-              <Typography sx={{ color: ACCENT, fontSize: 11 }}>
+              <Typography sx={{ color: ROLE.you, fontSize: 11 }}>
                 {expanded ? '↑ Hide list' : `↓ See all ${spotlight.total} places`}
               </Typography>
             </Box>
@@ -189,10 +189,10 @@ function HeatmapSpotlightCard() {
                     }}
                   >
                     <Typography sx={{ fontSize: 11 }}>{categoryEmoji(poi.category)}</Typography>
-                    <Typography sx={{ flex: 1, color: '#ddd', fontSize: 11 }} noWrap>
+                    <Typography sx={{ flex: 1, color: 'rgba(255,255,255,0.86)', fontSize: 11 }} noWrap>
                       {poi.name ?? 'Unnamed'}
                     </Typography>
-                    <Typography sx={{ fontFamily: MONO, color: '#555', fontSize: 10, flexShrink: 0 }}>
+                    <Typography sx={{ fontFamily: MONO, color: 'rgba(255,255,255,0.4)', fontSize: 10, flexShrink: 0 }}>
                       {poi.distanceM}m
                     </Typography>
                   </Box>

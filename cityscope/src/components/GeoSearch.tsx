@@ -9,7 +9,8 @@ import type { GeocodingFeature } from '../hooks/useGeocode';
 import { useGeoSearchStore } from '../store/geoSearchStore';
 import { useMapStore } from '../store/mapStore';
 import { useCityStore } from '../store/cityStore'; // used for proximity bias in useGeocode
-import { AMBER } from '../theme';
+import { alpha } from '@mui/material/styles';
+import { AMBER, INK_1 } from '../theme';
 
 function GeoSearch() {
   const [inputValue, setInputValue] = useState('');
@@ -107,7 +108,7 @@ function GeoSearch() {
             }}
             sx={{
               '& .MuiOutlinedInput-root': {
-                background: 'rgba(10,19,29,0.92)',
+                background: alpha(INK_1, 0.92),
                 backdropFilter: 'blur(16px)',
                 borderRadius: '20px',
                 boxShadow: '0 6px 22px rgba(0,0,0,0.5)',
@@ -119,7 +120,7 @@ function GeoSearch() {
                   borderColor: 'rgba(255,255,255,0.35)',
                 },
                 '&.Mui-focused fieldset': {
-                  borderColor: `${AMBER}80`,
+                  borderColor: alpha(AMBER, 0.5),
                 },
               },
               '& .MuiInputBase-input': {

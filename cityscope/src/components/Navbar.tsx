@@ -12,7 +12,8 @@ import { useCityStore } from '../store/cityStore';
 import type { City } from '../store/cityStore';
 import { useCities } from '../hooks/useCities';
 import ShareButton from './ShareButton';
-import { AMBER, CYAN, MONO, DISPLAY } from '../theme';
+import { alpha } from '@mui/material/styles';
+import { AMBER, CYAN, INK, INK_1, MONO, DISPLAY } from '../theme';
 
 const NAV_HEIGHT = 56;
 
@@ -44,7 +45,7 @@ function ReticleLogo() {
           position: 'absolute',
           inset: 1,
           borderRadius: '50%',
-          border: '1px solid rgba(241,196,83,0.55)',
+          border: `1px solid ${alpha(AMBER, 0.55)}`,
         }}
       />
       {/* core dot */}
@@ -136,7 +137,7 @@ function Navbar() {
       sx={{
         height: NAV_HEIGHT,
         zIndex: (theme) => theme.zIndex.drawer + 1,
-        background: 'rgba(20,21,23,0.82)',
+        background: alpha(INK_1, 0.82),
         backdropFilter: 'blur(18px)',
         borderBottom: '1px solid rgba(255,255,255,0.05)',
         boxShadow: '0 1px 16px rgba(0,0,0,0.45)',
@@ -192,7 +193,7 @@ function Navbar() {
               borderRadius: '5px',
               '& fieldset': { borderColor: 'rgba(255,255,255,0.09)' },
               '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.18)' },
-              '&.Mui-focused fieldset': { borderColor: `${AMBER}80` },
+              '&.Mui-focused fieldset': { borderColor: alpha(AMBER, 0.5) },
             },
             '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.4)' },
             '& .MuiInputBase-input': {
@@ -256,12 +257,12 @@ function Navbar() {
                   fontWeight: 700,
                   fontSize: '0.72rem',
                   letterSpacing: '1.5px',
-                  color: active ? '#04090F' : 'rgba(255,255,255,0.55)',
+                  color: active ? INK : 'rgba(255,255,255,0.55)',
                   background: active ? AMBER : 'transparent',
                   transition: 'all 0.15s ease',
                   '&:hover': {
                     background: active ? AMBER : 'rgba(255,255,255,0.05)',
-                    color: active ? '#04090F' : 'rgba(255,255,255,0.85)',
+                    color: active ? INK : 'rgba(255,255,255,0.85)',
                   },
                 }}
               >

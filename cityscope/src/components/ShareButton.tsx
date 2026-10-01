@@ -3,6 +3,7 @@ import IconButton from '@mui/material/IconButton';
 import Snackbar from '@mui/material/Snackbar';
 import Tooltip from '@mui/material/Tooltip';
 import ShareIcon from '@mui/icons-material/IosShare';
+import { alpha } from '@mui/material/styles';
 import { AMBER } from '../theme';
 
 function ShareButton() {
@@ -24,7 +25,7 @@ function ShareButton() {
           onClick={handleShare}
           size="small"
           aria-label="Copy shareable link"
-          sx={{ color: 'rgba(255,255,255,0.55)', flexShrink: 0, '&:hover': { color: AMBER, background: `${AMBER}14` } }}
+          sx={{ color: 'rgba(255,255,255,0.55)', flexShrink: 0, '&:hover': { color: AMBER, background: alpha(AMBER, 0.08) } }}
         >
           <ShareIcon fontSize="small" />
         </IconButton>

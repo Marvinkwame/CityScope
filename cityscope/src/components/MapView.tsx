@@ -12,9 +12,13 @@ import { useRouteStore } from '../store/routeStore';
 import { useGeoSearchStore } from '../store/geoSearchStore';
 import { isHydrating } from '../lib/shareState';
 import { hasCompletePolygon } from '../lib/drawFeatures';
+import { heatmapWeight } from '../lib/heatmapExposure';
+import { answerBeforeId, contextBeforeId } from '../lib/layerOrder';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import { useDrawStore } from '../store/drawStore';
 import type { PolygonGeometry } from '../store/drawStore';
+import { createPin } from '../lib/mapPins';
+import { DRAW_STYLES } from '../constants/drawStyles';
 import { useRoute } from '../hooks/useRoute';
 import { useDistricts } from '../hooks/useDistricts';
 import { usePois } from '../hooks/usePois';
@@ -26,18 +30,19 @@ import {
   DISTRICT_SOURCE_ID,
   DISTRICT_FILL_LAYER_ID,
   DISTRICT_LINE_LAYER_ID,
+  DISTRICT_SELECTED_LAYER_ID,
   POI_HEATMAP_SOURCE_ID,
   POI_HEATMAP_LAYER_ID,
   ISOCHRONE_SOURCE_ID,
   ISOCHRONE_FILL_LAYER_ID,
   ISOCHRONE_LINE_LAYER_ID,
-  ISOCHRONE_COLOR,
   ROUTE_SOURCE_ID,
   ROUTE_LAYER_ID,
   FEATURE_TYPE_PRIORITY,
   classifyLayerId,
 } from '../constants/layerConfig';
 import type { LayerId } from '../constants/layerConfig';
+import { INK, ROLE, SURFACE, heatmapColorExpression } from '../theme';
 
 /**
  * Recolour the dark-v11 basemap's blue-cast base layers to graphite so the
@@ -45,9 +50,9 @@ import type { LayerId } from '../constants/layerConfig';
  * future style change can never throw. Roads / labels keep their own colours.
  */
 const BASEMAP_TINT = {
-  background: '#0C0D0F', // matches theme INK
-  land: '#101113',
-  water: '#181A1F',
+  background: INK,
+  land: SURFACE.land,
+  water: SURFACE.water,
 };
 
 function neutralizeBasemap(map: mapboxgl.Map) {
@@ -91,7 +96,7 @@ function applyLayerVisibility(
   setLayerVisibility(map, [BUILDING_EXTRUSION_LAYER_ID], currentLayers.buildings);
   setLayerVisibility(
     map,
-    [DISTRICT_FILL_LAYER_ID, DISTRICT_LINE_LAYER_ID],
+    [DISTRICT_FILL_LAYER_ID, DISTRICT_LINE_LAYER_ID, DISTRICT_SELECTED_LAYER_ID],
     currentLayers.districts,
   );
   setLayerVisibility(map, [POI_HEATMAP_LAYER_ID], currentLayers.heatmap);
@@ -121,7 +126,7 @@ function addExtrusionLayer(map: mapboxgl.Map) {
     source: 'composite',
     'source-layer': 'building',
     paint: {
-      'fill-extrusion-color': '#3E424B',
+      'fill-extrusion-color': SURFACE.extrusion,
       'fill-extrusion-height': ['get', 'height'],
       'fill-extrusion-base': ['get', 'min_height'],
       'fill-extrusion-opacity': 0.7,
@@ -145,27 +150,58 @@ function addDistrictLayers(map: mapboxgl.Map, data: GeoJSON.FeatureCollection) {
 
   map.addSource(DISTRICT_SOURCE_ID, { type: 'geojson', data });
 
-  map.addLayer({
-    id: DISTRICT_FILL_LAYER_ID,
-    type: 'fill',
-    source: DISTRICT_SOURCE_ID,
-    paint: {
-      'fill-color': '#CE93D8',
-      'fill-opacity': 0.15,
-    },
-    layout: {
-      visibility: 'none',
-    },
-  });
+  // Context sits beneath any analysis result already on the map.
+  const beforeId = contextBeforeId(map.getStyle().layers);
 
+  map.addLayer(
+    {
+      id: DISTRICT_FILL_LAYER_ID,
+      type: 'fill',
+      source: DISTRICT_SOURCE_ID,
+      paint: {
+        // A faint wash so the districts read as areas. Required either way:
+        // this is the layer queryRenderedFeatures hits to make districts
+        // clickable. Removing it would silently break selection.
+        'fill-color': ROLE.context,
+        'fill-opacity': 0.05,
+      },
+      layout: {
+        visibility: 'none',
+      },
+    },
+    beforeId,
+  );
+
+  map.addLayer(
+    {
+      id: DISTRICT_LINE_LAYER_ID,
+      type: 'line',
+      source: DISTRICT_SOURCE_ID,
+      paint: {
+        // Solid and fairly bright: a thinner dashed line at 0.3 was hard to
+        // tell apart from roads at city zoom, so the layer looked switched off.
+        'line-color': ROLE.context,
+        'line-width': 1.5,
+        'line-opacity': 0.6,
+      },
+      layout: {
+        visibility: 'none',
+      },
+    },
+    beforeId,
+  );
+
+  // The district the user clicked, outlined in the "you" colour. Starts
+  // matching nothing; the selection effect updates the filter. No beforeId:
+  // "you" layers stay on top of context and answer layers.
   map.addLayer({
-    id: DISTRICT_LINE_LAYER_ID,
+    id: DISTRICT_SELECTED_LAYER_ID,
     type: 'line',
     source: DISTRICT_SOURCE_ID,
+    filter: ['==', ['id'], -1],
     paint: {
-      'line-color': '#CE93D8',
-      'line-width': 2,
-      'line-opacity': 0.7,
+      'line-color': ROLE.you,
+      'line-width': 2.5,
     },
     layout: {
       visibility: 'none',
@@ -202,6 +238,7 @@ function MapView() {
   const { data: poisData } = usePois();
   const { data: isochroneData } = useIsochrone();
   const geoSearchResult = useGeoSearchStore((s) => s.result);
+  const selectedFeature = useFeatureStore((s) => s.selectedFeature);
 
   // Initialize map
   useEffect(() => {
@@ -452,6 +489,18 @@ function MapView() {
     }
   }, [districtsData, mapReady]);
 
+  // Outline the selected district. Depends on districtsData so it re-runs once
+  // the layer exists; any non-district selection resets the filter to nothing.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !map.getLayer(DISTRICT_SELECTED_LAYER_ID)) return;
+    const id =
+      selectedFeature?.type === 'districts' && selectedFeature.featureId != null
+        ? selectedFeature.featureId
+        : -1;
+    map.setFilter(DISTRICT_SELECTED_LAYER_ID, ['==', ['id'], id]);
+  }, [selectedFeature, mapReady, districtsData]);
+
   // Add/update POI heatmap source and layer when data is ready
   useEffect(() => {
     const map = mapRef.current;
@@ -472,37 +521,38 @@ function MapView() {
       })),
     };
 
+    // The legend's Low/Medium/High is relative to the city, so exposure is too.
+    const weight = heatmapWeight(poisData);
+
     const source = map.getSource(POI_HEATMAP_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
     if (source) {
       source.setData(geojson);
+      map.setPaintProperty(POI_HEATMAP_LAYER_ID, 'heatmap-weight', weight);
     } else {
       map.addSource(POI_HEATMAP_SOURCE_ID, { type: 'geojson', data: geojson });
 
-      map.addLayer({
-        id: POI_HEATMAP_LAYER_ID,
-        type: 'heatmap',
-        source: POI_HEATMAP_SOURCE_ID,
-        layout: {
-          visibility: useLayerStore.getState().layers.heatmap ? 'visible' : 'none',
+      map.addLayer(
+        {
+          id: POI_HEATMAP_LAYER_ID,
+          type: 'heatmap',
+          source: POI_HEATMAP_SOURCE_ID,
+          layout: {
+            visibility: useLayerStore.getState().layers.heatmap ? 'visible' : 'none',
+          },
+          paint: {
+            'heatmap-weight': weight,
+            // Zooming out one level packs about 4x the points into each pixel, so
+            // intensity has to fall steeply as zoom falls, or the city centre
+            // clips to a solid sheet.
+            'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 9, 0.05, 10, 0.15, 11, 0.4, 12.5, 0.8, 14, 1.4],
+            'heatmap-color': heatmapColorExpression(),
+            'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 10, 6, 12.5, 10, 15, 18],
+            'heatmap-opacity': 0.9,
+          },
         },
-        paint: {
-          'heatmap-weight': 1,
-          'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 22, 3],
-          'heatmap-color': [
-            'interpolate',
-            ['linear'],
-            ['heatmap-density'],
-            0, 'rgba(65,105,225,0)',
-            0.2, 'rgb(65,105,225)',
-            0.4, 'rgb(0,180,120)',
-            0.6, 'rgb(255,255,0)',
-            0.8, 'rgb(255,165,0)',
-            1, 'rgb(255,0,0)',
-          ],
-          'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 15, 15, 25],
-          'heatmap-opacity': 0.7,
-        },
-      });
+        // Context sits beneath any analysis result already on the map.
+        contextBeforeId(map.getStyle().layers),
+      );
     }
   }, [poisData, mapReady]);
 
@@ -549,9 +599,8 @@ function MapView() {
     if (source) {
       source.setData(isochroneData);
     } else {
-      // Find first road layer to insert isochrone below it
-      const styleLayers = map.getStyle().layers;
-      const firstRoadLayer = styleLayers.find((l) => ROAD_LAYER_FILTER(l.id));
+      // Above context layers, below the basemap labels (see lib/layerOrder.ts)
+      const beforeId = answerBeforeId(map.getStyle().layers);
 
       map.addSource(ISOCHRONE_SOURCE_ID, { type: 'geojson', data: isochroneData });
 
@@ -561,22 +610,12 @@ function MapView() {
           type: 'fill',
           source: ISOCHRONE_SOURCE_ID,
           paint: {
-            'fill-color': [
-              'step', ['get', 'contour'],
-              '#00E5FF',      // ≤ 10 min: brightest cyan (innermost)
-              11, '#00BCD4',  // 11–20 min: standard cyan
-              21, '#0097A7',  // 21+ min: dark teal (outermost)
-            ],
-            'fill-opacity': [
-              'interpolate',
-              ['linear'],
-              ['get', 'contour'],
-              5, 0.45,
-              30, 0.08,
-            ],
+            // One hue; bands differ only by opacity, fading outward.
+            'fill-color': ROLE.answer,
+            'fill-opacity': ['interpolate', ['linear'], ['get', 'contour'], 5, 0.3, 30, 0.08],
           },
         },
-        firstRoadLayer?.id,
+        beforeId,
       );
 
       map.addLayer(
@@ -585,12 +624,12 @@ function MapView() {
           type: 'line',
           source: ISOCHRONE_SOURCE_ID,
           paint: {
-            'line-color': ISOCHRONE_COLOR,
-            'line-width': 2,
-            'line-opacity': 0.6,
+            'line-color': ROLE.answer,
+            'line-width': 1.5,
+            'line-opacity': 0.55,
           },
         },
-        firstRoadLayer?.id,
+        beforeId,
       );
     }
   }, [isochroneData, isochroneEnabled, mapReady]);
@@ -607,7 +646,7 @@ function MapView() {
     }
 
     if (isochroneOrigin && isochroneEnabled) {
-      isochroneMarkerRef.current = new mapboxgl.Marker({ color: ISOCHRONE_COLOR })
+      isochroneMarkerRef.current = new mapboxgl.Marker({ element: createPin('origin') })
         .setLngLat([isochroneOrigin.lng, isochroneOrigin.lat])
         .addTo(map);
     }
@@ -634,7 +673,7 @@ function MapView() {
     if (source) {
       source.setData(routeFeature);
     } else {
-      const firstRoadLayer = map.getStyle().layers.find((l) => ROAD_LAYER_FILTER(l.id));
+      const beforeId = answerBeforeId(map.getStyle().layers);
       map.addSource(ROUTE_SOURCE_ID, { type: 'geojson', data: routeFeature });
       map.addLayer(
         {
@@ -643,12 +682,12 @@ function MapView() {
           source: ROUTE_SOURCE_ID,
           layout: { 'line-join': 'round', 'line-cap': 'round' },
           paint: {
-            'line-color': '#4FC3F7',
+            'line-color': ROLE.answer,
             'line-width': 4,
             'line-opacity': 0.9,
           },
         },
-        firstRoadLayer?.id,
+        beforeId,
       );
     }
   }, [routeData, routeEnabled, routeOrigin, routeDestination, mapReady]);
@@ -658,34 +697,20 @@ function MapView() {
     const map = mapRef.current;
     if (!map || !mapReady) return;
 
-    // Origin marker (A — green)
+    // Origin marker (A)
     routeOriginMarkerRef.current?.remove();
     routeOriginMarkerRef.current = null;
     if (routeOrigin && routeEnabled) {
-      const elA = document.createElement('div');
-      elA.style.cssText =
-        'width:20px;height:20px;background:#4CAF50;border:2px solid white;' +
-        'border-radius:50%;display:flex;align-items:center;justify-content:center;' +
-        'font-size:10px;font-weight:bold;color:white;box-shadow:0 2px 6px rgba(0,0,0,0.5);' +
-        'cursor:pointer;';
-      elA.textContent = 'A';
-      routeOriginMarkerRef.current = new mapboxgl.Marker({ element: elA })
+      routeOriginMarkerRef.current = new mapboxgl.Marker({ element: createPin('a') })
         .setLngLat([routeOrigin.lng, routeOrigin.lat])
         .addTo(map);
     }
 
-    // Destination marker (B — orange)
+    // Destination marker (B)
     routeDestinationMarkerRef.current?.remove();
     routeDestinationMarkerRef.current = null;
     if (routeDestination && routeEnabled) {
-      const elB = document.createElement('div');
-      elB.style.cssText =
-        'width:20px;height:20px;background:#FF7043;border:2px solid white;' +
-        'border-radius:50%;display:flex;align-items:center;justify-content:center;' +
-        'font-size:10px;font-weight:bold;color:white;box-shadow:0 2px 6px rgba(0,0,0,0.5);' +
-        'cursor:pointer;';
-      elB.textContent = 'B';
-      routeDestinationMarkerRef.current = new mapboxgl.Marker({ element: elB })
+      routeDestinationMarkerRef.current = new mapboxgl.Marker({ element: createPin('b') })
         .setLngLat([routeDestination.lng, routeDestination.lat])
         .addTo(map);
     }
@@ -700,7 +725,7 @@ function MapView() {
     geoSearchMarkerRef.current = null;
 
     if (geoSearchResult) {
-      geoSearchMarkerRef.current = new mapboxgl.Marker()
+      geoSearchMarkerRef.current = new mapboxgl.Marker({ element: createPin('search') })
         .setLngLat([geoSearchResult.lng, geoSearchResult.lat])
         .addTo(map);
     }
@@ -716,6 +741,7 @@ function MapView() {
         drawRef.current = new MapboxDraw({
           displayControlsDefault: false,
           controls: { polygon: true, trash: false },
+          styles: DRAW_STYLES,
         });
       }
       if (!map.hasControl(drawRef.current)) {

@@ -5,7 +5,8 @@ import Typography from '@mui/material/Typography';
 import CloseIcon from '@mui/icons-material/Close';
 import { useRoute } from '../hooks/useRoute';
 import { useRouteStore } from '../store/routeStore';
-import { CYAN, MONO } from '../theme';
+import { alpha } from '@mui/material/styles';
+import { CYAN, MONO, ROLE } from '../theme';
 
 function formatDistance(metres: number): string {
   if (metres < 1000) return `${Math.round(metres / 10) * 10}m`;
@@ -42,9 +43,9 @@ function RouteResultsPanel() {
       <Box
         sx={{
           display: 'flex',
-          background: 'rgba(86,199,190,0.05)',
+          background: alpha(ROLE.answer, 0.05),
           borderRadius: '10px',
-          border: '1px solid rgba(86,199,190,0.18)',
+          border: `1px solid ${alpha(ROLE.answer, 0.18)}`,
           overflow: 'hidden',
           mb: 1,
         }}

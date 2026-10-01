@@ -18,8 +18,8 @@ import { useIsochroneStore } from '../store/isochroneStore';
 import { useMapStore } from '../store/mapStore';
 import { useIsochrone } from '../hooks/useIsochrone';
 import { useIsochronePois } from '../hooks/useIsochronePois';
-import { ISOCHRONE_COLOR } from '../constants/layerConfig';
-import { MONO } from '../theme';
+import { alpha } from '@mui/material/styles';
+import { MONO, ROLE } from '../theme';
 
 const PROFILE_LABEL: Record<string, string> = {
   walking: 'walking',
@@ -27,10 +27,10 @@ const PROFILE_LABEL: Record<string, string> = {
   driving: 'driving',
 };
 
-/** Band colours mirror the map fill-color step expression */
-const BAND_COLORS = ['#00C8E0', '#00BCD4', '#0097A7'] as const;
+/** Bands share the answer colour and fade outward, mirroring the map. */
+const BAND_OPACITY = [1, 0.65, 0.4] as const;
 function bandColor(idx: number): string {
-  return BAND_COLORS[Math.min(idx, BAND_COLORS.length - 1)];
+  return alpha(ROLE.answer, BAND_OPACITY[Math.min(idx, BAND_OPACITY.length - 1)]);
 }
 
 function categoryEmoji(cat: string): string {
@@ -74,7 +74,7 @@ function IsochroneResultsPanel() {
       <Box sx={{ mt: 1.5 }}>
         <Divider sx={{ mb: 1.5 }} />
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-          <CircularProgress size={18} sx={{ color: ISOCHRONE_COLOR }} />
+          <CircularProgress size={18} sx={{ color: ROLE.answer }} />
         </Box>
       </Box>
     );
@@ -99,11 +99,11 @@ function IsochroneResultsPanel() {
 
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-        <PlaceIcon sx={{ fontSize: 14, color: ISOCHRONE_COLOR }} />
+        <PlaceIcon sx={{ fontSize: 14, color: ROLE.answer }} />
         <Typography
           variant="caption"
           sx={{
-            color: ISOCHRONE_COLOR,
+            color: ROLE.answer,
             fontWeight: 600,
             textTransform: 'uppercase',
             letterSpacing: 0.5,
