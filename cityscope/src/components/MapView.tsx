@@ -12,6 +12,7 @@ import { useRouteStore } from '../store/routeStore';
 import { useGeoSearchStore } from '../store/geoSearchStore';
 import { isHydrating } from '../lib/shareState';
 import { hasCompletePolygon } from '../lib/drawFeatures';
+import { heatmapWeight } from '../lib/heatmapExposure';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import { useDrawStore } from '../store/drawStore';
 import type { PolygonGeometry } from '../store/drawStore';
@@ -507,9 +508,13 @@ function MapView() {
       })),
     };
 
+    // The legend's Low/Medium/High is relative to the city, so exposure is too.
+    const weight = heatmapWeight(poisData);
+
     const source = map.getSource(POI_HEATMAP_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
     if (source) {
       source.setData(geojson);
+      map.setPaintProperty(POI_HEATMAP_LAYER_ID, 'heatmap-weight', weight);
     } else {
       map.addSource(POI_HEATMAP_SOURCE_ID, { type: 'geojson', data: geojson });
 
@@ -521,7 +526,7 @@ function MapView() {
           visibility: useLayerStore.getState().layers.heatmap ? 'visible' : 'none',
         },
         paint: {
-          'heatmap-weight': 1,
+          'heatmap-weight': weight,
           // Zooming out one level packs about 4x the points into each pixel, so
           // intensity has to fall steeply as zoom falls, or the city centre
           // clips to a solid sheet.
