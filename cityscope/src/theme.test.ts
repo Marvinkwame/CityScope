@@ -31,6 +31,16 @@ describe('HEAT_RAMP', () => {
     const hues = new Set(HEAT_RAMP.map(([, c]) => c.slice(c.indexOf('(') + 1).split(',').slice(0, 3).join(',')));
     expect(hues.size).toBe(1);
   });
+
+  // Nothing else ties the ramp's hand-written rgba strings to the role colour.
+  it('uses the context role colour', () => {
+    const rgbOf = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    const expected = rgbOf(ROLE.context);
+    for (const [, colour] of HEAT_RAMP) {
+      const rgb = colour.slice(colour.indexOf('(') + 1, -1).split(',').slice(0, 3).map(Number);
+      expect(rgb).toEqual(expected);
+    }
+  });
 });
 
 describe('ramp builders', () => {
@@ -41,14 +51,10 @@ describe('ramp builders', () => {
     ]);
   });
 
-  it('builds a CSS gradient listing every stop colour in order', () => {
+  it('builds a CSS gradient listing every stop colour at its position, in order', () => {
     const css = heatRampGradientCss();
     expect(css.startsWith('linear-gradient(to right, ')).toBe(true);
-    let from = 0;
-    for (const [, colour] of HEAT_RAMP) {
-      const at = css.indexOf(colour, from);
-      expect(at).toBeGreaterThanOrEqual(from);
-      from = at + colour.length;
-    }
+    const stops = [...css.matchAll(/(rgba\([^)]*\)) ([\d.]+)%/g)].map((m) => [m[1], Number(m[2])]);
+    expect(stops).toEqual(HEAT_RAMP.map(([density, colour]) => [colour, density * 100]));
   });
 });

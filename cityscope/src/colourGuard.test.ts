@@ -16,7 +16,6 @@ const COLOUR_FN = /\b(rgba?|hsla?)\(([^)]*)\)/g;
 const TOKEN_HEX_SUFFIX = /\$\{[^}]+\}[0-9a-fA-F]{2}\b/g;
 const NEUTRAL_HEX = new Set(['#fff', '#ffffff', '#000', '#000000']);
 
-
 function isNeutralRgb(args: string): boolean {
   const [r, g, b] = args.split(',').map((part) => part.trim());
   return (r === '255' && g === '255' && b === '255') || (r === '0' && g === '0' && b === '0');
@@ -35,17 +34,18 @@ function colourLiterals(line: string): string[] {
   return found;
 }
 
+/** Path relative to src/, with forward slashes on every OS. */
+const relPath = (file: string) => relative(SRC, file).split(sep).join('/');
+
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
     if (entry.isDirectory()) return sourceFiles(path);
     const isSource = /\.(ts|tsx)$/.test(entry.name) && !entry.name.endsWith('.test.ts');
-    return isSource && entry.name !== 'theme.ts' ? [path] : [];
+    // Only the root theme file may hold colour literals, not any file called theme.ts.
+    return isSource && relPath(path) !== 'theme.ts' ? [path] : [];
   });
 }
-
-/** Path relative to src/, with forward slashes on every OS. */
-const relPath = (file: string) => relative(SRC, file).split(sep).join('/');
 
 function offendersIn(file: string): string[] {
   const rel = relPath(file);

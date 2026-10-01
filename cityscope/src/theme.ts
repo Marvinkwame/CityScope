@@ -62,9 +62,14 @@ export function heatmapColorExpression(): ExpressionSpecification {
   return ['interpolate', ['linear'], ['heatmap-density'], ...HEAT_RAMP.flat()];
 }
 
-/** HEAT_RAMP as a CSS gradient for the sidebar legend — the same stops as the map. */
+/**
+ * HEAT_RAMP as a CSS gradient for the sidebar legend — the same stops as the map,
+ * each at its own position, so the legend stays aligned even if the stops are
+ * ever not evenly spaced.
+ */
 export function heatRampGradientCss(): string {
-  return `linear-gradient(to right, ${HEAT_RAMP.map(([, colour]) => colour).join(', ')})`;
+  const stops = HEAT_RAMP.map(([density, colour]) => `${colour} ${density * 100}%`);
+  return `linear-gradient(to right, ${stops.join(', ')})`;
 }
 
 export const MONO = "'Martian Mono', ui-monospace, monospace";
