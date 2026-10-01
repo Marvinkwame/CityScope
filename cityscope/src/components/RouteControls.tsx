@@ -16,6 +16,20 @@ import { alpha, darken } from '@mui/material/styles';
 import { INK, MONO, ROLE } from '../theme';
 import RouteResultsPanel from './RouteResultsPanel';
 
+/** Set A / Set B buttons: outlined in the "you" colour, filled while that endpoint is being placed. */
+function endpointButtonSx(active: boolean) {
+  return {
+    flex: 1,
+    borderColor: ROLE.you,
+    color: active ? INK : ROLE.you,
+    bgcolor: active ? ROLE.you : 'transparent',
+    '&:hover': {
+      bgcolor: active ? darken(ROLE.you, 0.15) : alpha(ROLE.you, 0.1),
+      borderColor: ROLE.you,
+    },
+  };
+}
+
 function RouteControls() {
   const enabled = useRouteStore((s) => s.enabled);
   const setMode = useRouteStore((s) => s.setMode);
@@ -79,16 +93,7 @@ function RouteControls() {
               size="small"
               variant={setMode === 'origin' ? 'contained' : 'outlined'}
               onClick={handleSetA}
-              sx={{
-                flex: 1,
-                borderColor: ROLE.you,
-                color: setMode === 'origin' ? INK : ROLE.you,
-                bgcolor: setMode === 'origin' ? ROLE.you : 'transparent',
-                '&:hover': {
-                  bgcolor: setMode === 'origin' ? darken(ROLE.you, 0.15) : alpha(ROLE.you, 0.1),
-                  borderColor: ROLE.you,
-                },
-              }}
+              sx={endpointButtonSx(setMode === 'origin')}
             >
               Set A
             </Button>
@@ -96,16 +101,7 @@ function RouteControls() {
               size="small"
               variant={setMode === 'destination' ? 'contained' : 'outlined'}
               onClick={handleSetB}
-              sx={{
-                flex: 1,
-                borderColor: ROLE.you,
-                color: setMode === 'destination' ? INK : ROLE.you,
-                bgcolor: setMode === 'destination' ? ROLE.you : 'transparent',
-                '&:hover': {
-                  bgcolor: setMode === 'destination' ? darken(ROLE.you, 0.15) : alpha(ROLE.you, 0.1),
-                  borderColor: ROLE.you,
-                },
-              }}
+              sx={endpointButtonSx(setMode === 'destination')}
             >
               Set B
             </Button>
