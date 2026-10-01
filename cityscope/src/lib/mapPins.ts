@@ -4,6 +4,14 @@ export type PinKind = 'origin' | 'a' | 'b' | 'search';
 
 const SHADOW = '0 2px 6px rgba(0,0,0,0.5)';
 
+/** Screen-reader names. Mapbox's Marker adds role="img" and only defaults the label if none is set. */
+const PIN_LABELS: Record<PinKind, string> = {
+  origin: 'Isochrone origin',
+  a: 'Route start (A)',
+  b: 'Route end (B)',
+  search: 'Search result',
+};
+
 /**
  * DOM elements for map markers. Every pin marks something the user placed, so
  * every pin uses the "you" colour and shape tells them apart:
@@ -13,7 +21,7 @@ const SHADOW = '0 2px 6px rgba(0,0,0,0.5)';
  */
 export function createPin(kind: PinKind): HTMLDivElement {
   const el = document.createElement('div');
-  el.setAttribute('aria-hidden', 'true');
+  el.setAttribute('aria-label', PIN_LABELS[kind]);
 
   if (kind === 'origin') {
     el.style.cssText =
