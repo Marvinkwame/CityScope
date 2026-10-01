@@ -26,7 +26,7 @@ React 19 + Mapbox GL JS 3 geospatial application. Draw isochrones, plan routes, 
 | Framework | React 19 · TypeScript 5.9 · Vite 8 |
 | Map | Mapbox GL JS 3 (dark-v11) |
 | Map APIs | Isochrone API · Directions API · Geocoding API v5 |
-| UI | Material UI 7 — custom dark glass theme |
+| UI | Material UI 7 — dark theme built on three colour roles (you / answer / context) |
 | State | Zustand 5 |
 | Data fetching | TanStack Query 5 |
 
@@ -65,11 +65,22 @@ src/
 │   ├── geoSearchStore.ts          # Geocoding result (for map pin)
 │   ├── heatmapStore.ts            # Heatmap click origin
 │   └── featureStore.ts            # Clicked map feature
+├── lib/
+│   ├── mapPins.ts                 # DOM elements for the map pins, one shape per kind
+│   ├── heatmapExposure.ts         # Per-city heatmap weight from POI density (p99 per 400 m cell)
+│   ├── layerOrder.ts              # beforeId rules: context < answer < labels < you
+│   ├── shareCodec.ts              # App state <-> base64url URL hash, validated on decode
+│   ├── shareState.ts              # Collect / rehydrate the shareable state
+│   ├── drawFeatures.ts            # Inspect mapbox-gl-draw's feature store
+│   └── isochronePayload.ts        # Mapbox isochrone response -> backend contract
 ├── constants/
-│   └── layerConfig.ts             # Layer IDs, Mapbox filter functions, colours
+│   ├── layerConfig.ts             # Layer IDs, Mapbox filter functions, layer toggle metadata
+│   └── drawStyles.ts              # mapbox-gl-draw styles, recoloured to the "you" role
 ├── App.tsx
 ├── main.tsx
-└── theme.ts                       # MUI dark glass theme
+├── theme.ts                       # Design tokens and the three colour roles, plus the MUI dark theme
+├── theme.test.ts                  # Heatmap ramp and colour role invariants
+└── colourGuard.test.ts            # Fails `npm test` on any colour literal outside theme.ts
 ```
 
 ---

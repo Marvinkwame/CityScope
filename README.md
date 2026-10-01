@@ -47,6 +47,8 @@ Responsive down to a mobile bottom-sheet layout.
 
 **TanStack Query for all async data.** Isochrones, routes, geocoding, districts, POIs, district stats, and area analysis are all queries with `queryKey` caching, `enabled` guards, and `staleTime`.
 
+**Design tokens, enforced by a test.** Every colour plays one of three roles (*you*, *answer*, *context*) defined once in `theme.ts` as plain constants that both MUI styles and Mapbox paint properties can read. A Vitest guard fails `npm test` on any colour literal outside `theme.ts`, so the palette cannot drift back.
+
 **Deep-linkable state.** A pure, unit-tested codec serialises app state to the URL hash and rehydrates it on load, guarding the city-change auto-fly so a restored view isn't clobbered.
 
 ---
