@@ -13,6 +13,7 @@ import { useGeoSearchStore } from '../store/geoSearchStore';
 import { isHydrating } from '../lib/shareState';
 import { hasCompletePolygon } from '../lib/drawFeatures';
 import { heatmapWeight } from '../lib/heatmapExposure';
+import { answerBeforeId, contextBeforeId } from '../lib/layerOrder';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import { useDrawStore } from '../store/drawStore';
 import type { PolygonGeometry } from '../store/drawStore';
@@ -149,38 +150,48 @@ function addDistrictLayers(map: mapboxgl.Map, data: GeoJSON.FeatureCollection) {
 
   map.addSource(DISTRICT_SOURCE_ID, { type: 'geojson', data });
 
-  map.addLayer({
-    id: DISTRICT_FILL_LAYER_ID,
-    type: 'fill',
-    source: DISTRICT_SOURCE_ID,
-    paint: {
-      // Invisible but required: this is the layer queryRenderedFeatures hits
-      // to make districts clickable. Removing it would silently break selection.
-      'fill-color': ROLE.context,
-      'fill-opacity': 0,
-    },
-    layout: {
-      visibility: 'none',
-    },
-  });
+  // Context sits beneath any analysis result already on the map.
+  const beforeId = contextBeforeId(map.getStyle().layers);
 
-  map.addLayer({
-    id: DISTRICT_LINE_LAYER_ID,
-    type: 'line',
-    source: DISTRICT_SOURCE_ID,
-    paint: {
-      'line-color': ROLE.context,
-      'line-width': 1,
-      'line-opacity': 0.3,
-      'line-dasharray': [2, 2],
+  map.addLayer(
+    {
+      id: DISTRICT_FILL_LAYER_ID,
+      type: 'fill',
+      source: DISTRICT_SOURCE_ID,
+      paint: {
+        // Invisible but required: this is the layer queryRenderedFeatures hits
+        // to make districts clickable. Removing it would silently break selection.
+        'fill-color': ROLE.context,
+        'fill-opacity': 0,
+      },
+      layout: {
+        visibility: 'none',
+      },
     },
-    layout: {
-      visibility: 'none',
+    beforeId,
+  );
+
+  map.addLayer(
+    {
+      id: DISTRICT_LINE_LAYER_ID,
+      type: 'line',
+      source: DISTRICT_SOURCE_ID,
+      paint: {
+        'line-color': ROLE.context,
+        'line-width': 1,
+        'line-opacity': 0.3,
+        'line-dasharray': [2, 2],
+      },
+      layout: {
+        visibility: 'none',
+      },
     },
-  });
+    beforeId,
+  );
 
   // The district the user clicked, outlined in the "you" colour. Starts
-  // matching nothing; the selection effect updates the filter.
+  // matching nothing; the selection effect updates the filter. No beforeId:
+  // "you" layers stay on top of context and answer layers.
   map.addLayer({
     id: DISTRICT_SELECTED_LAYER_ID,
     type: 'line',
@@ -518,24 +529,28 @@ function MapView() {
     } else {
       map.addSource(POI_HEATMAP_SOURCE_ID, { type: 'geojson', data: geojson });
 
-      map.addLayer({
-        id: POI_HEATMAP_LAYER_ID,
-        type: 'heatmap',
-        source: POI_HEATMAP_SOURCE_ID,
-        layout: {
-          visibility: useLayerStore.getState().layers.heatmap ? 'visible' : 'none',
+      map.addLayer(
+        {
+          id: POI_HEATMAP_LAYER_ID,
+          type: 'heatmap',
+          source: POI_HEATMAP_SOURCE_ID,
+          layout: {
+            visibility: useLayerStore.getState().layers.heatmap ? 'visible' : 'none',
+          },
+          paint: {
+            'heatmap-weight': weight,
+            // Zooming out one level packs about 4x the points into each pixel, so
+            // intensity has to fall steeply as zoom falls, or the city centre
+            // clips to a solid sheet.
+            'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 9, 0.05, 10, 0.15, 11, 0.4, 12.5, 0.8, 14, 1.4],
+            'heatmap-color': heatmapColorExpression(),
+            'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 10, 6, 12.5, 10, 15, 18],
+            'heatmap-opacity': 0.9,
+          },
         },
-        paint: {
-          'heatmap-weight': weight,
-          // Zooming out one level packs about 4x the points into each pixel, so
-          // intensity has to fall steeply as zoom falls, or the city centre
-          // clips to a solid sheet.
-          'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 9, 0.05, 10, 0.15, 11, 0.4, 12.5, 0.8, 14, 1.4],
-          'heatmap-color': heatmapColorExpression(),
-          'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 10, 6, 12.5, 10, 15, 18],
-          'heatmap-opacity': 0.9,
-        },
-      });
+        // Context sits beneath any analysis result already on the map.
+        contextBeforeId(map.getStyle().layers),
+      );
     }
   }, [poisData, mapReady]);
 
@@ -582,9 +597,8 @@ function MapView() {
     if (source) {
       source.setData(isochroneData);
     } else {
-      // Find first road layer to insert isochrone below it
-      const styleLayers = map.getStyle().layers;
-      const firstRoadLayer = styleLayers.find((l) => ROAD_LAYER_FILTER(l.id));
+      // Above context layers, below the basemap labels (see lib/layerOrder.ts)
+      const beforeId = answerBeforeId(map.getStyle().layers);
 
       map.addSource(ISOCHRONE_SOURCE_ID, { type: 'geojson', data: isochroneData });
 
@@ -599,7 +613,7 @@ function MapView() {
             'fill-opacity': ['interpolate', ['linear'], ['get', 'contour'], 5, 0.3, 30, 0.08],
           },
         },
-        firstRoadLayer?.id,
+        beforeId,
       );
 
       map.addLayer(
@@ -613,7 +627,7 @@ function MapView() {
             'line-opacity': 0.55,
           },
         },
-        firstRoadLayer?.id,
+        beforeId,
       );
     }
   }, [isochroneData, isochroneEnabled, mapReady]);
@@ -657,7 +671,7 @@ function MapView() {
     if (source) {
       source.setData(routeFeature);
     } else {
-      const firstRoadLayer = map.getStyle().layers.find((l) => ROAD_LAYER_FILTER(l.id));
+      const beforeId = answerBeforeId(map.getStyle().layers);
       map.addSource(ROUTE_SOURCE_ID, { type: 'geojson', data: routeFeature });
       map.addLayer(
         {
@@ -671,7 +685,7 @@ function MapView() {
             'line-opacity': 0.9,
           },
         },
-        firstRoadLayer?.id,
+        beforeId,
       );
     }
   }, [routeData, routeEnabled, routeOrigin, routeDestination, mapReady]);
