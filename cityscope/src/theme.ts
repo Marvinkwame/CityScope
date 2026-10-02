@@ -6,6 +6,9 @@ import type { ExpressionSpecification } from 'mapbox-gl';
  *
  * The only file allowed to contain colour literals — src/colourGuard.test.ts
  * fails `npm test` if one appears anywhere else.
+ *
+ * Components colour things by meaning, through ROLE below. AMBER and CYAN
+ * themselves are for brand chrome only: the logo and the live readout.
  */
 export const AMBER = '#E3B04A'; // honey gold
 export const CYAN = '#56C7BE'; // quiet cyan
