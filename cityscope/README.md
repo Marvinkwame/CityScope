@@ -51,8 +51,8 @@ src/
 │   ├── RouteResultsPanel.tsx      # Distance, duration, turn-by-turn steps
 │   ├── FeaturePanel.tsx           # Right drawer — clicked feature properties
 │   ├── HeatmapSpotlightCard.tsx   # Bottom-left — nearest POIs on heatmap click
-│   ├── DistrictStatsView.tsx      # District detail — stats, bars and places, geometry on map
-│   ├── DrawControls.tsx           # Draw mode — pen tool and controls
+│   ├── DistrictStatsView.tsx      # District detail — stat row, density badge and category bars
+│   ├── DrawControls.tsx           # Draw Area toggle, area stats and bars, Clear area
 │   └── results/                   # Shared result parts: StatRow, CategoryBars, ComparisonBadge,
 │                                  #   PlaceList, CategoryIcon, plus their pure, tested helpers
 ├── hooks/
