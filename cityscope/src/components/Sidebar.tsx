@@ -28,6 +28,8 @@ import { useUIStore } from '../store/uiStore';
 import { NAV_HEIGHT } from './Navbar';
 
 const SIDEBAR_WIDTH = 296;
+/** Width of the edge handle that rides the panel's right edge. */
+const SIDEBAR_HANDLE_WIDTH = 21;
 
 /** Numbered section header with a hairline rule — strong hierarchy. */
 function SectionHeader({ index, label }: { index: string; label: string }) {
@@ -347,7 +349,7 @@ function Sidebar() {
         left: sidebarOpen ? sidebarWidth : 0,
         transform: 'translateY(-50%)',
         zIndex: (theme) => theme.zIndex.drawer,
-        width: 21,
+        width: SIDEBAR_HANDLE_WIDTH,
         height: 54,
         display: 'flex',
         alignItems: 'center',
@@ -405,5 +407,5 @@ function ModuleCard({ active, children }: { active: boolean; children: React.Rea
   );
 }
 
-export { SIDEBAR_WIDTH };
+export { SIDEBAR_WIDTH, SIDEBAR_HANDLE_WIDTH };
 export default Sidebar;
