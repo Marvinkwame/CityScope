@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 import Divider from '@mui/material/Divider';
@@ -17,6 +17,7 @@ import CategoryBars from './results/CategoryBars';
 import PlaceList from './results/PlaceList';
 import StatRow from './results/StatRow';
 import { formatCount } from './results/format';
+import { nearestFirst } from './results/nearest';
 
 const PROFILE_LABEL: Record<string, string> = {
   walking: 'walking',
@@ -40,6 +41,11 @@ function IsochroneResultsPanel() {
   const [pick, setPick] = useState<{ originKey: string; contour: number } | null>(null);
   const originKey = origin ? `${origin.lng},${origin.lat}` : '';
   const effectivePick = pick && pick.originKey === originKey ? pick.contour : null;
+
+  const band = bands && bands.length > 0 ? selectBand(bands, effectivePick) : undefined;
+  // Nearest first, so the five rows shown before "Show all" are the closest
+  // ones. The server returns them by category and name, which is arbitrary here.
+  const places = useMemo(() => (band && origin ? nearestFirst(band.pois, origin) : []), [band, origin]);
 
   // The tool is live but the Mapbox stage has not resolved yet, so stay hidden.
   if (!enabled || origin === null || loading) return null;
@@ -68,10 +74,7 @@ function IsochroneResultsPanel() {
     );
   }
 
-  if (!bands || bands.length === 0) return null;
-
-  const band = selectBand(bands, effectivePick);
-  if (!band) return null;
+  if (!bands || !band) return null;
 
   return (
     <Box sx={{ mt: 1.5 }}>
@@ -135,7 +138,7 @@ function IsochroneResultsPanel() {
           <CategoryBars counts={band.categoryCounts} total={band.poiCount} />
           <Box sx={{ mt: 1.5 }}>
             {/* Switching band starts the list collapsed again. */}
-            <PlaceList key={band.contour} title="Places" places={band.pois} />
+            <PlaceList key={band.contour} title="Nearest" places={places} />
           </Box>
         </>
       )}
