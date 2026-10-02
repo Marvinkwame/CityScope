@@ -106,7 +106,7 @@
 | `cityscope/src/components/results/PlaceList.tsx` | Create | Rows that fly the map to a place, with a "Show all" toggle |
 | `cityscope/src/components/DistrictStatsView.tsx` | Rewrite | StatRow + ComparisonBadge + CategoryBars |
 | `cityscope/src/components/DrawControls.tsx` | Modify | StatRow + CategoryBars, gold "Clear area" |
-| `cityscope/src/components/HeatmapSpotlightCard.tsx` | Rewrite | CategoryBars + PlaceList |
+| `cityscope/src/components/HeatmapSpotlightCard.tsx` | Rewrite | CategoryBars + PlaceList; sits beside the open sidebar |
 | `cityscope/src/hooks/useHeatmapSpotlight.ts` | Modify | Drop `topPois` |
 | `cityscope/src/components/IsochroneResultsPanel.tsx` | Rewrite | Band switcher + StatRow + CategoryBars + PlaceList |
 | `cityscope/src/components/RouteResultsPanel.tsx` | Rewrite | StatRow; shared `formatDistance` |
@@ -1492,13 +1492,58 @@ git add cityscope/src/hooks/useHeatmapSpotlight.ts cityscope/src/components/Heat
 git commit -m "refactor(web): heatmap spotlight on category bars and the place list"
 ```
 
+- [ ] **Step 6: Keep the card clear of the open sidebar** (added in pre-flight, 2026-10-02, owner's decision)
+
+**Pre-flight finding:** on desktop the card is fully hidden. It sits at `left: 12` inside the full-width map area, and the 296 px sidebar overlays that area. Measured on `main`: the card rendered "53 places within 300m" at x=23, completely under the sidebar.
+
+In `cityscope/src/components/HeatmapSpotlightCard.tsx`, add these two imports after the `useHeatmapSpotlight` import:
+
+```tsx
+import { useUIStore } from '../store/uiStore';
+import { SIDEBAR_WIDTH } from './Sidebar';
+```
+
+add this line after `const clickOrigin = …`:
+
+```tsx
+  const sidebarOpen = useUIStore((s) => s.sidebarOpen);
+```
+
+and in the card's outer `Box` `sx`, replace:
+
+```tsx
+          left: 12,
+```
+
+with:
+
+```tsx
+          // On desktop the sidebar overlays the map, so the card rides beside
+          // it, sliding with the same timing. On phones the sidebar is a
+          // modal drawer, and covering the card while open is intended.
+          left: { xs: 12, sm: sidebarOpen ? SIDEBAR_WIDTH + 12 : 12 },
+          transition: 'left 0.24s cubic-bezier(0.4,0,0.2,1)',
+```
+
+- [ ] **Step 7: Verify**
+
+Run: `cd cityscope && npx vitest run && npx tsc -p tsconfig.app.json --noEmit --incremental false && npm run lint`
+Expected: 11 files, 90 tests pass; `tsc` and lint exit 0.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add cityscope/src/components/HeatmapSpotlightCard.tsx
+git commit -m "fix(web): keep the heatmap spotlight clear of the open sidebar" -m "The card sat at left: 12 inside the full-width map area, which the 296 px sidebar overlays, so on desktop it was rendered but invisible. It now rides beside the open sidebar and slides with it; on phones the sidebar is a modal drawer, so nothing changes there."
+```
+
 **Live check (controller):** turn the heatmap on and click near Alexanderplatz.
 - The header has a Place icon and reads `NN places within 300 m`.
 - Bars appear, then the five nearest places with `NN m` distances.
 - "Show all NN places" is gold and expands into a scrolling list.
 - Clicking a row flies the map there.
 - A second click on the map collapses the list again.
-- **Also confirm the card isn't hidden behind the open sidebar** (suspected before Phase 1, never confirmed). If it is, record it as a separate finding; it's not this task's fix.
+- **With the sidebar open, the card sits just right of it** and is fully visible. Collapsing the sidebar slides the card back to the left edge. At 375 px width the card is unchanged.
 
 ---
 
@@ -1987,7 +2032,7 @@ Run against the owner's servers on :5173 and :3001 if they are up. Use Playwrigh
 - [ ] **"After" screenshots** of the five surfaces, matching the pre-flight "before" set.
 - [ ] **District stats:** Berlin Mitte shows three stats, the badge, five bars and "+ N more categories". Selection still works, and the gold outline is still drawn.
 - [ ] **Drawn area:** bars appear, "Clear area" is gold, and a share-link reload restores the shape and its results.
-- [ ] **Spotlight:** bars, then the five nearest with distances, then "Show all" (gold). Clicking a row flies the map. Note whether the card sits behind the open sidebar.
+- [ ] **Spotlight:** bars, then the five nearest with distances, then "Show all" (gold). Clicking a row flies the map. The card sits beside the open sidebar, not under it.
 - [ ] **Isochrone:** the switcher opens on the outermost band; switching updates the stats, bars and places. MAX TIME 30 rebuilds the switcher.
 - [ ] **Route:** the stat row shows distance with a small unit, and duration.
 - [ ] **Accessibility tree** (`browser_snapshot`):
