@@ -27,14 +27,14 @@ function HeatmapSpotlightCard() {
     // Positioning lives on this wrapper, not on Slide's child: Slide writes an
     // inline `transition` on its child, which would override a `left`
     // transition. On desktop the sidebar overlays the map, so the card rides
-    // beside it (and its edge handle), sliding with the same timing. On phones
-    // the sidebar is a modal drawer, and covering the card while open is
-    // intended.
+    // beside it, sliding with the same timing, and always sits clear of the
+    // sidebar's edge handle, open or collapsed. On phones the sidebar is a
+    // modal drawer, and covering the card while open is intended.
     <Box
       sx={{
         position: 'absolute',
         bottom: { xs: 40, sm: 32 },
-        left: { xs: 12, sm: sidebarOpen ? SIDEBAR_WIDTH + SIDEBAR_HANDLE_WIDTH + 12 : 12 },
+        left: { xs: 12, sm: (sidebarOpen ? SIDEBAR_WIDTH : 0) + SIDEBAR_HANDLE_WIDTH + 12 },
         transition: 'left 0.24s cubic-bezier(0.4,0,0.2,1)',
         zIndex: 10,
         // The wrapper outlives the card; never let it swallow map clicks.
