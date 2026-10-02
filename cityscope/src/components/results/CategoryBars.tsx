@@ -6,6 +6,19 @@ import SectionLabel from './SectionLabel';
 import { barLabel, toBars, type CategoryCounts } from './bars';
 import { categoryLabel, formatCount, formatShare } from './format';
 
+/** Read by screen readers, invisible on screen. */
+const VISUALLY_HIDDEN = {
+  position: 'absolute',
+  width: 1,
+  height: 1,
+  p: 0,
+  m: '-1px',
+  overflow: 'hidden',
+  clip: 'rect(0 0 0 0)',
+  whiteSpace: 'nowrap',
+  border: 0,
+} as const;
+
 /**
  * The top categories as bars. Each row has an icon, the name, the count, the
  * share of all places, and a bar scaled to the largest category, so the
@@ -31,8 +44,8 @@ function CategoryBars({
           <Box
             key={row.category}
             role="listitem"
-            aria-label={barLabel(row)}
             sx={{
+              position: 'relative',
               display: 'grid',
               gridTemplateColumns: '18px 1fr auto',
               alignItems: 'center',
@@ -41,6 +54,12 @@ function CategoryBars({
               mb: 1.1,
             }}
           >
+            {/* The row's text for screen readers. The visible parts below are
+                aria-hidden, so a reader that ignores a list item's aria-label
+                still gets the whole sentence. */}
+            <Box component="span" sx={VISUALLY_HIDDEN}>
+              {barLabel(row)}
+            </Box>
             <CategoryIcon category={row.category} />
             <Typography aria-hidden sx={{ fontSize: '0.78rem' }}>
               {categoryLabel(row.category)}
