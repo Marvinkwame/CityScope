@@ -12,6 +12,7 @@ export interface AreaStats {
   poiCount: number;
   areaKm2: number;
   densityPerKm2: number;
+  /** Every category present in the area, largest first. */
   topCategories: AreaCategoryCount[];
 }
 

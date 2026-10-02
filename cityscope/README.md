@@ -2,13 +2,17 @@
 
 React 19 + Mapbox GL JS 3 geospatial application. Draw isochrones, plan routes, search places, and explore POI density across multiple cities.
 
-🔗 **[Live Demo](https://your-demo-url.vercel.app)** &nbsp;·&nbsp; [Backend](../cityscope-backend/)
+🔗 **[Live Demo](https://city-scope-seven.vercel.app)** &nbsp;·&nbsp; [Backend](../cityscope-backend/)
 
 ---
 
 ## Features
 
-- **Isochrone analysis** — reachability polygons (5–30 min) with per-band POI aggregation, accordion results, and fly-to on POI click
+- **Isochrone analysis** — reachability polygons (5–30 min) with a server-side PostGIS join per band, a band switcher, and fly-to on place click
+- **District statistics** — click a district for POI count, area, density against the city average, and its top categories
+- **Draw & analyse** — draw any polygon and get the same statistics for it, computed in PostGIS
+- **Save & share** — the whole view, including the active analysis, round-trips through a link
+- **Shared results panel** — every tool builds its results from the same parts: stat rows, category bars with shares, and place lists
 - **Route planning** — A/B pin placement, walking / cycling / driving profiles, real-time directions from Mapbox, turn-by-turn step list
 - **Geocoding search** — floating pill search bar, 300 ms debounced suggestions from Mapbox Geocoding API, proximity-biased to the active city
 - **POI heatmap** — kernel density layer with spotlight card (nearest POIs by category on click)
@@ -39,32 +43,42 @@ src/
 ├── components/
 │   ├── MapView.tsx                # Map init, all layer/source/marker operations
 │   ├── Navbar.tsx                 # App bar — city switcher, 3D toggle
+│   ├── ShareButton.tsx            # Copies the shareable link to the current view
 │   ├── Sidebar.tsx                # Layer toggles + analysis tool cards
 │   ├── GeoSearch.tsx              # Floating geocoding search bar
 │   ├── IsochroneControls.tsx      # Isochrone mode toggle, profile, time bands
-│   ├── IsochroneResultsPanel.tsx  # Band accordions, POI list, fly-to
+│   ├── IsochroneResultsPanel.tsx  # Band switcher over one band's stats, bars and places
 │   ├── RouteControls.tsx          # Route mode — Set A/B, travel mode, status
 │   ├── RouteResultsPanel.tsx      # Distance, duration, turn-by-turn steps
 │   ├── FeaturePanel.tsx           # Right drawer — clicked feature properties
-│   └── HeatmapSpotlightCard.tsx   # Bottom-left — nearest POIs on heatmap click
+│   ├── HeatmapSpotlightCard.tsx   # Bottom-left — nearest POIs on heatmap click
+│   ├── DistrictStatsView.tsx      # District detail — stat row, density badge and category bars
+│   ├── DrawControls.tsx           # Draw Area toggle, area stats and bars, Clear area
+│   └── results/                   # Shared result parts: StatRow, SectionLabel, CategoryBars,
+│                                  #   ComparisonBadge, PlaceList, CategoryIcon, plus their pure, tested helpers
 ├── hooks/
 │   ├── useIsochrone.ts            # Mapbox Isochrone API — TanStack Query
+│   ├── useIsochronePois.ts        # POIs per isochrone band, joined server-side in PostGIS
 │   ├── useRoute.ts                # Mapbox Directions API — TanStack Query
 │   ├── useGeocode.ts              # Mapbox Geocoding API — TanStack Query
-│   ├── useIsochroneResults.ts     # Aggregate POIs per isochrone band
 │   ├── useHeatmapSpotlight.ts     # Nearest POIs to a clicked point
 │   ├── usePois.ts                 # POI dataset from backend
 │   ├── useDistricts.ts            # District GeoJSON from backend
-│   └── useCities.ts               # City list from backend
+│   ├── useDistrictStats.ts        # Statistics for one district, computed in PostGIS
+│   ├── useAreaAnalysis.ts         # Statistics for a drawn polygon, computed in PostGIS
+│   ├── useCities.ts               # City list from backend
+│   └── useShareSync.ts            # Restores the view from the URL hash, keeps the hash current
 ├── store/
 │   ├── mapStore.ts                # Mapbox map instance (for imperative access)
 │   ├── cityStore.ts               # Active city
 │   ├── layerStore.ts              # Layer visibility
 │   ├── isochroneStore.ts          # Isochrone mode — enabled, origin, profile
 │   ├── routeStore.ts              # Route mode — enabled, pins, profile
+│   ├── drawStore.ts               # Draw mode — enabled, drawn polygon, clear request
 │   ├── geoSearchStore.ts          # Geocoding result (for map pin)
 │   ├── heatmapStore.ts            # Heatmap click origin
-│   └── featureStore.ts            # Clicked map feature
+│   ├── featureStore.ts            # Clicked map feature
+│   └── uiStore.ts                 # Sidebar open / closed
 ├── lib/
 │   ├── mapPins.ts                 # DOM elements for the map pins, one shape per kind
 │   ├── heatmapExposure.ts         # Per-city heatmap weight from POI density (p99 per 400 m cell)

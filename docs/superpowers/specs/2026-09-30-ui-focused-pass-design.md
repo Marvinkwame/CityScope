@@ -236,3 +236,14 @@ The 1 px dashed line at 0.3 with no fill was too faint. At city zoom it could ba
 ### Guard
 
 The guard also flags a template interpolation with hex digits glued on (`${AMBER}80`), a hand-rolled tint that bypassed it because the source contains no `#`.
+
+## Amendments while planning Phase 2 (2026-10-01)
+
+- **Every category, not `LIMIT 5`.** The approved mockup shows "+ 6 more categories" under Mitte's top 5, which needs every count. District stats and drawn-area analysis now return every category present, largest first; there are only 11. The field keeps its name, `topCategories`, so the deployed frontend and backend stay compatible in either order.
+- **`PlaceList` owns "Show all".** It replaces the spotlight's own expander and the isochrone's long scroll list, and is a gold "you" action.
+- **Isochrone band stats** are Places and Categories, since a band has no area to compute a density from.
+- **Two small additions:** `SectionLabel` (the shared uppercase heading) and `distanceParts` (so a stat row can show "6.4" with a small "km").
+- **`CategoryIcon` looks its icon up inline.** `react-hooks/static-components` rejects a JSX tag bound to a function call's result.
+- **The spotlight card stays clear of the sidebar** (found in pre-flight, owner's decision). On desktop the card sat under the open 296 px sidebar and was invisible. It now sits beside the sidebar and its 21 px edge handle, open or collapsed, and slides with them. Its positioning lives on a wrapper `Box`, because MUI `Slide` writes an inline `transition` on its own child, which silently overrode a `left` transition.
+- **Isochrone places are listed nearest-first** from the origin, titled "Nearest", with straight-line distances, like the spotlight. They used to arrive alphabetical by category, so every band opened on attractions A–Z.
+- **Each new isochrone opens on its outermost band.** A band the user picks lasts until they place a new origin. The rule lives in a tested `selectBand` helper.

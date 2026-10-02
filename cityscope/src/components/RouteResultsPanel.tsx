@@ -1,24 +1,20 @@
 import Box from '@mui/material/Box';
-import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import CloseIcon from '@mui/icons-material/Close';
 import { useRoute } from '../hooks/useRoute';
 import { useRouteStore } from '../store/routeStore';
-import { alpha } from '@mui/material/styles';
-import { CYAN, MONO, ROLE } from '../theme';
+import { MONO, ROLE } from '../theme';
+import StatRow, { type StatItem } from './results/StatRow';
+import { distanceParts, formatDistance } from './results/format';
 
-function formatDistance(metres: number): string {
-  if (metres < 1000) return `${Math.round(metres / 10) * 10}m`;
-  return `${(metres / 1000).toFixed(1)}km`;
-}
-
-function formatDuration(seconds: number): string {
+/** "45 min", or "1h 17m" / "2h" from an hour up. */
+function durationStat(seconds: number): StatItem {
   const mins = Math.round(seconds / 60);
-  if (mins < 60) return `${mins} min`;
+  if (mins < 60) return { label: 'Duration', value: String(mins), unit: 'min' };
   const hrs = Math.floor(mins / 60);
   const rem = mins % 60;
-  return rem === 0 ? `${hrs}h` : `${hrs}h ${rem}m`;
+  return { label: 'Duration', value: rem === 0 ? `${hrs}h` : `${hrs}h ${rem}m` };
 }
 
 function maneuverArrow(type: string, modifier?: string): string {
@@ -37,47 +33,16 @@ function RouteResultsPanel() {
 
   if (!routeData) return null;
 
+  const distance = distanceParts(routeData.distanceM);
+
   return (
     <Box sx={{ mt: 1 }}>
-      {/* Distance + Duration stats */}
-      <Box
-        sx={{
-          display: 'flex',
-          background: alpha(ROLE.answer, 0.05),
-          borderRadius: '10px',
-          border: `1px solid ${alpha(ROLE.answer, 0.18)}`,
-          overflow: 'hidden',
-          mb: 1,
-        }}
-      >
-        <Box sx={{ flex: 1, py: 1.5, textAlign: 'center' }}>
-          <Typography sx={{
-            fontFamily: MONO,
-            color: CYAN,
-            fontWeight: 700,
-            fontSize: '1.1rem',
-          }}>
-            {formatDistance(routeData.distanceM)}
-          </Typography>
-          <Typography sx={{ fontFamily: MONO, fontSize: '0.55rem', fontWeight: 500, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.42)' }}>
-            distance
-          </Typography>
-        </Box>
-        <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(255,255,255,0.06)' }} />
-        <Box sx={{ flex: 1, py: 1.5, textAlign: 'center' }}>
-          <Typography sx={{
-            fontFamily: MONO,
-            color: CYAN,
-            fontWeight: 700,
-            fontSize: '1.1rem',
-          }}>
-            {formatDuration(routeData.durationS)}
-          </Typography>
-          <Typography sx={{ fontFamily: MONO, fontSize: '0.55rem', fontWeight: 500, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.42)' }}>
-            duration
-          </Typography>
-        </Box>
-      </Box>
+      <StatRow
+        stats={[
+          { label: 'Distance', value: distance.value, unit: distance.unit },
+          durationStat(routeData.durationS),
+        ]}
+      />
 
       {/* Turn-by-turn steps */}
       <Box
@@ -106,7 +71,7 @@ function RouteResultsPanel() {
             <Typography
               sx={{
                 fontFamily: MONO,
-                color: CYAN,
+                color: ROLE.answer,
                 fontSize: '0.8rem',
                 minWidth: 14,
                 mt: 0.1,

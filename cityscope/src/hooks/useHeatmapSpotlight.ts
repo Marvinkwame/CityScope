@@ -11,7 +11,6 @@ export interface SpotlightPoi extends Poi {
 export interface SpotlightResult {
   total: number;
   categoryCounts: Record<string, number>;
-  topPois: SpotlightPoi[];
   allPois: SpotlightPoi[];
 }
 
@@ -46,7 +45,6 @@ export function useHeatmapSpotlight(): SpotlightResult | null {
     return {
       total: nearby.length,
       categoryCounts,
-      topPois: nearby.slice(0, 5),
       allPois: nearby,
     };
   }, [clickOrigin, poisData]);
