@@ -19,8 +19,8 @@ export interface PlaceItem {
   meta?: string;
 }
 
-// A camera move, not a source or layer change. This is the one map call
-// components make directly, and it now lives only here.
+// A camera move, not a source or layer change. One of two camera moves
+// components make directly (GeoSearch has the other).
 function flyTo(place: PlaceItem) {
   useMapStore.getState().map?.flyTo({ center: [place.lng, place.lat], zoom: 16, duration: 800 });
 }
