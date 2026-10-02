@@ -8,6 +8,8 @@ import { alpha } from '@mui/material/styles';
 import { useLayerStore } from '../store/layerStore';
 import { useHeatmapStore } from '../store/heatmapStore';
 import { useHeatmapSpotlight } from '../hooks/useHeatmapSpotlight';
+import { useUIStore } from '../store/uiStore';
+import { SIDEBAR_WIDTH } from './Sidebar';
 import { INK_1, ROLE } from '../theme';
 import CategoryBars from './results/CategoryBars';
 import PlaceList from './results/PlaceList';
@@ -16,6 +18,7 @@ import { formatCount, formatDistance } from './results/format';
 function HeatmapSpotlightCard() {
   const heatmapOn = useLayerStore((s) => s.layers.heatmap);
   const clickOrigin = useHeatmapStore((s) => s.clickOrigin);
+  const sidebarOpen = useUIStore((s) => s.sidebarOpen);
   const spotlight = useHeatmapSpotlight();
 
   const visible = heatmapOn && spotlight !== null && spotlight.total > 0;
@@ -26,7 +29,11 @@ function HeatmapSpotlightCard() {
         sx={{
           position: 'absolute',
           bottom: { xs: 40, sm: 32 },
-          left: 12,
+          // On desktop the sidebar overlays the map, so the card rides beside
+          // it, sliding with the same timing. On phones the sidebar is a
+          // modal drawer, and covering the card while open is intended.
+          left: { xs: 12, sm: sidebarOpen ? SIDEBAR_WIDTH + 12 : 12 },
+          transition: 'left 0.24s cubic-bezier(0.4,0,0.2,1)',
           width: { xs: 'calc(100vw - 24px)', sm: 280 },
           maxWidth: 300,
           background: alpha(INK_1, 0.92),
