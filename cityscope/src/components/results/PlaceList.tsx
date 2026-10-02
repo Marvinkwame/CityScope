@@ -50,6 +50,8 @@ function PlaceList({
       {title && <SectionLabel>{title}</SectionLabel>}
       <Box
         component="ul"
+        // Safari/VoiceOver drop list semantics when list-style is none.
+        role="list"
         sx={{ listStyle: 'none', m: 0, p: 0, maxHeight: expanded ? 220 : 'none', overflowY: expanded ? 'auto' : 'visible' }}
       >
         {shown.map((p) => {
@@ -75,14 +77,21 @@ function PlaceList({
                 }}
               >
                 <CategoryIcon category={p.category} size={13} />
-                <Typography noWrap sx={{ flex: 1, minWidth: 0, fontSize: '0.72rem', color: 'rgba(255,255,255,0.86)' }}>
+                <Typography
+                  component="span"
+                  noWrap
+                  sx={{ flex: 1, minWidth: 0, fontSize: '0.72rem', color: 'rgba(255,255,255,0.86)' }}
+                >
                   {name}
                   <Box component="span" sx={{ color: 'rgba(255,255,255,0.4)', ml: 0.75 }}>
                     {categoryLabel(p.category)}
                   </Box>
                 </Typography>
                 {p.meta && (
-                  <Typography sx={{ fontFamily: MONO, fontSize: '0.64rem', color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}>
+                  <Typography
+                    component="span"
+                    sx={{ fontFamily: MONO, fontSize: '0.64rem', color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}
+                  >
                     {p.meta}
                   </Typography>
                 )}
@@ -94,7 +103,15 @@ function PlaceList({
       {canExpand && (
         <ButtonBase
           onClick={() => setExpanded((v) => !v)}
-          sx={{ mt: 0.75, px: 0.5, fontSize: '0.72rem', color: ROLE.you, borderRadius: 0.5 }}
+          aria-expanded={expanded}
+          sx={{
+            mt: 0.75,
+            px: 0.5,
+            fontSize: '0.72rem',
+            color: ROLE.you,
+            borderRadius: 0.5,
+            '&.Mui-focusVisible': { outline: `1px solid ${alpha(ROLE.you, 0.6)}` },
+          }}
         >
           {expanded ? 'Show fewer' : `Show all ${formatCount(places.length)} places`}
         </ButtonBase>
