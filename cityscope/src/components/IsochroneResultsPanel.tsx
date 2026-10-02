@@ -11,6 +11,7 @@ import PlaceIcon from '@mui/icons-material/Place';
 import { useIsochroneStore } from '../store/isochroneStore';
 import { useIsochrone } from '../hooks/useIsochrone';
 import { useIsochronePois } from '../hooks/useIsochronePois';
+import { selectBand } from '../lib/selectBand';
 import { MONO, ROLE } from '../theme';
 import CategoryBars from './results/CategoryBars';
 import PlaceList from './results/PlaceList';
@@ -32,9 +33,13 @@ function IsochroneResultsPanel() {
   const { data: isochroneData } = useIsochrone();
   const { data: bands, isLoading: bandsLoading, isError: bandsError } = useIsochronePois(isochroneData);
 
-  // The band the user picked, if any. Until they pick one, the outermost band
-  // is shown: the time they actually asked about.
-  const [pickedContour, setPickedContour] = useState<number | null>(null);
+  // The band the user picked, tagged with the origin it was picked for. A pick
+  // lasts until the user places a new origin; after that the outermost band is
+  // shown again: the time they actually asked about. Deriving this instead of
+  // resetting in an effect keeps the panel to one render.
+  const [pick, setPick] = useState<{ originKey: string; contour: number } | null>(null);
+  const originKey = origin ? `${origin.lng},${origin.lat}` : '';
+  const effectivePick = pick && pick.originKey === originKey ? pick.contour : null;
 
   // The tool is live but the Mapbox stage has not resolved yet, so stay hidden.
   if (!enabled || origin === null || loading) return null;
@@ -65,7 +70,8 @@ function IsochroneResultsPanel() {
 
   if (!bands || bands.length === 0) return null;
 
-  const band = bands.find((b) => b.contour === pickedContour) ?? bands[bands.length - 1];
+  const band = selectBand(bands, effectivePick);
+  if (!band) return null;
 
   return (
     <Box sx={{ mt: 1.5 }}>
@@ -97,7 +103,7 @@ function IsochroneResultsPanel() {
         size="small"
         value={band.contour}
         onChange={(_event, value: number | null) => {
-          if (value !== null) setPickedContour(value);
+          if (value !== null) setPick({ originKey, contour: value });
         }}
         aria-label="Travel time"
         sx={{ mb: 1.5 }}
