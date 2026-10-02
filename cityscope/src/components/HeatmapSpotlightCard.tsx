@@ -21,7 +21,8 @@ function HeatmapSpotlightCard() {
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
   const spotlight = useHeatmapSpotlight();
 
-  const visible = heatmapOn && spotlight !== null && spotlight.total > 0;
+  const total = spotlight?.total ?? 0;
+  const visible = heatmapOn && total > 0;
 
   return (
     // Positioning lives on this wrapper, not on Slide's child: Slide writes an
@@ -68,7 +69,7 @@ function HeatmapSpotlightCard() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <PlaceIcon aria-hidden sx={{ fontSize: 14, color: ROLE.answer }} />
               <Typography sx={{ color: ROLE.answer, fontWeight: 700, fontSize: 12 }}>
-                {formatCount(spotlight?.total ?? 0)} places within 300 m
+                {formatCount(total)} {total === 1 ? 'place' : 'places'} within 300 m
               </Typography>
             </Box>
             <IconButton
