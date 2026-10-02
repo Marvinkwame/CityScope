@@ -245,3 +245,5 @@ The guard also flags a template interpolation with hex digits glued on (`${AMBER
 - **Two small additions:** `SectionLabel` (the shared uppercase heading) and `distanceParts` (so a stat row can show "6.4" with a small "km").
 - **`CategoryIcon` looks its icon up inline.** `react-hooks/static-components` rejects a JSX tag bound to a function call's result.
 - **The spotlight card stays clear of the sidebar** (found in pre-flight, owner's decision). On desktop the card sat under the open 296 px sidebar and was invisible. It now sits beside the sidebar and its 21 px edge handle, open or collapsed, and slides with them. Its positioning lives on a wrapper `Box`, because MUI `Slide` writes an inline `transition` on its own child, which silently overrode a `left` transition.
+- **Isochrone places are listed nearest-first** from the origin, titled "Nearest", with straight-line distances, like the spotlight. They used to arrive alphabetical by category, so every band opened on attractions A–Z.
+- **Each new isochrone opens on its outermost band.** A band the user picks lasts until they place a new origin. The rule lives in a tested `selectBand` helper.

@@ -2040,6 +2040,6 @@ Run against the owner's servers on :5173 and :3001 if they are up. Use Playwrigh
   - the badge reads "142% above the city average of 35 per km²";
   - place rows are buttons named "<name>, <Category>, <meta>. Show on map";
   - icons are hidden.
-- [ ] **Keyboard:** Tab reaches the place rows and "Show all"; Enter on a row flies the map; the band switcher works with the arrow keys.
+- [ ] **Keyboard:** Tab reaches the place rows and "Show all"; Enter on a row flies the map; Tab and Shift+Tab move between the band buttons, and Enter or Space selects one (MUI's `role="group"` toggle buttons are not an arrow-key widget).
 - [ ] **Mobile width** (375 px): the bars and switcher fit, and nothing scrolls sideways.
 - [ ] **Console:** 0 errors, 0 warnings.
