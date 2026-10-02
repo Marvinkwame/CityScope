@@ -13,6 +13,7 @@ export interface DistrictStats {
   poiCount: number;
   areaKm2: number;
   densityPerKm2: number;
+  /** Every category present in the district, largest first. */
   topCategories: DistrictCategoryCount[];
   cityAvgDensity: number;
   densityVsCityPct: number | null;

@@ -65,7 +65,9 @@ districtRouter.get('/:id/stats', async (req: Request, res: Response) => {
          COALESCE((
            SELECT json_agg(tc) FROM (
              SELECT category, count(*)::int AS count
-             FROM inside GROUP BY category ORDER BY count(*) DESC LIMIT 3
+             -- Every category (there are 11), largest first. The client shows
+             -- the top 5 and counts the rest as "+ N more categories".
+             FROM inside GROUP BY category ORDER BY count(*) DESC
            ) tc
          ), '[]'::json)                                AS top_categories
        FROM target t`,
