@@ -13,6 +13,7 @@ React 19 + Mapbox GL JS 3 geospatial application. Draw isochrones, plan routes, 
 - **Draw & analyse** — draw any polygon and get the same statistics for it, computed in PostGIS
 - **Save & share** — the whole view, including the active analysis, round-trips through a link
 - **Shared results panel** — every tool builds its results from the same parts: stat rows, category bars with shares, and place lists
+- **Welcome card** — a first visit gets three one-click examples (stored share links) and turns the free-tier API's cold start into reading time; returning visitors get a small status pill instead, and the navbar's Examples button re-opens the card
 - **Route planning** — A/B pin placement, walking / cycling / driving profiles, real-time directions from Mapbox, turn-by-turn step list
 - **Geocoding search** — floating pill search bar, 300 ms debounced suggestions from Mapbox Geocoding API, proximity-biased to the active city
 - **POI heatmap** — kernel density layer with spotlight card (nearest POIs by category on click)
@@ -44,6 +45,7 @@ src/
 │   ├── MapView.tsx                # Map init, all layer/source/marker operations
 │   ├── Navbar.tsx                 # App bar — city switcher, 3D toggle
 │   ├── ShareButton.tsx            # Copies the shareable link to the current view
+│   ├── ExamplesButton.tsx         # Navbar button that re-opens the welcome card
 │   ├── Sidebar.tsx                # Layer toggles + analysis tool cards
 │   ├── GeoSearch.tsx              # Floating geocoding search bar
 │   ├── IsochroneControls.tsx      # Isochrone mode toggle, profile, time bands
@@ -52,6 +54,9 @@ src/
 │   ├── RouteResultsPanel.tsx      # Distance, duration, turn-by-turn steps
 │   ├── FeaturePanel.tsx           # Right drawer — clicked feature properties
 │   ├── HeatmapSpotlightCard.tsx   # Bottom-left — nearest POIs on heatmap click
+│   ├── WelcomeDialog.tsx          # First-visit card: three examples and the cold-start status
+│   ├── ServerStatusPill.tsx       # Cold-start status for returning visitors, after 1.5 s
+│   ├── PulseDot.tsx               # The cyan "working" dot (honours reduced motion)
 │   ├── DistrictStatsView.tsx      # District detail — stat row, density badge and category bars
 │   ├── DrawControls.tsx           # Draw Area toggle, area stats and bars, Clear area
 │   └── results/                   # Shared result parts: StatRow, SectionLabel, CategoryBars,
@@ -67,7 +72,8 @@ src/
 │   ├── useDistrictStats.ts        # Statistics for one district, computed in PostGIS
 │   ├── useAreaAnalysis.ts         # Statistics for a drawn polygon, computed in PostGIS
 │   ├── useCities.ts               # City list from backend
-│   └── useShareSync.ts            # Restores the view from the URL hash, keeps the hash current
+│   ├── useShareSync.ts            # Restores the view from the URL hash, keeps the hash current
+│   └── useServerStatus.ts         # Waking / error / ready, with a retry
 ├── store/
 │   ├── mapStore.ts                # Mapbox map instance (for imperative access)
 │   ├── cityStore.ts               # Active city
@@ -78,7 +84,7 @@ src/
 │   ├── geoSearchStore.ts          # Geocoding result (for map pin)
 │   ├── heatmapStore.ts            # Heatmap click origin
 │   ├── featureStore.ts            # Clicked map feature
-│   └── uiStore.ts                 # Sidebar open / closed
+│   └── uiStore.ts                 # Sidebar open / closed; welcome card open / closed
 ├── lib/
 │   ├── mapPins.ts                 # DOM elements for the map pins, one shape per kind
 │   ├── heatmapExposure.ts         # Per-city heatmap weight from POI density (p99 per 400 m cell)
@@ -86,6 +92,9 @@ src/
 │   ├── shareCodec.ts              # App state <-> base64url URL hash, validated on decode
 │   ├── shareState.ts              # Collect / rehydrate the shareable state
 │   ├── drawFeatures.ts            # Inspect mapbox-gl-draw's feature store
+│   ├── examples.ts                # The welcome card's examples, as share states
+│   ├── welcomeMemory.ts           # Show or dismiss rules for the card; storage-safe
+│   ├── serverStatus.ts            # Cold-start status from the city list and the map
 │   └── isochronePayload.ts        # Mapbox isochrone response -> backend contract
 ├── constants/
 │   ├── layerConfig.ts             # Layer IDs, Mapbox filter functions, layer toggle metadata
