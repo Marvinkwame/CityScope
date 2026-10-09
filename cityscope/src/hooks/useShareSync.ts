@@ -6,7 +6,7 @@ import { useIsochroneStore } from '../store/isochroneStore';
 import { useRouteStore } from '../store/routeStore';
 import { useDrawStore } from '../store/drawStore';
 import { useCities } from './useCities';
-import { encodeState, decodeState } from '../lib/shareCodec';
+import { encodeState, decodeState, SHARE_HASH_PREFIX } from '../lib/shareCodec';
 import { collectShareState, applyShareState } from '../lib/shareState';
 
 export function useShareSync(): void {
@@ -19,8 +19,8 @@ export function useShareSync(): void {
     if (hydratedRef.current || !map || !cities) return;
     hydratedRef.current = true;
     const hash = window.location.hash;
-    if (!hash.startsWith('#s=')) return;
-    const state = decodeState(hash.slice(3));
+    if (!hash.startsWith(SHARE_HASH_PREFIX)) return;
+    const state = decodeState(hash.slice(SHARE_HASH_PREFIX.length));
     if (state) applyShareState(state, map, cities);
   }, [map, cities]);
 
@@ -33,7 +33,7 @@ export function useShareSync(): void {
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
         const encoded = encodeState(collectShareState(map));
-        history.replaceState(null, '', `#s=${encoded}`);
+        history.replaceState(null, '', `${SHARE_HASH_PREFIX}${encoded}`);
       }, 400);
     };
     const unsubs = [

@@ -1,3 +1,5 @@
+import { SHARE_HASH_PREFIX } from './shareCodec';
+
 /**
  * Whether to greet a visitor with the welcome card.
  *
@@ -18,7 +20,7 @@ export function browserStorage(): Storage | null {
 
 /** The page was opened from a share link, so it should land on that view, not on the card. */
 export function openedFromShareLink(hash: string): boolean {
-  return hash.startsWith('#s=');
+  return hash.startsWith(SHARE_HASH_PREFIX);
 }
 
 export function isWelcomeDismissed(storage: Pick<Storage, 'getItem'> | null): boolean {
