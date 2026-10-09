@@ -5,6 +5,7 @@ import MapView from './components/MapView';
 import FeaturePanel from './components/FeaturePanel';
 import HeatmapSpotlightCard from './components/HeatmapSpotlightCard';
 import GeoSearch from './components/GeoSearch';
+import WelcomeDialog from './components/WelcomeDialog';
 import { useCityStore } from './store/cityStore';
 import { useShareSync } from './hooks/useShareSync';
 
@@ -32,6 +33,7 @@ function App() {
         <GeoSearch key={selectedCity.id} />
       </Box>
       <FeaturePanel />
+      <WelcomeDialog />
     </Box>
   );
 }
