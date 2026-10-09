@@ -105,7 +105,7 @@ function WelcomeDialog() {
                 </Typography>
                 <Typography
                   component="span"
-                  sx={{ fontFamily: MONO, fontSize: '0.6rem', letterSpacing: '0.3px', color: 'rgba(255,255,255,0.45)' }}
+                  sx={{ fontFamily: MONO, fontSize: '0.6rem', letterSpacing: '0.3px', color: 'rgba(255,255,255,0.55)' }}
                 >
                   {example.kicker}
                 </Typography>
