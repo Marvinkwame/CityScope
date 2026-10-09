@@ -7,6 +7,8 @@
  * different questions and would drift apart for different reasons.
  */
 
+import type { PolygonGeometry } from '../store/drawStore';
+
 function isCompletePolygonGeometry(geometry: GeoJSON.Geometry | null | undefined): boolean {
   if (!geometry || geometry.type !== 'Polygon') return false;
   const ring: unknown = geometry.coordinates?.[0];
@@ -28,4 +30,23 @@ function isCompletePolygonGeometry(geometry: GeoJSON.Geometry | null | undefined
  */
 export function hasCompletePolygon(features: GeoJSON.Feature[]): boolean {
   return features.some((f) => isCompletePolygonGeometry(f?.geometry));
+}
+
+/**
+ * True when the draw store already shows exactly this polygon.
+ *
+ * "Any finished polygon" is not enough once share states are applied
+ * mid-session: an example would find the user's own earlier drawing and
+ * skip restoring its polygon, leaving the old shape on the map while the
+ * results describe the new one. A drawing the user makes or edits is written
+ * back to the store from gl-draw's own geometry, so it compares equal and is
+ * left alone.
+ */
+export function showsPolygon(features: GeoJSON.Feature[], polygon: PolygonGeometry): boolean {
+  const target = JSON.stringify(polygon.coordinates);
+  return features.some(
+    (f) =>
+      isCompletePolygonGeometry(f?.geometry) &&
+      JSON.stringify((f.geometry as GeoJSON.Polygon).coordinates) === target,
+  );
 }
