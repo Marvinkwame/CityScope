@@ -31,6 +31,9 @@ function WelcomeDialog() {
     const map = useMapStore.getState().map;
     if (!map || !cities) return;
     applyShareState(example.state, map, cities);
+    // The isochrone and drawn-area results live in the sidebar, which starts
+    // closed on phones; open it so the answer is visible, not just the shape.
+    if (example.state.tool) useUIStore.getState().setSidebarOpen(true);
     close();
   };
 
