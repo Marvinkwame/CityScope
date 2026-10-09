@@ -20,9 +20,9 @@ function ServerStatusPill() {
   const { status, retry } = useServerStatus();
   const [slow, setSlow] = useState(false);
 
-  // `slow` deliberately never resets: after Retry the status goes error ->
-  // waking, and the pill should show progress at once instead of waiting
-  // another 1.5 s.
+  // `slow` deliberately never resets: once a wait has been long enough to show
+  // the pill, a Retry (error -> waking) shows progress at once instead of
+  // waiting another 1.5 s.
   useEffect(() => {
     if (status !== 'waking') return;
     const timer = setTimeout(() => setSlow(true), SHOW_AFTER_MS);

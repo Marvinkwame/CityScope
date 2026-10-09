@@ -754,7 +754,8 @@ function MapView() {
     }
   }, [drawEnabled, mapReady]);
 
-  // Render a polygon that arrived from a shared URL (draw control has no feature yet).
+  // Render the polygon from a share state (a link, or a welcome-card example
+  // applied mid-session), replacing any different polygon gl-draw already shows.
   // `mapReady` must stay in the deps: hydration usually lands BEFORE style.load,
   // because the city list is a fast API call while mapReady waits on Mapbox's
   // style over the network. At that point the draw-toggle effect above has
