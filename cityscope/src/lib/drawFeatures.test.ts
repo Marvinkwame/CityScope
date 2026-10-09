@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { hasCompletePolygon } from './drawFeatures';
+import { hasCompletePolygon, showsPolygon } from './drawFeatures';
+import type { PolygonGeometry } from '../store/drawStore';
 
 const complete: GeoJSON.Feature = {
   type: 'Feature',
@@ -67,5 +68,32 @@ describe('hasCompletePolygon', () => {
 
   it('is false for a feature with no geometry', () => {
     expect(hasCompletePolygon([{ type: 'Feature', properties: {}, geometry: null } as unknown as GeoJSON.Feature])).toBe(false);
+  });
+});
+
+describe('showsPolygon', () => {
+  const target: PolygonGeometry = {
+    type: 'Polygon',
+    coordinates: [[[13.39, 52.51], [13.42, 52.51], [13.42, 52.53], [13.39, 52.53], [13.39, 52.51]]],
+  };
+
+  it('is true when the features hold exactly that polygon', () => {
+    expect(showsPolygon([complete], target)).toBe(true);
+  });
+
+  it('is false for a different finished polygon', () => {
+    const other: PolygonGeometry = {
+      type: 'Polygon',
+      coordinates: [[[-0.09, 51.52], [-0.07, 51.52], [-0.07, 51.54], [-0.09, 51.54], [-0.09, 51.52]]],
+    };
+    expect(showsPolygon([complete], other)).toBe(false);
+  });
+
+  it('is false when only the in-progress draw stub is present', () => {
+    expect(showsPolygon([inProgressStub], target)).toBe(false);
+  });
+
+  it('is false for an empty feature list', () => {
+    expect(showsPolygon([], target)).toBe(false);
   });
 });

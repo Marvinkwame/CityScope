@@ -12,6 +12,7 @@ import { useCityStore } from '../store/cityStore';
 import type { City } from '../store/cityStore';
 import { useCities } from '../hooks/useCities';
 import ShareButton from './ShareButton';
+import ExamplesButton from './ExamplesButton';
 import { alpha } from '@mui/material/styles';
 import { AMBER, CYAN, INK, INK_1, MONO, DISPLAY } from '../theme';
 
@@ -222,6 +223,9 @@ function Navbar() {
 
         {/* Live coordinate readout */}
         <LiveReadout />
+
+        {/* Re-open the welcome card's examples */}
+        <ExamplesButton />
 
         {/* Copy shareable link */}
         <ShareButton />

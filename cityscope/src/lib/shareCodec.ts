@@ -1,6 +1,9 @@
 import type { TravelProfile } from '../store/isochroneStore';
 import type { PolygonGeometry } from '../store/drawStore';
 
+/** The URL hash prefix that marks a share link. */
+export const SHARE_HASH_PREFIX = '#s=';
+
 export type LngLat = { lng: number; lat: number };
 
 export type ShareTool =

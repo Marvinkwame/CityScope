@@ -247,3 +247,13 @@ The guard also flags a template interpolation with hex digits glued on (`${AMBER
 - **The spotlight card stays clear of the sidebar** (found in pre-flight, owner's decision). On desktop the card sat under the open 296 px sidebar and was invisible. It now sits beside the sidebar and its 21 px edge handle, open or collapsed, and slides with them. Its positioning lives on a wrapper `Box`, because MUI `Slide` writes an inline `transition` on its own child, which silently overrode a `left` transition.
 - **Isochrone places are listed nearest-first** from the origin, titled "Nearest", with straight-line distances, like the spotlight. They used to arrive alphabetical by category, so every band opened on attractions A–Z.
 - **Each new isochrone opens on its outermost band.** A band the user picks lasts until they place a new origin. The rule lives in a tested `selectBand` helper.
+
+## Amendments while planning and building Phase 3 (2026-10-05)
+
+- **Card width** is `min(92vw, 380px)` at every size; the spec gave only the mobile value, and the approved mockup's card is about that wide.
+- **The pill's copy is shorter** ("Waking up the analysis server — up to 30 s"); the card keeps the full sentence.
+- **Shared parts:** `PulseDot` (the cyan working dot, still under reduced motion) and `useServerStatus` (card and pill).
+- **Reloads count as share links.** The app rewrites the hash as you move, so reloading after any interaction lands on that view rather than the card. The card is for arriving, not reloading.
+- **The cross-city risk did not materialise.** Choosing the Tokyo example while viewing Berlin keeps the example's view and heatmap: React flushes the click's effects synchronously, so `applyShareState`'s next-macrotask flag is still set when MapView's city-change effect runs. Verified live.
+- **Examples open the sidebar when their results live there** (owner's decision after the final review). On phones the sidebar starts closed, and the isochrone and drawn-area results render inside it, so choosing those examples opens it; the Tokyo heatmap example leaves it alone.
+- **A share state replaces the whole view.** Applied mid-session (as examples are), it now also clears the previous view's selection — the district panel, the spotlight origin and the search pin — and the drawn-area restore replaces a different polygon already on the map instead of keeping it.

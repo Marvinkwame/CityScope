@@ -11,7 +11,7 @@ import { useHeatmapStore } from '../store/heatmapStore';
 import { useRouteStore } from '../store/routeStore';
 import { useGeoSearchStore } from '../store/geoSearchStore';
 import { isHydrating } from '../lib/shareState';
-import { hasCompletePolygon } from '../lib/drawFeatures';
+import { showsPolygon } from '../lib/drawFeatures';
 import { heatmapWeight } from '../lib/heatmapExposure';
 import { answerBeforeId, contextBeforeId } from '../lib/layerOrder';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
@@ -754,7 +754,8 @@ function MapView() {
     }
   }, [drawEnabled, mapReady]);
 
-  // Render a polygon that arrived from a shared URL (draw control has no feature yet).
+  // Render the polygon from a share state (a link, or a welcome-card example
+  // applied mid-session), replacing any different polygon gl-draw already shows.
   // `mapReady` must stay in the deps: hydration usually lands BEFORE style.load,
   // because the city list is a fast API call while mapReady waits on Mapbox's
   // style over the network. At that point the draw-toggle effect above has
@@ -764,11 +765,12 @@ function MapView() {
   useEffect(() => {
     const draw = drawRef.current;
     if (!draw || !drawEnabled || !drawPolygon) return;
-    // Only bail for a polygon the user actually finished. A plain
-    // `features.length > 0` check counts the in-progress stub that
-    // changeMode('draw_polygon') inserts the moment the tool is armed, which
-    // meant a shared polygon was never added at all.
-    if (hasCompletePolygon(draw.getAll().features)) return;
+    // Bail only if gl-draw already shows THIS polygon. A different finished
+    // polygon (say, the user's own drawing before they chose an example) must
+    // be replaced, not kept. The in-progress stub that changeMode('draw_polygon')
+    // inserts is never a match.
+    if (showsPolygon(draw.getAll().features, drawPolygon)) return;
+    draw.deleteAll();
     draw.add({ type: 'Feature', properties: {}, geometry: drawPolygon });
     // Leaves draw_polygon mode, which discards gl-draw's in-progress stub and
     // leaves only the shape restored from the link.

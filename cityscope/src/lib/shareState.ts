@@ -5,6 +5,9 @@ import { useMapStore } from '../store/mapStore';
 import { useIsochroneStore } from '../store/isochroneStore';
 import { useRouteStore } from '../store/routeStore';
 import { useDrawStore } from '../store/drawStore';
+import { useFeatureStore } from '../store/featureStore';
+import { useHeatmapStore } from '../store/heatmapStore';
+import { useGeoSearchStore } from '../store/geoSearchStore';
 import type { ShareState } from './shareCodec';
 
 // Module-level flag so MapView can suppress its city-change reset/flyTo while we hydrate.
@@ -38,6 +41,13 @@ export function collectShareState(map: MapboxMap): ShareState {
 
 export function applyShareState(state: ShareState, map: MapboxMap, cities: City[]): void {
   hydrating = true;
+
+  // A share state is a whole view: drop what belonged to the previous one.
+  // (On page load these are already empty; an example applied mid-session
+  // would otherwise keep, say, a Berlin district's panel open over Tokyo.)
+  useFeatureStore.getState().clearFeature();
+  useHeatmapStore.getState().setClickOrigin(null);
+  useGeoSearchStore.getState().setResult(null);
 
   const city = cities.find((c) => c.id === state.city);
   if (city) useCityStore.getState().setCity(city);
