@@ -102,6 +102,17 @@ City-scoped routes (`:cityId` e.g. `berlin`):
 | GET  | `/api/cities/:cityId/districts/:id/stats` | Live district statistics (PostGIS) |
 | GET  | `/api/cities/:cityId/pois` | POI records for a city |
 | POST | `/api/cities/:cityId/pois/within` | Count POIs inside a drawn polygon (`ST_Within`) |
+| GET  | `/health` | Keep-warm target; answers without touching the database |
+
+---
+
+## Deployment
+
+Frontend on **Vercel** → API on **Render** → **Neon** Postgres + PostGIS.
+
+**Keeping the API awake.** Render's free tier stops a service after 15 minutes without traffic, and the next visitor waits while it starts again (measured at 8–38 s). An external scheduler ([cron-job.org](https://cron-job.org)) calls `GET /health` every 10 minutes, so the API never reaches that limit. One always-on service fits within Render's 750 free instance hours a month.
+
+`/health` deliberately skips the database. Neon's free compute allowance can't cover staying awake around the clock, and it wakes on the next real query anyway. If a ping is ever missed, the welcome card says the server is waking up, so a cold start is explained rather than a blank map.
 
 ---
 
