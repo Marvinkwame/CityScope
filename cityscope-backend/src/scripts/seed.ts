@@ -55,6 +55,7 @@ async function seed() {
 
   await client.query('DELETE FROM districts WHERE city_id = $1', [cityId]);
 
+  const skipped: string[] = [];
   for (const feature of geojson.features) {
     const name =
       feature.properties[cityConfig.nameProperty] ??
@@ -62,14 +63,25 @@ async function seed() {
       'Unknown';
     const geomJson = JSON.stringify(feature.geometry);
 
-    await client.query(
+    // The source outlines are simplified, which can leave them crossing over
+    // themselves; repair each on the way in (see migration 003). An outline
+    // with no area left after repair is skipped rather than stored empty.
+    const inserted = await client.query(
       `INSERT INTO districts (name, geom, city_id)
-       VALUES ($1, ST_Multi(ST_SetSRID(ST_GeomFromGeoJSON($2), 4326)), $3)`,
+       SELECT $1, g, $3
+       FROM (SELECT ST_Multi(ST_CollectionExtract(
+               ST_MakeValid(ST_SetSRID(ST_GeomFromGeoJSON($2), 4326), 'method=structure'), 3)) AS g) r
+       WHERE NOT ST_IsEmpty(g)`,
       [name, geomJson, cityId],
     );
+    if (inserted.rowCount === 0) skipped.push(name);
   }
 
-  console.log(`Seeded ${geojson.features.length} districts for ${cityConfig.name}`);
+  const seeded = geojson.features.length - skipped.length;
+  console.log(`Seeded ${seeded} districts for ${cityConfig.name}`);
+  if (skipped.length > 0) {
+    console.log(`Skipped ${skipped.length} with no area after repair: ${skipped.join(', ')}`);
+  }
   await client.end();
 }
 
