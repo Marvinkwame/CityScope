@@ -16,6 +16,14 @@ app.use(cors({
 // so state the limit explicitly.
 app.use(express.json({ limit: '512kb' }));
 
+// Keep-warm target. An outside scheduler calls this every 10 minutes so
+// Render's free tier never reaches its 15-minute idle spin-down. It skips the
+// database on purpose: Neon's free compute allowance can't cover staying awake
+// around the clock, and Neon wakes on the next real query anyway.
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok' });
+});
+
 // City-scoped routes
 app.use('/api/cities', cityRouter);
 app.use('/api/cities/:cityId/districts', districtRouter);
