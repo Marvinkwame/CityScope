@@ -15,6 +15,7 @@
     "fetch:pois": "tsx src/scripts/fetch-pois.ts",
     "fetch:parks": "tsx src/scripts/fetch-parks.ts",
     "migrate": "tsx src/scripts/migrate.ts",
+    "reach:build": "tsx src/scripts/build-reach.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
