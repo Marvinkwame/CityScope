@@ -55,6 +55,15 @@ describe('categoryLabel', () => {
     expect(categoryLabel('restaurant')).toBe('Restaurant');
   });
 
+  it('uses the override for a category that reads badly capitalised', () => {
+    expect(categoryLabel('doctors')).toBe('Doctor');
+    expect(categoryLabel('halt')).toBe('Rail halt');
+  });
+
+  it('capitalises the new single-word categories as they are', () => {
+    expect(categoryLabel('school')).toBe('School');
+  });
+
   it('copes with an empty string', () => {
     expect(categoryLabel('')).toBe('');
   });
