@@ -1,0 +1,351 @@
+# Everyday Reach — Design
+
+**Date:** 2026-10-17
+**Status:** Approved in conversation, section by section; awaiting review of this written spec
+**Branches:** `reach/data-and-api` → `reach/interface`, merged in that order
+**Prerequisites:** `chore/keep-warm` and `fix/district-outlines` merged to `main` first (migration 003 is already applied to production), and `reach/data-and-api` brought up to date with `main` before Phase 1 starts.
+
+## Problem
+
+CityScope's question is "how dense, and how reachable, is a city?", but every tool answers it for one point at a time: a walking-time area from one origin, the 300 m spotlight around one click, one district, one drawn shape. Nothing answers it for a whole city, and nothing gives a visitor a single number to remember.
+
+The owner is job-hunting for mapping, property, logistics and urban-tech roles. The feature that best shows those skills is one that turns the existing data and PostGIS work into a city-wide answer with a measured, honestly stated error, not another single-point tool.
+
+## Goals
+
+1. **A city-wide answer.** For every block where people live, the estimated walking time to the nearest of six everyday needs.
+2. **A headline about people.** "61% of residents live within 15 minutes' walk of all six", with a range that shows the calibration uncertainty. (Figures in this document are placeholders until measured.)
+3. **Interactive without waiting.** Choosing needs and a time limit recolours the map and updates the headline in the browser, with no server call. Clicking a block shows its nearest places.
+4. **Honest by construction.** The method, its measured agreement with real street routing, the data's completeness and its known limits are published in the app and the README.
+5. **Interview depth.** An H3 hexagon grid, set-based nearest-neighbour queries on a geography index, precomputation, calibration against Mapbox with a held-out half, and a bootstrapped range.
+
+## Non-goals
+
+- **Street-network walking distances** (multi-source Dijkstra). Planned as a later replacement; the storage is shaped so it can drop in without touching the API or the map.
+- Bus stops (a stop says nothing about how often a bus comes), opening hours, cycling.
+- **Ranking the cities against each other.** Their district sets cover very different areas (below).
+- Tokyo outside the 23 wards. Sydney beyond the 33 inner suburbs the database holds.
+- Census population. GHSL is a modelled grid and is described as "estimated residents".
+- The "Sun and shade" idea and three.js. Parked; Mapbox GL 3 already draws 3D natively.
+
+## Decisions made during design
+
+| Question | Decision | Why |
+|---|---|---|
+| Which needs | Supermarket, pharmacy, doctor, school, park, station | How planners define the 15-minute city; the current 11 categories are mostly leisure |
+| What the headline measures | People, from GHSL GHS-POP R2023A, 2025 epoch | "Of residents" is the honest claim; one global method, so every city is measured the same way |
+| How walking time is estimated | Straight-line distance ÷ a per-city "straight-line metres per walking minute", calibrated against Mapbox walking isochrones | Ships about a week sooner than a street network; the error is measured and published |
+| Tokyo | The 23 wards | The rest of Tokyo Metropolis has no place data; "Tokyo" in city comparisons usually means the wards |
+| Comparing cities | No ranking; each city's headline is labelled with what it covers | Paris's 105 km² core is not comparable with all 1,595 km² of London |
+| Groceries | Supermarkets only | Defensible; London's undercount (small supermarkets tagged as convenience stores) is measured and stated |
+| Name | "Everyday reach" | "15-minute city" carries political baggage in the UK; the idea is explained inside the feature |
+| The honesty bar | 80% agreement on a held-out half of the calibration sample | No standard exists; this one is published alongside the results |
+| The range | Bootstrapped calibration (200 resamples, 5th–95th percentile) | Derived from the data rather than an arbitrary ±10% |
+| Delivery to the browser | One GeoJSON per city, built ahead of time, compressed once at maximum strength, served with its stored version tag | Measured below; avoids a 534 KB H3 library in the page |
+| The block card | Describes the block's stored nearest places, not the click point | A click can land 200 m from the block's centre; card and colour must agree |
+
+## Measured facts this design rests on (2026-10-16/17)
+
+All read-only, against production data or public services.
+
+- **District coverage differs.** Paris 105 km² (20 arrondissements), London 1,595 km² (33 boroughs), Berlin 891, New York 782, Munich 286.5, Amsterdam 241, Sydney 26.5 (33 inner suburbs), Tokyo 2,175 km² for all of Tokyo Metropolis including the Tama cities and Pacific islands.
+- **Place data stops short of the outlines.** Tokyo: 34 of 63 districts (1,532 km²) have no place data; places were fetched for the 23-ward box only. Amsterdam: 30 km² of districts lie outside its fetch box. Berlin's and London's boxes hug the city limit, so blocks at the edge lose places just across it.
+- **District outlines were invalid** (65 of 202). Fixed by migration 003, applied to production on 2026-10-16: 0 invalid, 200 districts, Munich 275.0 → 286.5 km².
+- **OpenStreetMap counts inside each fetch box** (Overpass, 2026-10-16):
+
+  | | Supermarket | Pharmacy | Doctors + clinics | School | Station + halt | Tram stop | Metro entrance | Convenience |
+  |---|---|---|---|---|---|---|---|---|
+  | Berlin | 1,582 | 770 | 2,039 | 1,253 | 400 | 968 | 708 | 1,176 |
+  | London | 1,419 | 1,432 | 1,629 | 3,797 | 700 | 70 | 600 | 6,060 |
+  | Tokyo (23 wards) | 2,446 | 3,018 | 2,960 | 2,549 | 734 | 59 | 1,508 | 6,375 |
+
+  Tags under `healthcare=*` without the matching `amenity=*` add at most 132 (London doctors).
+- **H3 resolution 9 over the real outlines:** London 16,875 cells, Berlin 9,462, Tokyo's 23 wards 6,274, Paris 1,109. All cells have six corners. Across about 200,000 shared corners, rounding coordinates to 5 decimals gave **0 mismatches**, so no seams. The farthest corner is 197–202 m from a cell's centre.
+- **Payload, every cell in the outline, as GeoJSON:** London 5.2 MB raw, about 950 KB compressed on the fly, **538 KB** compressed once with Brotli at quality 11. Berlin 319 KB, Tokyo 213 KB, Paris 37 KB at quality 11.
+- **Headline maths for London:** 3.5 ms per recalculation with objects, **0.18 ms** with typed arrays (desktop).
+- **Contrast on the map's land colour `#101113`:** a 7-step cyan ramp gives neighbouring steps of about 1.3:1; three classes give 2.1:1 and 2.7:1. Gold against cyan is 1.03:1; a gold outline on a full-cyan cell is 1.37:1.
+- **The live API** already sends weak ETags and answers 304 through Render's edge. It sends no `Cache-Control`. Render compresses responses (Berlin `/pois`: 2.07 MB raw, 441 KB delivered).
+- **Mapbox isochrones:** four bands per request, 0.77 s. By default they are simplified (the 5-minute area had 10 points; with `generalize=0`, 71). The public token works from a script with no Referer, so it is not restricted to the site.
+- **GHSL** publishes the 2025 grid in latitude and longitude at 3 arcseconds (`GHS_POP_E2025_GLOBE_R2023A_4326_3ss`), in 348 tiles of 7.8–144 MB each. The single-file version is 12.9 GB.
+- **The database** is 67 MB.
+
+## Phase 1 — Data and API (`reach/data-and-api`)
+
+### Needs and categories (`cityscope-backend/src/lib/poiCategories.ts`, new `src/lib/needs.ts`)
+
+New tagging rules, each an exact whole-token match like the existing ones:
+
+- `amenity=pharmacy`, and `healthcare=pharmacy` without it;
+- `amenity=doctors|clinic`, and `healthcare=doctor|clinic` without them;
+- `amenity=school`;
+- `railway=station|halt|tram_stop|subway_entrance`.
+
+Categories stay plain OSM values. A separate need mapping sits on top:
+
+| Need | Short key | Categories |
+|---|---|---|
+| Supermarket | `sm` | `supermarket` |
+| Pharmacy | `ph` | `pharmacy` |
+| Doctor | `dr` | `doctors`, `doctor`, `clinic` |
+| School | `sc` | `school` |
+| Park | `pk` | parks of at least 0.5 ha, measured to their edge (below) |
+| Station | `st` | `station`, `halt`, `tram_stop`, `subway_entrance` |
+
+**Measurement-only categories.** `tram_stop` and `subway_entrance` exist to measure the station need. They never appear in place lists, district statistics or area results, which they would flood.
+
+**The heatmap keeps the original 11 categories.** Otherwise both its meaning and its per-city brightness tuning would shift.
+
+### Parks as shapes
+
+Parks are fetched with their geometry (`out geom`) into a new `parks` table: `city_id`, OSM id, name, `geom` MultiPolygon, and area in m². Many large parks are multipolygon relations, whose rings have to be assembled from their member ways. Use `osmtogeojson` for that, not hand-written ring assembly, and repair the result with `ST_MakeValid` on insert, as migration 003 does for districts. The park need only counts parks of **at least 0.5 ha**, the size in the WHO Europe benchmark of green space within 300 m of home. It measures to the park's **nearest edge**. The existing park points stay, for the features that use them.
+
+### The fetch box
+
+Each city is fetched over its district outline's extent plus a **2 km margin** on every side. For Tokyo the outline is the 23 wards: the districts whose names end in " Ku", which is 23 rows, checked on 2026-10-17. The same outline defines Tokyo's cells. Fifteen minutes on foot is roughly 1.2 km in a straight line, so this covers places just across the boundary. The existing `cities.bounds` stays as it is for framing the map. District statistics count by `ST_Contains`, so places in the margin don't change them.
+
+### The reload
+
+- Overpass is called one city at a time with cooldowns, using the pipeline's `User-Agent`, retrying on 429 and 502.
+- Production is reloaded city by city, each in one transaction, **only after the owner's go-ahead**. Counts per category are reported before and after.
+- The **frontend changes land first**, on the same branch: icons and labels for the new categories, the heatmap filter, and measurement-only categories hidden from lists.
+
+### Population (GHSL)
+
+- **Source:** GHS-POP R2023A, epoch 2025, the `4326_3ss` tiles. The owner approves each download, named with its size. Tiles are unzipped outside the repository and never committed.
+- **`aggregate-population.ts`:**
+  - reads only the window covering each city's outline, using `geotiff`;
+  - keeps pixels whose centre is inside the outline;
+  - adds each pixel's value to the H3 res-9 cell containing that centre;
+  - checks that the cell totals equal the window total.
+- **Credit:** "GHSL, European Commission JRC", under CC BY 4.0, cited in the README and in the map attribution while the layer is on.
+
+### Grid and nearest places (migration 004, `build-reach.ts`)
+
+**Migration 004** adds:
+
+- a geography index on `pois`: `GIST ((geom::geography))`;
+- the `parks` table, with a geography index;
+- `reach_cells`: `city_id`, `h3`, `residents`, `outline` Polygon, `centre` Point; primary key `(city_id, h3)`;
+- `reach_nearest`: `city_id`, `h3`, `need`, `place_kind` (`poi` or `park`), `place_id`, `metres`, `method`;
+- `reach_calibration`: `city_id`, `method`, `metres_per_minute`, `k_low`, `k_high`, `agreement` by band, `sample_size`, `computed_at`;
+- `reach_payloads`: `city_id`, `body` (Brotli bytes), `etag`, `built_at`.
+
+**`build-reach.ts`** does the following, one transaction per city, and is safe to rerun:
+
+1. **Cells.** Keep a cell if it holds at least one estimated resident (rounded) and lies inside the outline.
+2. **Nearest places.** For every cell and need, find the nearest place with one set-based statement per city: `CROSS JOIN LATERAL … ORDER BY geog <-> centre LIMIT 1` on the geography index. Parks are measured to their edge. Never one query per cell; 240,000 round trips would take hours.
+3. **Payload.** Write the compressed payload once calibration exists.
+
+**Rule:** `build-reach` reruns after every place reload, because place ids change on reload. The README and `CLAUDE.md` say so.
+
+### Calibration (`calibrate-reach.ts`)
+
+1. **Sample.** 60 cells per city, drawn in proportion to residents with a fixed seed, split into two halves of 30.
+2. **Ground truth.** One Mapbox walking request per sample cell, from its centre, with `contours_minutes=5,10,15,20` and `generalize=0`. For each need, record whether the stored nearest place lies inside each band.
+3. **Fit.** On the first half, find the straight-line metres per minute `k` that maximises agreement between `metres / k ≤ T` and the ground truth. Agreement is pooled over all four bands and six needs.
+4. **Report.** Agreement for each band on the **held-out half**.
+5. **The bar**, applied per city.
+   - A time stop appears on that city's slider only if its held-out agreement is at least **80%**.
+   - The city gets the layer only if its 15-minute agreement passes the same bar.
+6. **Range.** Refit `k` on 200 bootstrap resamples of the full 60-cell sample. `k_low` and `k_high` are the 5th and 95th percentiles.
+7. **Where it breaks.** List the cells with the largest misses. Two or three go in the README with screenshots.
+8. **Credentials.** A **script-only Mapbox token** in the backend `.env`. Calibration uses about 500 requests per full run, well under the rate limit of 300 per minute.
+
+### Data checks (published in the method note and README)
+
+- Places per 100,000 residents, per need, per city.
+- **London doctors:** the share of NHS England GP practices (the ODS practice list, located by postcode through postcodes.io) with an OSM doctor or clinic within 150 m.
+- Category counts before and after the reload.
+
+### API
+
+**`GET /api/cities/:cityId/reach`**
+
+- Sends the stored Brotli body with `Content-Encoding: br`, `ETag`, `Cache-Control: public, max-age=86400` and `Vary: Accept-Encoding`.
+- Answers `304` to a matching `If-None-Match` without reading the body.
+- Decompresses for a client that doesn't accept Brotli.
+- Returns `404 {"error":"No reach data for this city"}` when there is no payload.
+- After deploy, check that Render and Cloudflare pass the pre-compressed body through untouched.
+
+**Payload shape:** a GeoJSON FeatureCollection with a `meta` member, which GeoJSON allows and Mapbox ignores.
+
+- `meta` holds:
+  - the city and its coverage label, for example "Tokyo · the 23 wards";
+  - total residents;
+  - `method: "estimate"`, `metresPerMinute`, `kLow`, `kHigh`;
+  - agreement by band, and the stops that passed;
+  - sample size;
+  - the needs, with id, label and categories;
+  - `builtAt`;
+  - source dates and completeness figures.
+- Each feature is one cell:
+  - its outline, with coordinates to 5 decimals;
+  - flat integer properties: `h` (the H3 id), `r` (residents), and straight-line metres for `sm`, `ph`, `dr`, `sc`, `pk` and `st`.
+  - Properties are single numbers because Mapbox turns nested values into strings its expressions can't read.
+- The browser derives minutes as `metres / k`. Carrying metres plus the `k` values is what lets the range be recalculated for any choice of needs and time.
+
+**`GET /api/cities/:cityId/reach/:cellId`**
+
+- Checks that `cellId` is a 15-character hexadecimal H3 id.
+- Returns the cell's residents and, for each need, the stored nearest place: name, category, coordinates, metres and minutes.
+- Returns `404` for an unknown cell.
+
+### Phase 1 tests (Vitest, pure logic)
+
+- **Tagging rules:** new tags, the `healthcare=*` variants, and that measurement-only categories are excluded from display lists.
+- **The 0.5 ha park filter.**
+- **Population aggregation:** pixel-centre assignment, inside-outline filtering, and totals preserved.
+- **Calibration:**
+  - the fit recovers a known `k` from made-up data;
+  - the held-out split and the bootstrap give the same result on every run.
+- **Payload builder:** the shape, short keys, 5-decimal rounding, `meta`, the Brotli round trip, and a stable ETag.
+- **Route input checks** for city ids and cell ids.
+
+### Phase 1 is done when
+
+- Both endpoints answer for all 8 cities, checked with `curl`. A city that fails the bar answers with `meta` saying so.
+- The agreement table, data checks and payload sizes are measured and recorded. London's target is **450 KB or less** compressed.
+- The backend tests, type check and frontend suite pass.
+
+## Phase 2 — Interface (`reach/interface`)
+
+### First task: measure recolouring speed
+
+In the real app with real data, time how long Mapbox takes to restyle the fill and the 3D columns when the time or the needs change.
+
+- With only four slider stops, restyles happen on discrete changes only.
+- If a restyle costs more than a frame on a mid-range phone, the map recolours when the slider is released, while the headline still updates live.
+
+### Layer and exclusivity
+
+- **"Everyday reach" is a fifth switch in the sidebar's *01 Layers***, with its panel opening underneath it.
+- **It and the other full-map views turn each other off.** Turning it on switches off the heatmap and any active analysis tool (isochrone, route, draw), and turning any of those on switches it off. This uses the same `getState()` pattern the tools already use with each other. District outlines may stay on.
+- **Map clicks.** A new branch in `MapView`'s click handler means a click selects a cell instead of falling through to road, building or district selection.
+
+### Panel (top to bottom)
+
+1. **Coverage line:** for example "Berlin · whole city · 3.8 M estimated residents".
+2. **Headline:** a large percentage, the sentence it belongs to, and "range 58–64%". One line explains the range: how much the result moves with calibration uncertainty.
+3. **Controls:** "Within [5 · 10 · 15 · 20] minutes of", showing only the stops that passed the bar, then six need chips. Each chip is a toggle button, and at least one stays on.
+4. **One bar per need:** the share of residents within the limit, using the existing results bars.
+5. **Legend:** three classes, *all met* / *one missing* / *two or more missing*. With a single need chosen it becomes *met* / *not met*.
+6. **"How this is measured":**
+   - the method, and agreement for each band;
+   - the data sources and dates;
+   - places per 100,000 residents;
+   - the London GP check;
+   - the limits: estimated residents, buses excluded, measured from each block's centre.
+
+### Map
+
+- **Fill colours.** Three cyan classes (`ROLE.answer`), from tokens in `theme.ts`, in the answer slot of the layer stack (`lib/layerOrder.ts`).
+- **The selected cell** is drawn as a gold (`ROLE.you`) line on a dark casing, because gold on cyan alone is 1.03:1.
+- **With 3D on:**
+  - cells extrude by residents, using one scale for every city; Paris, at about 20,000 per km², will be the tallest;
+  - the scale is tuned once the real population figures exist;
+  - the colour is still the class;
+  - 3D buildings are hidden while the layer is on.
+- **Lines and pins.** Cyan lines run from the selected cell's centre to its nearest places, but only for needs within the current limit, each with a category pin.
+
+### Block card
+
+- **Position:** the spotlight card's slot. It never shows at the same time as the spotlight, because the heatmap is off while this layer is on.
+- **Content:**
+  - "This block · about 420 residents";
+  - one row per need: icon, place name, minutes, and ✓ or ✗ against the limit;
+  - a footnote: "Estimated walking times, measured from the block's centre".
+- **Interaction:** tapping a ✗ row flies the map to that place.
+
+### Phones
+
+- **One bottom card.** It shows the headline when nothing is selected, and the selected block otherwise, with "Back to the city".
+- **Why not a top bar:** the search box spans the top of the map on phones, so nothing new goes there.
+- **The server status pill** shares the bottom only while the server is waking, and the layer can't load until then anyway.
+
+### Share links (`lib/shareCodec.ts`, `lib/shareState.ts`)
+
+**A new optional `reach` entry**, separate from `layers`:
+
+- `t`: one of 5, 10, 15 or 20;
+- `n`: a non-empty set of need keys;
+- `c`: an optional H3 cell id.
+
+**Validation and compatibility:**
+
+- `decodeState` validates `reach` field by field and drops it if invalid.
+- Old links decode unchanged, with the layer off.
+- If a link holds both a tool and `reach`, the tool wins.
+
+### Welcome card (`lib/examples.ts`)
+
+The Tokyo heatmap example is replaced by an Everyday reach example: 15 minutes, all six needs, 3D, tilted.
+
+- **City:** chosen from the real results for interest and data trust, defaulting to Tokyo. That keeps one non-European city among the three examples.
+- **Kicker:** must contain no digits, as `examples.test.ts` requires.
+
+### States and accessibility
+
+- **States:**
+  - **Loading:** a spinner on the switch.
+  - **Error:** a message and Retry in the panel.
+  - **No data for the city:** the switch is disabled with "Not built for this city yet".
+  - **City failed the bar:** the switch is disabled with "Estimate not reliable here yet".
+  - **Cold start:** handled by the existing status pill.
+- **Accessibility:**
+  - the slider announces "15 minutes";
+  - colour is never the only cue, because the headline is text and the card has ✓ and ✗;
+  - the reduced-motion setting is respected.
+
+### Phase 2 tests (Vitest, pure logic)
+
+- **Calculations:** headline and per-need sums over typed arrays on small fixtures, and the range at `k_low` and `k_high`.
+- **The class expression builder:** needs and time in, a Mapbox expression out.
+- **The `reach` share entry:** valid and invalid cases, old links unchanged, and a tool winning a conflict.
+- **The new example** round-trips through the codec and has a digit-free kicker.
+- **A contrast guard** in the spirit of `colourGuard.test.ts`: on `SURFACE.land`, neighbouring classes must be at least 2:1 apart, and the selection casing at least 3:1 against the strongest class.
+
+### Verified live
+
+- Both endpoints with `curl`.
+- The recolouring measurement.
+- In the browser, with the owner's servers running:
+  - each state, and every way of switching the layer;
+  - a 3D view, and phone width;
+  - a share link round trip, and the welcome example;
+  - zero console errors.
+
+## Documentation
+
+- **README:**
+  - a feature row;
+  - "How Everyday reach is measured": the method, calibration results, where it breaks, and sources (OpenStreetMap under ODbL; GHSL under CC BY 4.0, with its citation);
+  - each city's headline with its coverage label, and no ranking;
+  - the two API rows;
+  - the rebuild rule.
+- **`CLAUDE.md`:** the rebuild rule, and migrations 003 and 004.
+- **This spec:** amended as each phase lands.
+
+## Success criteria
+
+1. A first-time visitor can read a city's headline and what it covers within 10 seconds of switching the layer on.
+2. Changing the time or the needs updates the headline within one frame, and the map within the limit set by the recolouring measurement.
+3. Every number shown can be traced to the method note: agreement, range, sources and dates.
+4. Card and colour never disagree for a block.
+5. The layer works at phone width without covering the search box.
+6. Old share links still open exactly as before.
+
+## Owner actions
+
+- Merge `chore/keep-warm` and `fix/district-outlines`.
+- Approve each GHSL tile download, and the production reload.
+- Restrict the public Mapbox token to the Vercel domain and localhost, and create a script-only token for the backend `.env`.
+- After the keep-warm merge, create the cron-job.org ping.
+
+## Notes for the implementer
+
+- **The map.** All Mapbox mutation lives in `MapView.tsx`. Map event handlers read stores with `getState()`.
+- **TypeScript and colours.** Strict TypeScript with no `any`, and `import type` for types. Backend relative imports end in `.js`. No colour literals outside `theme.ts`.
+- **Overpass** needs the pipeline's `User-Agent`, or it answers 406. Back off on 502 "at capacity".
+- **Production checks.** Read-only checks against production use `SET default_transaction_read_only = on`. Any production write needs the owner's go-ahead first.
+- **Never commit** GHSL tiles or other downloaded data.
+- **Commits** are granular, staged by explicit path, with **no `Co-Authored-By` trailer**.
