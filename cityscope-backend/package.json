@@ -29,6 +29,8 @@
     "@types/express": "^5.0.6",
     "@types/node": "^25.9.1",
     "@types/pg": "^8.20.0",
+    "geotiff": "3.0.5",
+    "h3-js": "4.5.0",
     "osmtogeojson": "3.0.0-beta.5",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
