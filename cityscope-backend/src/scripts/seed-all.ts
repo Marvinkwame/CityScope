@@ -2,6 +2,7 @@ import { execSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
+import 'dotenv/config';
 import { CITY_CONFIGS } from '../config/cities.js';
 import { announceTarget } from '../lib/dbTarget.js';
 
