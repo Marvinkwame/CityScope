@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { Request, Response } from 'express';
 import pool from '../db.js';
 import { densityPerKm2, pctVsAverage } from '../lib/statsMath.js';
+import { MEASUREMENT_ONLY_CATEGORIES } from '../lib/needs.js';
 
 export const districtRouter = Router({ mergeParams: true });
 
@@ -48,11 +49,13 @@ districtRouter.get('/:id/stats', async (req: Request, res: Response) => {
          SELECT p.category
          FROM pois p, target t
          WHERE p.city_id = $2 AND ST_Contains(t.geom, p.geom)
+           AND p.category <> ALL($3::text[])
        ),
        per_district AS (
          SELECT count(p.id)::float / NULLIF(ST_Area(d.geom::geography) / 1e6, 0) AS density
          FROM districts d
          LEFT JOIN pois p ON p.city_id = d.city_id AND ST_Contains(d.geom, p.geom)
+           AND p.category <> ALL($3::text[])
          WHERE d.city_id = $2
          GROUP BY d.id, d.geom
        )
@@ -65,13 +68,13 @@ districtRouter.get('/:id/stats', async (req: Request, res: Response) => {
          COALESCE((
            SELECT json_agg(tc) FROM (
              SELECT category, count(*)::int AS count
-             -- Every category (there are 11), largest first. The client shows
+             -- Every displayed category, largest first. The client shows
              -- the top 5 and counts the rest as "+ N more categories".
              FROM inside GROUP BY category ORDER BY count(*) DESC
            ) tc
          ), '[]'::json)                                AS top_categories
        FROM target t`,
-      [id, cityId],
+      [id, cityId, [...MEASUREMENT_ONLY_CATEGORIES]],
     );
 
     if (result.rows.length === 0) {
