@@ -8,10 +8,12 @@
 // 2. For each sampled cell, asks Mapbox for the 5, 10, 15 and 20 minute walking
 //    isochrones from the cell centre, and checks in PostGIS whether each
 //    need's nearest place lies inside each of them.
-// 3. Fits k on the first 30 cells. The last 30 are held out: agreement is
-//    reported on those, with k fixed, so it is not graded on its own fit.
-//    The range around k is a bootstrap over all 60 cells.
-// 4. Stores the result in reach_calibration and drops the city's published
+// 3. Deals the sample into two halves of 30, alternately (see splitSample).
+//    k_fit is fitted on one half; agreement is reported on the other, held out,
+//    with k_fit fixed, so it is not graded on its own fit.
+// 4. The k that is published is fitted on all 60 cells, and the range around it
+//    is a bootstrap over all 60 cells, widened if need be to contain it.
+// 5. Stores the result in reach_calibration and drops the city's published
 //    payload, which was built without it.
 //
 // Whatever the agreement turns out to be is reported as it is; nothing here is
@@ -34,9 +36,11 @@ import {
   agreementByBand,
   bootstrapK,
   cityPasses,
+  coherentRange,
   fitK,
   passingStops,
   predictsInside,
+  splitSample,
 } from '../lib/calibration.js';
 import type { Band, Observation } from '../lib/calibration.js';
 import { announceTarget } from '../lib/dbTarget.js';
@@ -46,8 +50,6 @@ import { weightedSample } from '../lib/sampling.js';
 
 const ISOCHRONE_URL = 'https://api.mapbox.com/isochrone/v1/mapbox/walking';
 const REQUEST_GAP_MS = 250;
-/** The first half of the sample fits k; the second half is held out. */
-const FIT_CELLS = CALIBRATION_SAMPLE / 2;
 const WORST_CELLS_SHOWN = 10;
 
 interface Cell {
@@ -198,6 +200,9 @@ const UPSERT_CALIBRATION_SQL = `
 `;
 
 interface Calibration {
+  /** The k fitted on the fit half alone: the one the held-out agreement is graded at. */
+  kFit: number;
+  /** The k that is published, fitted on every sampled cell. */
   k: number;
   kLow: number;
   kHigh: number;
@@ -240,13 +245,17 @@ function printReport(
   heldOut: readonly Observation[],
   heldOutCells: readonly Cell[],
 ): void {
-  const { k, kLow, kHigh, byBand, stops } = result;
+  const { kFit, k, kLow, kHigh, byBand, stops } = result;
 
   console.log('');
   console.log(`${cityName}: walking estimate = straight-line metres / k`);
-  console.log(`k = ${k} m/min (bootstrap ${kLow}-${kHigh}, ${BOOTSTRAP_ROUNDS} rounds over ${result.sampleSize} cells)`);
+  console.log(`k_fit = ${kFit} m/min (fitted on the ${result.sampleSize - heldOutCells.length} fit cells)`);
+  console.log(
+    `k = ${k} m/min, published (fitted on all ${result.sampleSize} cells; ` +
+      `bootstrap range ${kLow}-${kHigh}, ${BOOTSTRAP_ROUNDS} rounds)`,
+  );
   console.log('');
-  console.log(`Agreement on the ${heldOutCells.length} held-out cells (bar ${AGREEMENT_BAR}):`);
+  console.log(`Agreement at k_fit on the ${heldOutCells.length} held-out cells (bar ${AGREEMENT_BAR}):`);
   for (const band of BANDS) {
     const checks = heldOut.filter((o) => o.band === band).length;
     console.log(
@@ -257,11 +266,12 @@ function printReport(
   console.log('');
   console.log(cityPasses(stops) ? 'PASS: the 15-minute band clears the bar' : 'FAIL: the 15-minute band is below the bar');
 
-  // The held-out cells the estimate gets most wrong, so a failure can be
-  // looked at on a map rather than only counted.
+  // The held-out cells the estimate gets most wrong at k_fit, the k the
+  // agreement above was graded at, so a failure can be looked at on a map
+  // rather than only counted.
   const wrong = new Map<string, Observation[]>();
   for (const o of heldOut) {
-    if (predictsInside(o.metres, k, o.band) !== o.inside) {
+    if (predictsInside(o.metres, kFit, o.band) !== o.inside) {
       const list = wrong.get(o.cell);
       if (list) list.push(o);
       else wrong.set(o.cell, [o]);
@@ -330,6 +340,10 @@ async function main(): Promise<void> {
 
     console.log(`${city.name} (${city.reach.coverage}): ${cells.length.toLocaleString('en-GB')} cells, sampling ${sample.length}`);
 
+    const { heldOut: heldOutCells } = splitSample(sample);
+    const heldOutH3 = new Set(heldOutCells.map((c) => c.h3));
+
+    const allObs: Observation[] = [];
     const fitObs: Observation[] = [];
     const heldOutObs: Observation[] = [];
     let lastRequestAt = -Infinity;
@@ -341,11 +355,13 @@ async function main(): Promise<void> {
 
       const contours = await fetchContours(cell, token);
       const observations = await observationsForCell(client, city.id, cell.h3, contours);
-      (i < FIT_CELLS ? fitObs : heldOutObs).push(...observations);
+      const isHeldOut = heldOutH3.has(cell.h3);
+      allObs.push(...observations);
+      (isHeldOut ? heldOutObs : fitObs).push(...observations);
 
       console.log(
         `  ${String(i + 1).padStart(2)}/${sample.length} ${cell.h3} ` +
-          `${i < FIT_CELLS ? 'fit' : 'held out'}: ${observations.length} checks`,
+          `${isHeldOut ? 'held out' : 'fit'}: ${observations.length} checks`,
       );
     }
 
@@ -353,10 +369,23 @@ async function main(): Promise<void> {
       throw new Error(`${city.id}: the sampled cells have no nearest places to check; run reach:build -- ${city.id} again`);
     }
 
-    const k = fitK(fitObs);
-    const { kLow, kHigh } = bootstrapK([...fitObs, ...heldOutObs], BOOTSTRAP_ROUNDS, CALIBRATION_SEED);
-    const byBand = agreementByBand(heldOutObs, k);
+    // Held-out agreement is graded at the k fitted without those cells. The k
+    // that is published uses every cell, since that is the better estimate.
+    const kFit = fitK(fitObs);
+    const byBand = agreementByBand(heldOutObs, kFit);
+    const k = fitK(allObs);
+
+    const bootstrap = bootstrapK(allObs, BOOTSTRAP_ROUNDS, CALIBRATION_SEED);
+    const { kLow, kHigh } = coherentRange(k, bootstrap);
+    if (kLow !== bootstrap.kLow || kHigh !== bootstrap.kHigh) {
+      console.log(
+        `Widened the bootstrap range ${bootstrap.kLow}-${bootstrap.kHigh} to ${kLow}-${kHigh} ` +
+          `so that it contains the published k ${k}`,
+      );
+    }
+
     const result: Calibration = {
+      kFit,
       k,
       kLow,
       kHigh,
@@ -366,7 +395,7 @@ async function main(): Promise<void> {
     };
 
     await storeCalibration(client, city.id, result);
-    printReport(city.name, result, heldOutObs, sample.slice(FIT_CELLS));
+    printReport(city.name, result, heldOutObs, heldOutCells);
   } finally {
     client.release();
     await pool.end();

@@ -9,10 +9,12 @@ import {
   agreementByBand,
   bootstrapK,
   cityPasses,
+  coherentRange,
   fitK,
   kCandidates,
   passingStops,
   predictsInside,
+  splitSample,
 } from './calibration';
 import type { Observation } from './calibration';
 
@@ -144,6 +146,47 @@ describe('bootstrapK', () => {
 
   it('refuses to resample nothing', () => {
     expect(() => bootstrapK([], 200, 1)).toThrow();
+  });
+});
+
+describe('splitSample', () => {
+  it('deals the sample out alternately: even positions fit, odd positions are held out', () => {
+    expect(splitSample(['a', 'b', 'c', 'd', 'e'])).toEqual({
+      fit: ['a', 'c', 'e'],
+      heldOut: ['b', 'd'],
+    });
+  });
+
+  it('splits a full sample into two halves of 30 that between them hold every cell once', () => {
+    const sample = Array.from({ length: CALIBRATION_SAMPLE }, (_, i) => i);
+    const { fit, heldOut } = splitSample(sample);
+    expect(fit).toHaveLength(30);
+    expect(heldOut).toHaveLength(30);
+    expect(fit[0]).toBe(0);
+    expect(fit[29]).toBe(58);
+    expect(heldOut[0]).toBe(1);
+    expect(heldOut[29]).toBe(59);
+    expect([...fit, ...heldOut].sort((a, b) => a - b)).toEqual(sample);
+  });
+
+  it('handles an empty sample', () => {
+    expect(splitSample([])).toEqual({ fit: [], heldOut: [] });
+  });
+});
+
+describe('coherentRange', () => {
+  it('leaves a range alone when k is inside it, ends included', () => {
+    expect(coherentRange(70, { kLow: 65, kHigh: 75 })).toEqual({ kLow: 65, kHigh: 75 });
+    expect(coherentRange(65, { kLow: 65, kHigh: 75 })).toEqual({ kLow: 65, kHigh: 75 });
+    expect(coherentRange(75, { kLow: 65, kHigh: 75 })).toEqual({ kLow: 65, kHigh: 75 });
+  });
+
+  it('lowers kLow to k when k is below the range', () => {
+    expect(coherentRange(60, { kLow: 65, kHigh: 75 })).toEqual({ kLow: 60, kHigh: 75 });
+  });
+
+  it('raises kHigh to k when k is above the range', () => {
+    expect(coherentRange(80, { kLow: 65, kHigh: 75 })).toEqual({ kLow: 65, kHigh: 80 });
   });
 });
 

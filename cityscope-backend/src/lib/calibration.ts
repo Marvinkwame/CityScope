@@ -22,7 +22,7 @@ export const BANDS: readonly Band[] = [5, 10, 15, 20];
 /** A band passes when the estimate agrees with Mapbox at least this often. */
 export const AGREEMENT_BAR = 0.8;
 
-/** Cells sampled per city: the first half fits k, the second half is held out. */
+/** Cells sampled per city: half fit k, the other half is held out (see splitSample). */
 export const CALIBRATION_SAMPLE = 60;
 
 /** Bootstrap resamples behind the range reported around k. */
@@ -156,6 +156,33 @@ export function bootstrapK(
     kLow: ks[Math.floor(0.05 * (rounds - 1))],
     kHigh: ks[Math.ceil(0.95 * (rounds - 1))],
   };
+}
+
+/**
+ * Splits a sample into the half that fits k and the half that is held out, by
+ * dealing it out alternately: even positions (0, 2, 4, …) fit, odd positions
+ * (1, 3, 5, …) are held out. weightedSample returns its cells in descending
+ * key order, which favours the more populous cells at the front, so cutting
+ * it in the middle would hand one half the heavier cells. Alternating gives
+ * both halves cells from the whole range.
+ */
+export function splitSample<T>(sample: readonly T[]): { fit: T[]; heldOut: T[] } {
+  return {
+    fit: sample.filter((_, i) => i % 2 === 0),
+    heldOut: sample.filter((_, i) => i % 2 === 1),
+  };
+}
+
+/**
+ * Widens a bootstrap range to include k. The published k is fitted on every
+ * sampled cell, which a bootstrap percentile range need not contain; a range
+ * that leaves out the value it surrounds would read as a mistake.
+ */
+export function coherentRange(
+  k: number,
+  range: { kLow: number; kHigh: number },
+): { kLow: number; kHigh: number } {
+  return { kLow: Math.min(range.kLow, k), kHigh: Math.max(range.kHigh, k) };
 }
 
 /** The bands whose agreement reaches the bar, in order. */
