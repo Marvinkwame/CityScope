@@ -5,6 +5,7 @@ import pg from 'pg';
 import 'dotenv/config';
 import { CITY_CONFIGS } from '../config/cities.js';
 import { announceTarget } from '../lib/dbTarget.js';
+import { clearStaleReach, staleReachNotice } from '../lib/reachReset.js';
 import { isAreaGeometry } from '../lib/geometry.js';
 import type { AreaGeometry } from '../lib/geometry.js';
 
@@ -103,9 +104,13 @@ async function seed() {
   // The parks table has no unique key on (city_id, osm_id), so a rerun replaces
   // the city's rows instead of adding to them. One transaction: a failure
   // partway through leaves the previous parks in place, never a half-empty city.
+  // The new rows get new ids, so the city's reach data, which points at the
+  // old ones, goes in the same transaction.
   let inserted = 0;
+  let clearedReach = false;
   try {
     await client.query('BEGIN');
+    clearedReach = await clearStaleReach(client, cityId);
     await client.query('DELETE FROM parks WHERE city_id = $1', [cityId]);
 
     const batchSize = 200;
@@ -131,6 +136,7 @@ async function seed() {
   console.log(
     `Seeded ${inserted} parks for ${cityConfig.name} (${parks.length - inserted} skipped as empty)`,
   );
+  if (clearedReach) console.log(staleReachNotice(cityId));
 }
 
 seed().catch((err) => {

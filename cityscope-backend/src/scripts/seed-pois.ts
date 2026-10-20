@@ -5,6 +5,7 @@ import pg from 'pg';
 import 'dotenv/config';
 import { CITY_CONFIGS } from '../config/cities.js';
 import { announceTarget } from '../lib/dbTarget.js';
+import { clearStaleReach, staleReachNotice } from '../lib/reachReset.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -59,9 +60,12 @@ async function seed() {
 
   // One transaction per city: the live demo reads this table, so a failure
   // partway through must leave the previous data in place rather than a
-  // half-deleted city.
+  // half-deleted city. The reload gives every place a new id, so the city's
+  // reach data, which points at the old ids, goes in the same transaction.
+  let clearedReach = false;
   try {
     await client.query('BEGIN');
+    clearedReach = await clearStaleReach(client, cityId);
     await client.query('DELETE FROM pois WHERE city_id = $1', [cityId]);
 
     const batchSize = 500;
@@ -93,6 +97,7 @@ async function seed() {
   }
 
   console.log(`Seeded ${pois.length} POIs for ${cityConfig.name}`);
+  if (clearedReach) console.log(staleReachNotice(cityId));
 }
 
 seed().catch((err) => {

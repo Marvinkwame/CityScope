@@ -237,6 +237,7 @@ Decisions made while building `reach/data-and-api`. Where one of them differs fr
 - **The published `k` is fitted on all 60 cells; held-out agreement is measured at the fit-half `k`.** The agreement figures are therefore from a slightly different fit than the published `k`, and the method note must say so (Phase 2).
 - **The bootstrap range is widened to include the published `k` if it falls outside.** A `k` fitted on 60 cells can land just outside the 5th to 95th percentile of 200 refits, and a headline must always sit inside its own range.
 - **Publishing is its own script.** `reach:publish` builds and stores the payload, instead of `reach:build` doing it once calibration exists. `reach:build` clears the city's calibration and payload, and `reach:calibrate` clears its payload, so the order is always build, calibrate, publish.
+- **A reload clears the city's reach data.** `seed:pois` and `seed:parks` delete the city's `reach_payloads`, `reach_calibration` and `reach_cells` rows (and with the cells, `reach_nearest`) inside the reload's transaction whenever the reach tables exist, and print that reach must be rebuilt. The rebuild rule above is then enforced rather than only documented: no card or payload can outlive the places it describes.
 - **`reach:build --dry-run` runs in a read-only transaction and writes nothing.** It counts the city's residents so the outline and population path can be checked on real data, even against production, with no risk.
 
 ### Data checks
