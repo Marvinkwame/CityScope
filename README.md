@@ -8,7 +8,7 @@
 
 ## What it does
 
-Real OpenStreetMap POI data (~180,000 places across **8 cities**), analysed four different ways:
+Real OpenStreetMap POI data (~242,000 places across **8 cities**), analysed four different ways:
 
 | Feature | Description |
 |---------|-------------|
@@ -64,7 +64,7 @@ Responsive down to a mobile bottom-sheet layout.
 ```bash
 cd cityscope-backend
 npm install
-cp .env.example .env          # set DATABASE_URL, PORT=3001, CORS_ORIGIN, CITYSCOPE_DB_TARGET=local
+cp .env.example .env          # set DATABASE_URL, PORT=3001, CORS_ORIGIN (and CITYSCOPE_DB_TARGET=local if DATABASE_URL is a local database)
 
 # schema + data
 npm run seed:cities                     # seed the 8 city records
@@ -74,11 +74,13 @@ npm run seed:all                        # load districts + POIs into the DB
 
 npm run dev                   # http://localhost:3001
 ```
-> The repo ships pre-fetched `pois-data-*.json` for all cities, so you can skip `fetch:pois` and go straight to `seed:all`. Files fetched before the everyday-needs categories were added hold only the original 11 of the 19 categories, and the reach data below needs all 19, so fetch again for that.
+> The repo ships pre-fetched `pois-data-*.json` for all cities, so you can skip `fetch:pois` and go straight to `seed:all`.
 
-**`CITYSCOPE_DB_TARGET`.** The scripts that write to a database (`migrate`, `seed:cities`, `seed:pois`, `seed:parks`, `seed:all`, `reach:build`, `reach:calibrate`, `reach:publish`) refuse to run unless this names the database they are about to change, for example `local`, and they print it with the database host before connecting. It is set per run (or in `.env`), so a command aimed at the wrong database is never a silent accident. `reach:build --dry-run` writes nothing and doesn't need it.
+**`CITYSCOPE_DB_TARGET`.** The scripts that write to a database (`migrate`, `seed:cities`, `seed:pois`, `seed:parks`, `seed:all`, `reach:build`, `reach:calibrate`, `reach:publish`, `reach:check-gp`) refuse to run unless this holds a non-empty label of your choosing (`local`, `reach-dev`, `production`), and they print it with the database host before connecting, as `Writing to local (localhost:5432)`. The label is only what you typed: nothing checks it against `DATABASE_URL`, so the printed host is the part to read. For a local database, `CITYSCOPE_DB_TARGET=local` can stay in `.env`, as long as that file's `DATABASE_URL` really is a local database. For any other target, set it on the command line for that run (`CITYSCOPE_DB_TARGET=production npm run ...`) and keep it out of `.env`. `reach:build --dry-run` writes nothing and doesn't need it.
 
 #### Everyday reach data (optional)
+
+**Everyday reach** asks how close the people of a city live to six everyday needs: a supermarket, a pharmacy, a doctor, a school, a park and a station. It answers block by block, with an estimated walking time from the middle of each populated block to the nearest place for each need.
 
 The two `/reach` endpoints serve data built ahead of time, one city at a time. For each populated block (an H3 hexagon at resolution 9) it holds the estimated residents and the straight-line distance to the nearest supermarket, pharmacy, doctor, school, park and station. To build a city, with `CITYSCOPE_DB_TARGET` set:
 
@@ -90,13 +92,15 @@ npm run seed:pois   -- berlin       # replace the city's places
 npm run seed:parks  -- berlin       # replace the city's parks
 npm run reach:build -- berlin       # cells, residents, nearest place per need
 npm run reach:calibrate -- berlin   # fit the walking estimate against Mapbox
+npm run reach:check-gp              # London only, optional: compare its doctors with NHS GP practices
 npm run reach:publish -- berlin     # compress the result into the one payload the API serves
 ```
 
 - `reach:build` reads GHSL population tiles from `cityscope-backend/data/ghsl/` (or `--ghsl <dir>`). Download the 2025 epoch, 3-arcsecond, WGS84 tiles of GHS-POP R2023A (`GHS_POP_E2025_GLOBE_R2023A_4326_3ss`) that cover the city and unzip the `.tif` files there. `data/` is git-ignored.
 - `npm run reach:build -- berlin --dry-run` counts the city's residents in a read-only transaction and writes nothing.
 - `reach:calibrate` makes about 60 Mapbox isochrone requests per city and needs `MAPBOX_TOKEN` in `.env`: a token used only by scripts, never the frontend's public one.
-- **Rebuild after every place reload.** `reach_nearest` stores place ids, and reloading a city's places (`seed:pois`, `seed:parks`) gives every place a new id. After a reload, run `reach:build`, `reach:calibrate` and `reach:publish` again for that city. `reach:build` clears the city's calibration and payload, so its reach endpoints answer 404 until all three have run.
+- `reach:check-gp` is for London only and takes no city. It reads NHS England's GP practice list (the ODS `epraccur` file, saved as `cityscope-backend/data/nhs/epraccur.csv`, git-ignored), looks each practice's postcode up on postcodes.io, and stores the share of London's practices that have an OSM doctor or clinic within 150 m. It needs London built and calibrated, and `reach:publish -- london` afterwards puts the result into the payload.
+- **Rebuild after every place reload.** `reach_nearest` stores place ids, and reloading places (`seed:pois`, `seed:parks`, or `seed:all`, which reloads every city's places and districts) gives every place a new id. After a reload, run `reach:build`, `reach:calibrate` and `reach:publish` again for each city reloaded, and for London `reach:check-gp` between calibrate and publish (a rebuild clears its result). `reach:build` clears the city's calibration and payload, and `reach:calibrate` clears its payload, so `GET /reach` answers 404 until `reach:publish` has run again, and the block card (`/reach/:cellId`) answers 404 until `reach:calibrate` has run.
 
 ### 2. Frontend
 ```bash
@@ -124,10 +128,10 @@ City-scoped routes (`:cityId` e.g. `berlin`):
 | GET  | `/api/cities/:cityId/districts/:id/stats` | Live district statistics (PostGIS) |
 | GET  | `/api/cities/:cityId/pois` | POI records for a city |
 | POST | `/api/cities/:cityId/pois/within` | Count POIs inside a drawn polygon (`ST_Within`) |
-| GET  | `/api/cities/:cityId/reach` | Everyday reach for a whole city: one precomputed GeoJSON of populated H3 blocks with their estimated residents and distance to the nearest of six everyday needs. Sent Brotli-compressed with an `ETag` (`304` when unchanged); `404` until the city has been published |
+| GET  | `/api/cities/:cityId/reach` | Everyday reach for a whole city: one precomputed GeoJSON of populated H3 blocks with their estimated residents and distance to the nearest of six everyday needs. Brotli-compressed when the client accepts it, with an `ETag` (`304` when unchanged); `404` until the city has been published |
 | GET  | `/api/cities/:cityId/reach/:cellId` | One block's residents and, for each need, its nearest place (name, category, coordinates, metres, estimated minutes). `400` for a malformed cell id, `404` for an unknown cell |
 
-The two reach endpoints are the data layer for Everyday reach; the map layer that reads them is not built yet.
+The two reach endpoints are the data layer for Everyday reach; the map layer that reads them is not built yet. The data has been built and checked for all eight cities on a local database, but it has not been loaded into the deployed API yet.
 
 ---
 
@@ -137,7 +141,9 @@ POIs are real OpenStreetMap data fetched via Overpass for a fixed set of **19 ca
 
 Both point features and area features are included; an area such as a park or a museum building is represented by its centre point, so a distance to a large park is measured to its middle, not its nearest edge. Everyday reach treats parks differently: they are also stored as shapes (a `parks` table, with multipolygon relations assembled by `osmtogeojson`), and the park need counts only parks of at least 0.5 ha (5,000 m²), measured to the nearest edge. Categories match exact OSM tag values (so `amenity=pub` counts, `amenity=public_bookcase` does not). Roughly 0.3% of rows are places mapped twice in OSM itself; they are kept rather than merged by a distance heuristic, which would also merge genuine neighbouring chain outlets.
 
-**Residents and walking times in Everyday reach are estimates.** Residents come from the GHSL population grid (2025 epoch, 3-arcsecond tiles), a modelled grid rather than a census, added up into H3 resolution-9 hexagons. A walk is estimated as straight-line distance divided by a per-city metres-per-minute figure, fitted against Mapbox walking isochrones (5, 10, 15 and 20 minutes) on a sample of 60 blocks per city. A time limit passes for a city only if the estimate agrees with Mapbox on at least 80% of a held-out half of that sample, and the payload records which ones passed. Each city's measured agreement will be added here after the full eight-city run.
+**Residents and walking times in Everyday reach are estimates.** Residents come from the GHSL population grid (2025 epoch, 3-arcsecond tiles), a modelled grid rather than a census, added up into H3 resolution-9 hexagons. A walk is estimated as straight-line distance divided by a per-city metres-per-minute figure, fitted against Mapbox walking isochrones (5, 10, 15 and 20 minutes) on a sample of 60 blocks per city. A time limit passes for a city only if the estimate agrees with Mapbox on at least 80% of a held-out half of that sample, and the payload records which ones passed. Measured on 2026-10-20, **every one of the eight cities passed at all four time limits**. Agreement on the held-out half ran from 85.0% (Tokyo, 5 minutes) to 100.0% (Paris and Sydney, 20 minutes), and at 15 minutes from 94.4% (Berlin) to 99.4% (Paris and Sydney). The 5-minute limit has the lowest agreement in every city. The published speeds are between 62.5 (Berlin) and 69.5 (Amsterdam and Sydney) straight-line metres per minute. The per-city figures, residents, payload sizes and places per 100,000 residents are in the spec's [measured results](docs/superpowers/specs/2026-10-17-everyday-reach-design.md#measured-results).
+
+**London's doctors were checked against the NHS list of GP practices.** Of the 1,142 practices inside London's outline, 70.7% have an OpenStreetMap doctor or clinic within 150 m (median distance 57 m), so about three in ten do not. The test is strict, because a postcode places a practice only roughly, but it does mean OSM's London doctors may be incomplete or tagged differently, and London's distances to a doctor may be overstated.
 
 Population data: Schiavina, Freire, Carioli, MacManus (2023), *GHS-POP R2023A*, European Commission, Joint Research Centre (JRC), doi:[10.2905/2FF68A52-5B5B-4A22-8F40-C41DA8332CFE](https://doi.org/10.2905/2FF68A52-5B5B-4A22-8F40-C41DA8332CFE), licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
