@@ -148,10 +148,12 @@ Both point features and area features are included; an area such as a park or a 
 
 **London's doctors were checked against the NHS list of GP practices.** Of the 1,142 practices inside London's outline, 70.7% have an OpenStreetMap doctor or clinic within 150 m (median distance 57 m), so about three in ten do not. The test is strict, because a postcode places a practice only roughly, but it does mean OSM's London doctors may be incomplete or tagged differently, and London's distances to a doctor may be overstated.
 
+Place and park data © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), available under the [Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/). The committed place files (`cityscope-backend/src/scripts/pois-data*.json`) are ODbL, not MIT.
+
 Population data: Schiavina, Freire, Carioli, MacManus (2023), *GHS-POP R2023A*, European Commission, Joint Research Centre (JRC), doi:[10.2905/2FF68A52-5B5B-4A22-8F40-C41DA8332CFE](https://doi.org/10.2905/2FF68A52-5B5B-4A22-8F40-C41DA8332CFE), licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
 ---
 
 ## License
 
-MIT
+The code is MIT. The OpenStreetMap-derived data files, the committed `cityscope-backend/src/scripts/pois-data*.json` and the park files `fetch:parks` writes, are © OpenStreetMap contributors under the [ODbL](https://opendatacommons.org/licenses/odbl/), not MIT. GHSL population data is CC BY 4.0, as cited above.
