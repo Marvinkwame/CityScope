@@ -17,6 +17,7 @@
     "migrate": "tsx src/scripts/migrate.ts",
     "reach:build": "tsx src/scripts/build-reach.ts",
     "reach:calibrate": "tsx src/scripts/calibrate-reach.ts",
+    "reach:publish": "tsx src/scripts/publish-reach.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
