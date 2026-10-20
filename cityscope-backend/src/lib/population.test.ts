@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { latLngToCell } from 'h3-js';
+import { cellToLatLng, latLngToCell } from 'h3-js';
 import { CITY_CONFIGS } from '../config/cities';
 import {
   H3_RESOLUTION,
@@ -319,17 +319,22 @@ describe('cellsForOutline', () => {
     expect(withSlivers.size).toBeGreaterThan(0);
   });
 
-  it('still fills a small shape that has area', () => {
-    // About 20 m on a side: far smaller than a cell, but a real shape.
+  it('keeps a small shape that holds a cell centre', () => {
+    // Roughly 20 m across, far smaller than a cell, but drawn around a cell's
+    // centre: a shape with real area, so the sliver guard must not drop it.
+    const cell = latLngToCell(52.52, 13.405, H3_RESOLUTION);
+    const [lat, lng] = cellToLatLng(cell);
+    const d = 0.0001;
     const small = [
       [
-        [13.405, 52.52],
-        [13.4053, 52.52],
-        [13.4053, 52.5202],
-        [13.405, 52.5202],
-        [13.405, 52.52],
+        [lng - d, lat - d],
+        [lng + d, lat - d],
+        [lng + d, lat + d],
+        [lng - d, lat + d],
+        [lng - d, lat - d],
       ],
     ];
-    expect(() => cellsForOutline({ type: 'Polygon', coordinates: small })).not.toThrow();
+
+    expect(cellsForOutline({ type: 'Polygon', coordinates: small }).has(cell)).toBe(true);
   });
 });
