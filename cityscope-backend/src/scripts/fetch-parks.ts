@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { CITY_CONFIGS } from '../config/cities.js';
 import { overpassFetch } from '../lib/overpass.js';
 import { buildParkQuery, parksFromOverpass } from '../lib/parks.js';
+import { osmBaseOf, parksRecordName, writeFetchRecord } from '../lib/sourceDates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -32,11 +33,13 @@ async function fetchParks() {
   console.log(`Fetching parks for ${cityConfig.name} from Overpass API...`);
 
   const data = await overpassFetch(query);
+  const fetchedAt = new Date().toISOString();
+  const osmBase = osmBaseOf(data);
   const elements = (data as { elements?: unknown }).elements;
   if (!Array.isArray(elements)) {
     throw new Error('Overpass response has no elements array');
   }
-  console.log(`Received ${elements.length} elements from Overpass API`);
+  console.log(`Received ${elements.length} elements from Overpass API (OSM data as of ${osmBase ?? 'an unstated time'})`);
 
   const parks = parksFromOverpass(data);
 
@@ -56,6 +59,13 @@ async function fetchParks() {
   console.log(
     `Saved ${parks.length} parks to ${outputPath} (${elements.length - parks.length} elements dropped: unclosed outlines, nodes and non-polygons)`,
   );
+
+  // When the parks were fetched, and the OSM database state they come from,
+  // beside the parks file (git-ignored with it); reach:publish puts both into
+  // meta.sources.
+  const recordPath = path.join(DATA_DIR, parksRecordName(cityId));
+  writeFetchRecord(recordPath, fetchedAt, osmBase);
+  console.log(`Recorded the fetch time in ${recordPath}`);
 }
 
 fetchParks().catch((err) => {

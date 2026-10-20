@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { CITY_CONFIGS } from '../config/cities.js';
 import { overpassFetch } from '../lib/overpass.js';
 import { buildOverpassQuery, classifyPoi } from '../lib/poiCategories.js';
+import { osmBaseOf, placesRecordName, writeFetchRecord } from '../lib/sourceDates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -49,7 +50,9 @@ async function fetchPois() {
   console.log(`Fetching POIs for ${cityConfig.name} from Overpass API...`);
 
   const data = (await overpassFetch(query)) as OverpassResponse;
-  console.log(`Received ${data.elements.length} elements from Overpass API`);
+  const fetchedAt = new Date().toISOString();
+  const osmBase = osmBaseOf(data);
+  console.log(`Received ${data.elements.length} elements from Overpass API (OSM data as of ${osmBase ?? 'an unstated time'})`);
 
   const pois: Poi[] = [];
   let rejected = 0;
@@ -77,6 +80,12 @@ async function fetchPois() {
   const outputPath = path.resolve(__dirname, `pois-data-${cityId}.json`);
   writeFileSync(outputPath, JSON.stringify(pois, null, 2));
   console.log(`Saved ${pois.length} POIs to ${outputPath} (${rejected} elements rejected by classifyPoi)`);
+
+  // When the places were fetched, and the OSM database state they come from,
+  // committed beside the places file; reach:publish puts both into meta.sources.
+  const recordPath = path.resolve(__dirname, placesRecordName(cityId));
+  writeFetchRecord(recordPath, fetchedAt, osmBase);
+  console.log(`Recorded the fetch time in ${recordPath}`);
 }
 
 fetchPois().catch((err) => {

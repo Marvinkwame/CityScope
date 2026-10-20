@@ -10,9 +10,15 @@
 // snapshot of the city, and `built_at` is the transaction's now(), the same
 // instant that meta.builtAt records.
 //
+// meta.sources says when the city's places and parks were fetched (from the
+// records fetch:pois and fetch:parks write beside their files; see
+// lib/sourceDates.ts) and when it was calibrated. A missing record is null.
+//
 // Usage: tsx src/scripts/publish-reach.ts <cityId>
 // Needs a city that has been built and calibrated.
 
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { PoolClient } from 'pg';
 import { CITY_CONFIGS } from '../config/cities.js';
 import type { CityConfig } from '../config/cities.js';
@@ -25,6 +31,14 @@ import { NEEDS, NEED_IDS, PARK_MIN_AREA_M2, completenessCategories } from '../li
 import type { NeedId } from '../lib/needs.js';
 import { buildReachPayload, encodePayload } from '../lib/reachPayload.js';
 import type { CalibrationRow, CellRow, NearestRow, ReachInfo } from '../lib/reachPayload.js';
+import { parksRecordName, placesRecordName, readFetchRecord } from '../lib/sourceDates.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// The places file and its record sit beside this script; the parks file and
+// its record in cityscope-backend/data/.
+const PLACES_DIR = __dirname;
+const PARKS_DIR = path.resolve(__dirname, '../../data');
 
 function usage(): never {
   console.error('Usage: tsx src/scripts/publish-reach.ts <cityId>');
@@ -41,7 +55,8 @@ function isNeedId(value: unknown): value is NeedId {
 }
 
 const CALIBRATION_SQL = `
-  SELECT method, metres_per_minute, k_low, k_high, agreement, passing_stops, sample_size, checks, now() AS built_at
+  SELECT method, metres_per_minute, k_low, k_high, agreement, passing_stops, sample_size, checks, computed_at,
+         now() AS built_at
   FROM reach_calibration
   WHERE city_id = $1
 `;
@@ -55,6 +70,7 @@ interface CalibrationDbRow {
   passing_stops: number[];
   sample_size: number;
   checks: unknown;
+  computed_at: Date;
   built_at: Date;
 }
 
@@ -103,6 +119,7 @@ async function readCalibration(
       stops: readStops(row.passing_stops),
       sampleSize: row.sample_size,
       checks: checks as Record<string, unknown>,
+      calibratedAt: row.computed_at.toISOString(),
     },
     builtAt: row.built_at.toISOString(),
   };
@@ -253,6 +270,7 @@ interface Published {
   residents: number;
   calibration: CalibrationRow;
   perHundredThousand: Record<NeedId, number>;
+  info: ReachInfo;
   rawBytes: number;
   compressedBytes: number;
   etag: string;
@@ -274,6 +292,8 @@ async function publish(client: PoolClient, city: CityConfig): Promise<Published>
     coverage: city.reach.coverage,
     builtAt,
     perHundredThousand: await readPerHundredThousand(client, city, residents),
+    places: readFetchRecord(path.join(PLACES_DIR, placesRecordName(city.id))),
+    parks: readFetchRecord(path.join(PARKS_DIR, parksRecordName(city.id))),
   };
 
   const payload = buildReachPayload(cells, nearest, calibration, info);
@@ -287,6 +307,7 @@ async function publish(client: PoolClient, city: CityConfig): Promise<Published>
     residents,
     calibration,
     perHundredThousand: info.perHundredThousand,
+    info,
     rawBytes,
     compressedBytes: body.length,
     etag,
@@ -304,6 +325,12 @@ function printReport(city: CityConfig, result: Published): void {
   );
   console.log(
     'Places per 100,000 residents: ' + NEEDS.map((need) => `${need.id} ${perHundredThousand[need.id]}`).join(', '),
+  );
+  const { places, parks } = result.info;
+  console.log(
+    `Sources: places fetched ${places.fetchedAt ?? 'unknown'} (OSM as of ${places.osmBase ?? 'unknown'}), ` +
+      `parks fetched ${parks.fetchedAt ?? 'unknown'} (OSM as of ${parks.osmBase ?? 'unknown'}), ` +
+      `calibrated ${calibration.calibratedAt}`,
   );
   console.log(`Raw: ${count(result.rawBytes)} bytes`);
   console.log(

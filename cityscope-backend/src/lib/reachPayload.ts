@@ -16,7 +16,8 @@ import { brotliCompressSync, constants } from 'node:zlib';
 import { cityPasses } from './calibration.js';
 import type { Band } from './calibration.js';
 import { NEEDS, NONE_FOUND_METRES } from './needs.js';
-import type { NeedId } from './needs.js';
+import type { Need, NeedId } from './needs.js';
+import type { FetchRecord } from './sourceDates.js';
 
 export const POPULATION_SOURCE = 'GHSL GHS-POP R2023A, 2025 epoch (European Commission, JRC), CC BY 4.0';
 export const PLACES_SOURCE = '© OpenStreetMap contributors, ODbL';
@@ -55,6 +56,8 @@ export interface CalibrationRow {
   stops: Band[];
   sampleSize: number;
   checks: Record<string, unknown>;
+  /** ISO 8601: when the calibration was stored (reach_calibration.computed_at). */
+  calibratedAt: string;
 }
 
 /** What the payload says about the city, beyond its cells. */
@@ -66,6 +69,33 @@ export interface ReachInfo {
   builtAt: string;
   /** Places of each need inside the city, per 100,000 residents. */
   perHundredThousand: Record<NeedId, number>;
+  /** When the city's places were fetched, from the record beside its places file. */
+  places: FetchRecord;
+  /** When the city's parks were fetched, from the record beside its parks file. */
+  parks: FetchRecord;
+}
+
+/** A need as the payload describes it. A park need has no POI categories: its places are park shapes. */
+export interface ReachNeed {
+  id: NeedId;
+  label: string;
+  source: Need['source'];
+  categories: string[];
+}
+
+/**
+ * Where the data came from, and when. A date nobody recorded is null, never
+ * guessed. `osmBase` and `parksOsmBase` are the OpenStreetMap database states
+ * the Overpass server answered from.
+ */
+export interface ReachSources {
+  places: string;
+  population: string;
+  placesFetchedAt: string | null;
+  osmBase: string | null;
+  parksFetchedAt: string | null;
+  parksOsmBase: string | null;
+  calibratedAt: string;
 }
 
 export interface ReachMeta {
@@ -81,9 +111,9 @@ export interface ReachMeta {
   stops: Band[];
   passes: boolean;
   sampleSize: number;
-  needs: { id: NeedId; label: string }[];
+  needs: ReachNeed[];
   builtAt: string;
-  sources: { places: string; population: string };
+  sources: ReachSources;
   completeness: {
     perHundredThousand: Record<NeedId, number>;
     checks: Record<string, unknown>;
@@ -172,9 +202,17 @@ export function buildReachPayload(
       stops: cal.stops,
       passes: cityPasses(cal.stops),
       sampleSize: cal.sampleSize,
-      needs: NEEDS.map(({ id, label }) => ({ id, label })),
+      needs: NEEDS.map(({ id, label, source, categories }): ReachNeed => ({ id, label, source, categories: [...categories] })),
       builtAt: info.builtAt,
-      sources: { places: PLACES_SOURCE, population: POPULATION_SOURCE },
+      sources: {
+        places: PLACES_SOURCE,
+        population: POPULATION_SOURCE,
+        placesFetchedAt: info.places.fetchedAt,
+        osmBase: info.places.osmBase,
+        parksFetchedAt: info.parks.fetchedAt,
+        parksOsmBase: info.parks.osmBase,
+        calibratedAt: cal.calibratedAt,
+      },
       completeness: { perHundredThousand: info.perHundredThousand, checks: cal.checks },
     },
     features,

@@ -35,6 +35,7 @@ const CAL: CalibrationRow = {
   stops: [5, 10, 15],
   sampleSize: 60,
   checks: { gpCoverage: 0.97 },
+  calibratedAt: '2026-10-20T09:10:00.000Z',
 };
 
 const INFO: ReachInfo = {
@@ -43,6 +44,8 @@ const INFO: ReachInfo = {
   coverage: 'whole city',
   builtAt: '2026-10-20T09:30:00.000Z',
   perHundredThousand: { sm: 41.2, ph: 20.5, dr: 88, sc: 17.3, pk: 36.1, st: 52.9 },
+  places: { fetchedAt: '2026-10-19T14:00:00.000Z', osmBase: '2026-10-19T13:58:01Z' },
+  parks: { fetchedAt: '2026-10-20', osmBase: null },
 };
 
 describe('buildReachPayload', () => {
@@ -116,16 +119,38 @@ describe('buildReachPayload', () => {
     expect(buildReachPayload(CELLS, NEAREST, { ...CAL, stops: [10, 15] }, INFO).meta.passes).toBe(true);
   });
 
-  it('has a meta.needs that follows NEEDS order with labels', () => {
+  it('has a meta.needs that follows NEEDS order with labels, sources and categories', () => {
     const { meta } = buildReachPayload(CELLS, NEAREST, CAL, INFO);
     expect(meta.needs).toEqual([
-      { id: 'sm', label: 'Supermarket' },
-      { id: 'ph', label: 'Pharmacy' },
-      { id: 'dr', label: 'Doctor' },
-      { id: 'sc', label: 'School' },
-      { id: 'pk', label: 'Park' },
-      { id: 'st', label: 'Station' },
+      { id: 'sm', label: 'Supermarket', source: 'pois', categories: ['supermarket'] },
+      { id: 'ph', label: 'Pharmacy', source: 'pois', categories: ['pharmacy'] },
+      { id: 'dr', label: 'Doctor', source: 'pois', categories: ['doctors', 'clinic'] },
+      { id: 'sc', label: 'School', source: 'pois', categories: ['school'] },
+      { id: 'pk', label: 'Park', source: 'parks', categories: [] },
+      { id: 'st', label: 'Station', source: 'pois', categories: ['station', 'halt', 'tram_stop', 'subway_entrance'] },
     ]);
+  });
+
+  it('says when its places and parks were fetched, and when it was calibrated', () => {
+    const { meta } = buildReachPayload(CELLS, NEAREST, CAL, INFO);
+    expect(meta.sources).toEqual({
+      places: PLACES_SOURCE,
+      population: POPULATION_SOURCE,
+      placesFetchedAt: '2026-10-19T14:00:00.000Z',
+      osmBase: '2026-10-19T13:58:01Z',
+      parksFetchedAt: '2026-10-20',
+      parksOsmBase: null,
+      calibratedAt: '2026-10-20T09:10:00.000Z',
+    });
+  });
+
+  it('keeps fetch dates nobody recorded as null', () => {
+    const unknown = { fetchedAt: null, osmBase: null };
+    const { meta } = buildReachPayload(CELLS, NEAREST, CAL, { ...INFO, places: unknown, parks: unknown });
+    expect(meta.sources.placesFetchedAt).toBeNull();
+    expect(meta.sources.osmBase).toBeNull();
+    expect(meta.sources.parksFetchedAt).toBeNull();
+    expect(meta.sources.parksOsmBase).toBeNull();
   });
 
   it('passes the calibration and the city through into meta', () => {
@@ -145,7 +170,7 @@ describe('buildReachPayload', () => {
       sampleSize: 60,
       needs: meta.needs,
       builtAt: '2026-10-20T09:30:00.000Z',
-      sources: { places: PLACES_SOURCE, population: POPULATION_SOURCE },
+      sources: meta.sources,
       completeness: {
         perHundredThousand: { sm: 41.2, ph: 20.5, dr: 88, sc: 17.3, pk: 36.1, st: 52.9 },
         checks: { gpCoverage: 0.97 },
