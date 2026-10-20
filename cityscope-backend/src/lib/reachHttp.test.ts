@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { REACH_CACHE_CONTROL, acceptsBrotli, isFresh, isH3CellId } from './reachHttp';
+import { REACH_CACHE_CONTROL, acceptsBrotli, isFresh, isH3CellId, isMissingTable } from './reachHttp';
 
 describe('REACH_CACHE_CONTROL', () => {
   it('is public and lasts a day', () => {
@@ -49,5 +49,21 @@ describe('isH3CellId', () => {
     expect(isH3CellId('891f1d48947fff')).toBe(false); // too short
     expect(isH3CellId('891f1d48947ffffa')).toBe(false); // too long
     expect(isH3CellId('../etc/passwd')).toBe(false);
+  });
+});
+
+describe('isMissingTable', () => {
+  it("is true for Postgres's undefined-table error, as before migration 004", () => {
+    const err = Object.assign(new Error('relation "reach_payloads" does not exist'), { code: '42P01' });
+    expect(isMissingTable(err)).toBe(true);
+  });
+
+  it('is false for any other error or value', () => {
+    expect(isMissingTable(Object.assign(new Error('syntax error'), { code: '42601' }))).toBe(false);
+    expect(isMissingTable(new Error('connection refused'))).toBe(false);
+    expect(isMissingTable({ code: 42601 })).toBe(false);
+    expect(isMissingTable('42P01')).toBe(false);
+    expect(isMissingTable(null)).toBe(false);
+    expect(isMissingTable(undefined)).toBe(false);
   });
 });

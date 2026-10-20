@@ -164,7 +164,8 @@ Each city is fetched over its district outline's extent plus a **2 km margin** o
 - Sends the stored Brotli body with `Content-Encoding: br`, `ETag`, `Cache-Control: public, max-age=86400` and `Vary: Accept-Encoding`.
 - Answers `304` to a matching `If-None-Match` without reading the body.
 - Decompresses for a client that doesn't accept Brotli.
-- Returns `404 {"error":"No reach data for this city"}` when there is no payload.
+- Returns `404 {"error":"No reach data for this city"}` when there is no payload, and also when the reach tables do not exist yet (Postgres `42P01`, before migration 004), as the card route does.
+- Sets its `ETag`, `Cache-Control` and `Vary` only once the bytes to send are ready, so a failed decompression is a plain 500; `Vary: Accept-Encoding` is added to the CORS `Vary: Origin`, not put in its place.
 - After deploy, check that Render and Cloudflare pass the pre-compressed body through untouched.
 
 **Payload shape:** a GeoJSON FeatureCollection with a `meta` member, which GeoJSON allows and Mapbox ignores.

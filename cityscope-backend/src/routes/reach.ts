@@ -5,7 +5,7 @@ import { brotliDecompress } from 'node:zlib';
 import pool from '../db.js';
 import { NEED_IDS } from '../lib/needs.js';
 import type { NeedId } from '../lib/needs.js';
-import { REACH_CACHE_CONTROL, acceptsBrotli, isFresh, isH3CellId } from '../lib/reachHttp.js';
+import { REACH_CACHE_CONTROL, acceptsBrotli, isFresh, isH3CellId, isMissingTable } from '../lib/reachHttp.js';
 import { shapeCellCard } from '../lib/reachPayload.js';
 import type { CardRow } from '../lib/reachPayload.js';
 
@@ -16,6 +16,8 @@ const decompress = promisify(brotliDecompress);
 function isNeedId(value: unknown): value is NeedId {
   return NEED_IDS.some((id) => id === value);
 }
+
+const NO_REACH_DATA = { error: 'No reach data for this city' };
 
 /**
  * The whole city's reach, as the one payload "npm run reach:publish" stored.
@@ -30,7 +32,7 @@ reachRouter.get('/', async (req: Request, res: Response) => {
       [cityId],
     );
     if (current.rows.length === 0) {
-      res.status(404).json({ error: 'No reach data for this city' });
+      res.status(404).json(NO_REACH_DATA);
       return;
     }
 
@@ -39,10 +41,10 @@ reachRouter.get('/', async (req: Request, res: Response) => {
     if (isFresh(req.get('If-None-Match'), current.rows[0].etag)) {
       res
         .status(304)
+        .vary('Accept-Encoding')
         .set({
           ETag: current.rows[0].etag,
           'Cache-Control': REACH_CACHE_CONTROL,
-          Vary: 'Accept-Encoding',
         })
         .end();
       return;
@@ -55,27 +57,32 @@ reachRouter.get('/', async (req: Request, res: Response) => {
       [cityId],
     );
     if (stored.rows.length === 0) {
-      res.status(404).json({ error: 'No reach data for this city' });
+      res.status(404).json(NO_REACH_DATA);
       return;
     }
     const { body, etag } = stored.rows[0];
 
-    res.status(200).set({
+    // The bytes to send are ready before any header is set, so a failed
+    // decompression ends in a plain 500, never one carrying the payload's
+    // ETag and a day-long Cache-Control that a cache could keep.
+    const brotli = acceptsBrotli(req.get('Accept-Encoding'));
+    const bytes = brotli ? body : await decompress(body);
+
+    // vary() adds to any Vary header already set, rather than replacing it.
+    res.status(200).vary('Accept-Encoding').set({
       ETag: etag,
       'Cache-Control': REACH_CACHE_CONTROL,
-      Vary: 'Accept-Encoding',
       'Content-Type': 'application/json',
+      'Content-Length': String(bytes.length),
     });
-
-    let bytes = body;
-    if (acceptsBrotli(req.get('Accept-Encoding'))) {
-      res.set('Content-Encoding', 'br');
-    } else {
-      bytes = await decompress(body);
-    }
-    res.set('Content-Length', String(bytes.length));
+    if (brotli) res.set('Content-Encoding', 'br');
     res.end(bytes);
   } catch (err) {
+    // Before migration 004 the table does not exist: that is no data, not a fault.
+    if (isMissingTable(err)) {
+      res.status(404).json(NO_REACH_DATA);
+      return;
+    }
     console.error('Failed to fetch reach payload:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
@@ -135,7 +142,7 @@ reachRouter.get('/:cellId', async (req: Request, res: Response) => {
     if (k === null) {
       // Cells without a calibration are a city that was built but never
       // published, so there is nothing to turn metres into minutes with.
-      res.status(404).json({ error: 'No reach data for this city' });
+      res.status(404).json(NO_REACH_DATA);
       return;
     }
 
@@ -163,6 +170,11 @@ reachRouter.get('/:cellId', async (req: Request, res: Response) => {
 
     res.set('Cache-Control', REACH_CACHE_CONTROL).json(shapeCellCard(cellId, residents, rows, k));
   } catch (err) {
+    // Before migration 004 the tables do not exist: that is no data, not a fault.
+    if (isMissingTable(err)) {
+      res.status(404).json(NO_REACH_DATA);
+      return;
+    }
     console.error('Failed to fetch reach card:', err);
     res.status(500).json({ error: 'Internal server error' });
   }

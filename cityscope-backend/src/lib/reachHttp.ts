@@ -49,6 +49,16 @@ export function isFresh(ifNoneMatch: string | undefined, etag: string): boolean 
   });
 }
 
+/**
+ * Whether a database error is Postgres's "undefined table" (SQLSTATE 42P01):
+ * the reach tables do not exist yet because migration 004 has not been applied.
+ * For a client that is the same as a city with nothing published, so the
+ * routes answer it with the same 404 rather than a 500.
+ */
+export function isMissingTable(err: unknown): boolean {
+  return typeof err === 'object' && err !== null && (err as { code?: unknown }).code === '42P01';
+}
+
 /** An H3 index at resolution 9, in lower case: 15 hex digits starting `89`. */
 export function isH3CellId(value: string): boolean {
   return /^89[0-9a-f]{13}$/.test(value);
