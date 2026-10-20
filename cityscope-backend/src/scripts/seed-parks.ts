@@ -87,6 +87,14 @@ async function seed() {
 
   const parks = readParks(raw);
 
+  // A fetch that came back empty must not replace a city with nothing. This
+  // check comes before the connection, so the delete below never runs.
+  if (parks.length === 0) {
+    console.error(`${dataPath} holds no parks; refusing to replace ${cityConfig.name} with nothing`);
+    console.error(`Run "npm run fetch:parks -- ${cityId}" again`);
+    process.exit(1);
+  }
+
   const client = new pg.Client({
     connectionString: process.env.DATABASE_URL,
   });

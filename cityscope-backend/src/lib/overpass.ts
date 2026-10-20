@@ -6,6 +6,13 @@
  * A call that gets one of those waits and tries again, doubling the wait each
  * time. Any other failure, a 400 for a query that does not parse for one,
  * would only fail the same way again, so it throws at once.
+ *
+ * Two failures arrive without a retryable status, and both are retried the same
+ * way. A server that runs out of time or memory partway through can still answer
+ * 200, with the elements it had found and a `remark` that starts "runtime error":
+ * the answer is partial, and a city seeded from it would silently lose places.
+ * And a connection that resets or times out makes `fetch` reject rather than
+ * return a response.
  */
 
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
@@ -26,8 +33,53 @@ export interface OverpassFetchOptions {
   baseDelayMs?: number;
 }
 
+/**
+ * The remark Overpass attaches to a partial answer, or null for a whole one.
+ * Other remarks (notes about the data) are harmless and do not count.
+ */
+function runtimeErrorRemark(body: unknown): string | null {
+  if (typeof body !== 'object' || body === null) return null;
+  const remark = (body as { remark?: unknown }).remark;
+  return typeof remark === 'string' && remark.includes('runtime error') ? remark : null;
+}
+
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** One call's result: the answer, or why it is worth another go and what to throw if it is the last. */
+type Attempt = { body: unknown } | { said: string; error: Error };
+
+async function attemptOnce(query: string, fetchImpl: typeof fetch): Promise<Attempt> {
+  let res: Response;
+  try {
+    res = await fetchImpl(OVERPASS_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': USER_AGENT,
+        Accept: 'application/json',
+      },
+      body: `data=${encodeURIComponent(query)}`,
+    });
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    return { said: `a network error (${error.message})`, error };
+  }
+
+  if (res.ok) {
+    const body: unknown = await res.json();
+    const remark = runtimeErrorRemark(body);
+    if (remark === null) return { body };
+    return {
+      said: `a partial answer (${remark})`,
+      error: new Error(`Overpass API answered with a partial result: ${remark}`),
+    };
+  }
+
+  const error = new Error(`Overpass API returned ${res.status}: ${res.statusText}`);
+  if (!RETRYABLE_STATUSES.has(res.status)) throw error;
+  return { said: String(res.status), error };
 }
 
 /**
@@ -43,25 +95,14 @@ export async function overpassFetch(
   const { fetchImpl = fetch, sleep = wait, retries = 4, baseDelayMs = 30_000 } = opts;
 
   for (let attempt = 0; ; attempt += 1) {
-    const res = await fetchImpl(OVERPASS_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': USER_AGENT,
-        Accept: 'application/json',
-      },
-      body: `data=${encodeURIComponent(query)}`,
-    });
+    const result = await attemptOnce(query, fetchImpl);
+    if ('body' in result) return result.body;
 
-    if (res.ok) return res.json();
-
-    if (!RETRYABLE_STATUSES.has(res.status) || attempt >= retries) {
-      throw new Error(`Overpass API returned ${res.status}: ${res.statusText}`);
-    }
+    if (attempt >= retries) throw result.error;
 
     const delayMs = baseDelayMs * 2 ** attempt;
     console.warn(
-      `Overpass API returned ${res.status}; retry ${attempt + 1} of ${retries} in ${delayMs / 1000} s`,
+      `Overpass API gave ${result.said}; retry ${attempt + 1} of ${retries} in ${delayMs / 1000} s`,
     );
     await sleep(delayMs);
   }

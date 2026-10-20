@@ -69,4 +69,77 @@ describe('overpassFetch', () => {
 
     expect(sleep.mock.calls.map(([ms]) => ms)).toEqual([100, 200, 400]);
   });
+
+  it('retries a 200 whose remark says the query hit a runtime error, then succeeds', async () => {
+    const partial = { elements: [{ id: 1 }], remark: 'runtime error: Query timed out in "query" at line 3 after 181 seconds.' };
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(reply(200, partial))
+      .mockResolvedValueOnce(reply(200, { elements: [{ id: 1 }, { id: 2 }] }));
+    const sleep = vi.fn(noSleep);
+
+    const data = await overpassFetch('[out:json];', { fetchImpl, sleep, baseDelayMs: 100 });
+
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(sleep.mock.calls.map(([ms]) => ms)).toEqual([100]);
+    expect(data).toEqual({ elements: [{ id: 1 }, { id: 2 }] });
+  });
+
+  it('throws with the remark when a 200 keeps reporting a runtime error', async () => {
+    const remark = 'runtime error: Query ran out of memory in "query" at line 3.';
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockImplementation(async () => reply(200, { elements: [{ id: 1 }], remark }));
+
+    await expect(overpassFetch('[out:json];', { fetchImpl, sleep: noSleep })).rejects.toThrow(
+      /runtime error: Query ran out of memory/,
+    );
+
+    expect(fetchImpl).toHaveBeenCalledTimes(5);
+  });
+
+  it('retries a fetch that rejects, then succeeds', async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockRejectedValueOnce(new TypeError('fetch failed'))
+      .mockResolvedValueOnce(reply(200, { elements: [{ id: 1 }] }));
+    const sleep = vi.fn(noSleep);
+
+    const data = await overpassFetch('[out:json];', { fetchImpl, sleep, baseDelayMs: 100 });
+
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(sleep.mock.calls.map(([ms]) => ms)).toEqual([100]);
+    expect(data).toEqual({ elements: [{ id: 1 }] });
+  });
+
+  it('rethrows the network error after the last retry', async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockImplementation(async () => {
+        throw new TypeError('fetch failed');
+      });
+
+    await expect(overpassFetch('[out:json];', { fetchImpl, sleep: noSleep })).rejects.toThrow(
+      /fetch failed/,
+    );
+
+    expect(fetchImpl).toHaveBeenCalledTimes(5);
+  });
+
+  it('returns a 200 without a remark, or with a harmless one, at once', async () => {
+    const plain = vi.fn<typeof fetch>().mockImplementation(async () => reply(200, { elements: [{ id: 1 }] }));
+    await expect(overpassFetch('[out:json];', { fetchImpl: plain, sleep: noSleep })).resolves.toEqual({
+      elements: [{ id: 1 }],
+    });
+    expect(plain).toHaveBeenCalledTimes(1);
+
+    const harmless = vi
+      .fn<typeof fetch>()
+      .mockImplementation(async () => reply(200, { elements: [], remark: 'Note: the data is current' }));
+    await expect(overpassFetch('[out:json];', { fetchImpl: harmless, sleep: noSleep })).resolves.toEqual({
+      elements: [],
+      remark: 'Note: the data is current',
+    });
+    expect(harmless).toHaveBeenCalledTimes(1);
+  });
 });
