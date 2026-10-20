@@ -21,7 +21,7 @@ import { BANDS, cityPasses } from '../lib/calibration.js';
 import type { Band } from '../lib/calibration.js';
 import { announceTarget } from '../lib/dbTarget.js';
 import { isPolygonGeometry } from '../lib/geometry.js';
-import { NEEDS, NEED_IDS, PARK_MIN_AREA_M2 } from '../lib/needs.js';
+import { NEEDS, NEED_IDS, PARK_MIN_AREA_M2, completenessCategories } from '../lib/needs.js';
 import type { NeedId } from '../lib/needs.js';
 import { buildReachPayload, encodePayload } from '../lib/reachPayload.js';
 import type { CalibrationRow, CellRow, NearestRow, ReachInfo } from '../lib/reachPayload.js';
@@ -167,7 +167,9 @@ const PARK_COUNT_SQL = `
 
 // How many places of each POI need lie inside the city, in one pass. The needs
 // and their categories arrive as parallel arrays, a row per category. $3 is
-// the need of each pair, $4 its category.
+// the need of each pair, $4 its category. The categories are each need's
+// completenessCategories: for the station need, stations and halts only, not
+// tram stops or metro entrances (see lib/needs.ts).
 const POI_COUNTS_SQL = `
   WITH ${OUTLINE_CTE},
   wanted AS (
@@ -205,10 +207,13 @@ async function readPerHundredThousand(
     throw new Error(`No districts found for ${city.id}; run "npm run seed:all" first`);
   }
 
+  // The station need counts stations and halts here, not tram stops or metro
+  // entrances: a station has several entrances, so they would inflate the
+  // figure. Its nearest-place distances still use all four.
   const needIds: string[] = [];
   const categories: string[] = [];
   for (const need of NEEDS) {
-    for (const category of need.categories) {
+    for (const category of completenessCategories(need)) {
       needIds.push(need.id);
       categories.push(category);
     }

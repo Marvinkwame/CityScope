@@ -37,6 +37,19 @@ export const NEED_IDS: readonly NeedId[] = NEEDS.map((n) => n.id);
  */
 export const MEASUREMENT_ONLY_CATEGORIES: readonly string[] = ['tram_stop', 'subway_entrance'];
 
+/**
+ * The categories counted when a need's places are counted per 100,000
+ * residents (the completeness figures in each payload's meta). For the station
+ * need that is only `station` and `halt`: a metro station has several mapped
+ * entrances and a tram line a stop every few hundred metres, so counting
+ * `tram_stop` and `subway_entrance` would measure how entrances and stops are
+ * mapped, not how many stations a city has. The nearest-place distance for the
+ * station need still uses all four categories.
+ */
+export function completenessCategories(need: Need): readonly string[] {
+  return need.categories.filter((category) => !MEASUREMENT_ONLY_CATEGORIES.includes(category));
+}
+
 /** The smallest park that counts towards the park need: 0.5 ha. */
 export const PARK_MIN_AREA_M2 = 5000;
 

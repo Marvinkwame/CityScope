@@ -6,6 +6,7 @@ import {
   MEASUREMENT_ONLY_CATEGORIES,
   PARK_MIN_AREA_M2,
   NONE_FOUND_METRES,
+  completenessCategories,
 } from './needs';
 
 describe('NEEDS', () => {
@@ -52,6 +53,28 @@ describe('MEASUREMENT_ONLY_CATEGORIES', () => {
     for (const category of MEASUREMENT_ONLY_CATEGORIES) {
       expect(st?.categories).toContain(category);
     }
+  });
+});
+
+describe('completenessCategories', () => {
+  const need = (id: string) => {
+    const found = NEEDS.find((n) => n.id === id);
+    if (!found) throw new Error(`no need ${id}`);
+    return found;
+  };
+
+  it('counts stations and halts for the station need, not tram stops or metro entrances', () => {
+    expect(completenessCategories(need('st'))).toEqual(['station', 'halt']);
+  });
+
+  it('counts every category of the other needs', () => {
+    for (const id of ['sm', 'ph', 'dr', 'sc', 'pk']) {
+      expect(completenessCategories(need(id))).toEqual(need(id).categories);
+    }
+  });
+
+  it('leaves the station need itself unchanged', () => {
+    expect(need('st').categories).toEqual(['station', 'halt', 'tram_stop', 'subway_entrance']);
   });
 });
 
