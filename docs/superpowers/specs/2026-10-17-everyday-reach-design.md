@@ -116,7 +116,7 @@ Each city is fetched over its district outline's extent plus a **2 km margin** o
   - reads only the window covering each city's outline, using `geotiff`;
   - keeps pixels whose centre is inside the outline;
   - adds each pixel's value to the H3 res-9 cell containing that centre;
-  - checks that the cell totals equal the window total.
+  - checks that the cell totals equal the window total (replaced while building: see "Amendments", Population).
 - **Credit:** "GHSL, European Commission JRC", under CC BY 4.0, cited in the README and in the map attribution while the layer is on.
 
 ### Grid and nearest places (migration 004, `build-reach.ts`)
@@ -229,6 +229,7 @@ Decisions made while building `reach/data-and-api`. Where one of them differs fr
 
 - **A pixel counts towards the H3 cell its centre falls in, and only cells whose centres lie inside the outline are kept.** This gives the cells the outline covers without a point-in-polygon test for every pixel.
 - **Outline pieces with no area are skipped.** New York's outline is the union of its five boroughs, 312 polygons, and two of them are four-point slivers whose corners differ only by floating-point noise. H3's `polygonToCells` throws on those, so `cellsForOutline` skips any polygon enclosing less than 1e-12 square degrees (about 0.01 m²), and any polygon with no rings. The area is measured from the ring's first corner: summed at full coordinates, rounding alone reaches about 1e-12 (a straight-line sliver in Sydney measured 1.36e-12), the size of the threshold. A shape with no area holds no cell centre, so the guard changes no city's cells; all eight dry runs give the same cells after the change.
+- **The "cell totals equal the window total" check is replaced by a unit test.** Under the cell-centre rule, a window's pixels whose cell is not in the outline are dropped by design, so the cell totals are less than the window total and the equality cannot hold. What it was meant to catch, pixels lost or counted twice where two GHSL tiles meet, is covered by the two-tile seam test in `population.test.ts` ("two adjacent tiles add into one map without double counting"), alongside the tests of pixel-centre assignment and of the cells allowed.
 - **GHSL tile numbering follows the files' georeferencing.** Tile rows and columns are anchored at 89.0996° N and 180.0079° W, not at round 10° lines, so a tile edge sits 0.9004° south of a round latitude. The nominal formula would pick the wrong tile for a box just south of one.
 
 ### Calibration and publishing
@@ -267,11 +268,11 @@ Agreement is the share of the 180 checks per limit (30 held-out cells × 6 needs
 | Munich | 2,607 | 1,533,885 | 65 (61–69) | 91.7% | 93.3% | 97.8% | 99.4% | 5, 10, 15, 20 | yes | 97,477 B |
 | New York | 6,354 | 8,416,530 | 69 (67–77) | 90.6% | 97.2% | 95.6% | 99.4% | 5, 10, 15, 20 | yes | 238,855 B |
 | Paris | 1,089 | 2,250,792 | 68.5 (65–73.5) | 91.1% | 99.4% | 99.4% | 100.0% | 5, 10, 15, 20 | yes | 40,124 B |
-| Sydney | 200 | 282,756 | 69.5 (59.5–73.5) | 91.7% | 95.6% | 99.4% | 100.0% | 5, 10, 15, 20 | yes | 8,360 B |
+| Sydney | 200 | 282,756 | 69.5 (59.5–73.5) | 91.7% | 95.6% | 99.4% | 100.0% | 5, 10, 15, 20 | yes | 8,375 B |
 | Tokyo | 6,252 | 9,059,277 | 65 (63.5–75) | 85.0% | 93.3% | 97.8% | 98.9% | 5, 10, 15, 20 | yes | 228,699 B |
 
 - The lowest single figure is Tokyo's 5-minute limit (85.0%), then Berlin's (87.8%). The 5-minute limit has the lowest agreement in every city.
-- Payload sizes are from the rerun, whose `meta` also carries the base rates, the source dates and each need's categories; each is within 1 KB of the first publish. London's is the one published after `reach:check-gp` was rerun.
+- Payload sizes are from the rerun, whose `meta` also carries the base rates, the source dates and each need's categories; each is within 1 KB of the first publish. London's is the one published after `reach:check-gp` was rerun. Sydney's is from a last end-to-end check, which reseeded its places and parks, rebuilt it and recalibrated it from the cache with no Mapbox requests: every figure came out the same, and the payload's raw JSON was the same length (65,289 B). The compressed size moves by tens to hundreds of bytes whenever the timestamps in `meta` change.
 - The headline (the share of residents within a limit of all six needs) is not computed in Phase 1. It runs in the browser in Phase 2, so no headline figure is stated yet.
 
 **Base rates.** How often the stored nearest place lies inside each band at all, on the same 180 held-out checks. It is also the agreement of a predictor that ignores distance and always answers "inside", so it is the baseline each agreement figure has to beat. Each city's are stored in `reach_calibration.checks.calibrationBaseline` and copied into its payload's `meta.completeness.checks`.

@@ -19,7 +19,9 @@ async function fetchPois(cityId: string): Promise<Poi[]> {
 }
 
 /**
- * The full POI set for a city — 1.2 MB for Berlin, 2.8 MB for Tokyo.
+ * The full POI set for a city, in the 17 displayed categories: about 2.6 MB of
+ * JSON for Berlin and 5.4 MB for Tokyo since the 2026-10-20 refetch (estimated
+ * from the committed place files, not measured on the API).
  *
  * Only the heatmap layer and its 300 m spotlight need it now that the isochrone
  * join runs in PostGIS, so it is fetched lazily when that layer is switched on.
