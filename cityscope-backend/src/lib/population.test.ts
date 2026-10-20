@@ -281,4 +281,55 @@ describe('cellsForOutline', () => {
     expect(cells.has(alexanderplatzCell)).toBe(true);
     expect(cells.has(latLngToCell(52.5, 13.5, H3_RESOLUTION))).toBe(true);
   });
+
+  // Merging New York's boroughs leaves two slivers with no area, only
+  // floating-point noise between their corners. H3 throws on them, but a shape
+  // with no area holds no cell centre, so they are left out.
+  it('leaves out a sliver with no area instead of failing on it', () => {
+    const square = [
+      [
+        [13.403, 52.518],
+        [13.407, 52.518],
+        [13.407, 52.522],
+        [13.403, 52.522],
+        [13.403, 52.518],
+      ],
+    ];
+    const sliverA = [
+      [
+        [-74.13640000000002, 40.545100000000026],
+        [-74.1364, 40.5451],
+        [-74.1364, 40.54509999999999],
+        [-74.13640000000002, 40.545100000000026],
+      ],
+    ];
+    const sliverB = [
+      [
+        [-74.0741, 40.578700000000005],
+        [-74.07409999999999, 40.5787],
+        [-74.0741, 40.5787],
+        [-74.0741, 40.578700000000005],
+      ],
+    ];
+
+    const withSlivers = cellsForOutline({ type: 'MultiPolygon', coordinates: [square, sliverA, sliverB] });
+    const without = cellsForOutline({ type: 'Polygon', coordinates: square });
+
+    expect(withSlivers).toEqual(without);
+    expect(withSlivers.size).toBeGreaterThan(0);
+  });
+
+  it('still fills a small shape that has area', () => {
+    // About 20 m on a side: far smaller than a cell, but a real shape.
+    const small = [
+      [
+        [13.405, 52.52],
+        [13.4053, 52.52],
+        [13.4053, 52.5202],
+        [13.405, 52.5202],
+        [13.405, 52.52],
+      ],
+    ];
+    expect(() => cellsForOutline({ type: 'Polygon', coordinates: small })).not.toThrow();
+  });
 });

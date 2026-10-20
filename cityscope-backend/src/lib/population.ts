@@ -89,7 +89,28 @@ export function pixelCentre(grid: RasterGrid, x: number, y: number): { lng: numb
   };
 }
 
-/** The cells whose centres lie inside an outline. */
+/**
+ * Below this, in square degrees (about a hundredth of a square metre), a ring
+ * encloses nothing but the floating-point noise between its corners.
+ */
+const NOISE_AREA_DEG2 = 1e-12;
+
+/** The area a ring encloses in square degrees: flat, which is plenty for telling noise from a shape. */
+function ringAreaDeg2(ring: readonly (readonly number[])[]): number {
+  let twice = 0;
+  for (let i = 0; i < ring.length - 1; i++) {
+    twice += ring[i][0] * ring[i + 1][1] - ring[i + 1][0] * ring[i][1];
+  }
+  return Math.abs(twice) / 2;
+}
+
+/**
+ * The cells whose centres lie inside an outline.
+ *
+ * Merging districts (ST_Union) can leave slivers with no area, only
+ * floating-point noise between their corners, and H3 throws on some of them.
+ * A shape with no area holds no cell centre, so those are left out.
+ */
 export function cellsForOutline(
   outline: PolygonGeometry | MultiPolygonGeometry,
   resolution: number = H3_RESOLUTION,
@@ -97,6 +118,7 @@ export function cellsForOutline(
   const polygons = outline.type === 'Polygon' ? [outline.coordinates] : outline.coordinates;
   const cells = new Set<string>();
   for (const rings of polygons) {
+    if (ringAreaDeg2(rings[0]) < NOISE_AREA_DEG2) continue;
     for (const cell of polygonToCells(rings, resolution, true)) cells.add(cell);
   }
   return cells;
