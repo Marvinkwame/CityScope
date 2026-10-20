@@ -18,6 +18,7 @@
     "reach:build": "tsx src/scripts/build-reach.ts",
     "reach:calibrate": "tsx src/scripts/calibrate-reach.ts",
     "reach:publish": "tsx src/scripts/publish-reach.ts",
+    "reach:check-gp": "tsx src/scripts/check-gp-coverage.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
