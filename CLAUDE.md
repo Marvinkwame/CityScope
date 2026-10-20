@@ -41,7 +41,7 @@ npm run fetch:parks -- <city>       # parks as shapes from Overpass -> data/park
 npm run seed:pois -- <city>         # replace one city's POIs
 npm run seed:parks -- <city>        # replace one city's parks
 npm run reach:build -- <city> [--ghsl <dir>] [--dry-run]   # H3 cells + GHSL residents + nearest place per need
-npm run reach:calibrate -- <city>   # fit metres-per-minute against Mapbox walking isochrones (needs MAPBOX_TOKEN)
+npm run reach:calibrate -- <city>   # fit metres-per-minute against Mapbox walking isochrones (cached in data/isochrones/<city>/; MAPBOX_TOKEN only for uncached cells)
 npm run reach:check-gp              # London only, no city argument: its OSM doctors vs NHS GP practices (reads data/nhs/epraccur.csv, calls postcodes.io); run after calibrate, before publish
 npm run reach:publish -- <city>     # compress the city's payload into reach_payloads
 ```

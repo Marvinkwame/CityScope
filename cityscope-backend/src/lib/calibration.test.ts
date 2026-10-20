@@ -7,6 +7,7 @@ import {
   CALIBRATION_SEED,
   agreement,
   agreementByBand,
+  baselineByBand,
   bootstrapK,
   cityPasses,
   coherentRange,
@@ -103,6 +104,62 @@ describe('agreementByBand', () => {
   it('reads a band with no observations as 0, so it cannot pass the bar', () => {
     const obs: Observation[] = [{ cell: 'a', need: 'sm', band: 10, metres: 680, inside: true }];
     expect(agreementByBand(obs, 68)).toEqual({ 5: 0, 10: 1, 15: 0, 20: 0 });
+  });
+});
+
+describe('baselineByBand', () => {
+  // Band 5: 1 of 4 inside. Band 10: 3 of 4. Band 15: all 4. Band 20: none observed.
+  function mixedObservations(): Observation[] {
+    const obs: Observation[] = [];
+    const inside: Record<5 | 10 | 15, boolean[]> = {
+      5: [true, false, false, false],
+      10: [true, true, true, false],
+      15: [true, true, true, true],
+    };
+    for (const band of [5, 10, 15] as const) {
+      inside[band].forEach((isInside, i) => {
+        obs.push({ cell: `cell-${i}`, need: 'sm', band, metres: 100 * (i + 1), inside: isInside });
+      });
+    }
+    return obs;
+  }
+
+  it('gives the share of each band whose place Mapbox puts inside', () => {
+    const baseline = baselineByBand(mixedObservations());
+    expect(baseline[5].insideShare).toBe(0.25);
+    expect(baseline[10].insideShare).toBe(0.75);
+    expect(baseline[15].insideShare).toBe(1);
+  });
+
+  it('gives the agreement a predictor that always says inside would score, which is that share', () => {
+    const obs = mixedObservations();
+    const baseline = baselineByBand(obs);
+    for (const band of BANDS) {
+      const inBand = obs.filter((o) => o.band === band);
+      // At an infinite k every place is predicted inside, even the none-found distance.
+      expect(baseline[band].alwaysInsideAgreement).toBe(agreement(inBand, Number.POSITIVE_INFINITY));
+      expect(baseline[band].alwaysInsideAgreement).toBe(baseline[band].insideShare);
+    }
+  });
+
+  it('reads a band with no observations as 0', () => {
+    expect(baselineByBand(mixedObservations())[20]).toEqual({ insideShare: 0, alwaysInsideAgreement: 0 });
+    expect(baselineByBand([])).toEqual({
+      5: { insideShare: 0, alwaysInsideAgreement: 0 },
+      10: { insideShare: 0, alwaysInsideAgreement: 0 },
+      15: { insideShare: 0, alwaysInsideAgreement: 0 },
+      20: { insideShare: 0, alwaysInsideAgreement: 0 },
+    });
+  });
+
+  it('does not depend on k: the base rate is a fact about the sample', () => {
+    const obs = perfectObservations();
+    expect(baselineByBand(obs)).toEqual({
+      5: { insideShare: 0.5, alwaysInsideAgreement: 0.5 },
+      10: { insideShare: 0.5, alwaysInsideAgreement: 0.5 },
+      15: { insideShare: 0.5, alwaysInsideAgreement: 0.5 },
+      20: { insideShare: 0.5, alwaysInsideAgreement: 0.5 },
+    });
   });
 });
 

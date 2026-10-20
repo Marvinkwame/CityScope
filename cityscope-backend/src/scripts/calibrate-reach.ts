@@ -13,17 +13,28 @@
 //    with k_fit fixed, so it is not graded on its own fit.
 // 4. The k that is published is fitted on all 60 cells, and the range around it
 //    is a bootstrap over all 60 cells, widened if need be to contain it.
-// 5. Stores the result in reach_calibration and drops the city's published
-//    payload, which was built without it.
+// 5. Reports each band's base rate beside its agreement: the share of held-out
+//    checks whose place is inside at all, which is what a predictor that always
+//    says "inside" would score.
+// 6. Stores the result in reach_calibration (the base rates go into `checks`,
+//    under calibrationBaseline) and drops the city's published payload, which
+//    was built without it.
 //
 // Whatever the agreement turns out to be is reported as it is; nothing here is
 // tuned to pass the bar.
 //
+// Mapbox's answers are cached on disk, one file per cell, in
+// cityscope-backend/data/isochrones/<cityId>/ (git-ignored; see
+// lib/isochroneCache.ts). Only the sampled cells without a cached answer are
+// requested, so a rerun on the same cells makes no requests at all.
+//
 // Usage: tsx src/scripts/calibrate-reach.ts <cityId>
-// Needs MAPBOX_TOKEN in the environment (or the dotenv file), and a city that
-// "npm run reach:build -- <cityId>" has already built. About 60 requests,
-// 250 ms apart.
+// Needs a city that "npm run reach:build -- <cityId>" has already built, and
+// MAPBOX_TOKEN in the environment (or the dotenv file) whenever a sampled cell
+// has no cached answer. At most 60 requests, 250 ms apart.
 
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { PoolClient } from 'pg';
 import { CITY_CONFIGS } from '../config/cities.js';
 import pool from '../db.js';
@@ -34,6 +45,7 @@ import {
   CALIBRATION_SAMPLE,
   CALIBRATION_SEED,
   agreementByBand,
+  baselineByBand,
   bootstrapK,
   cityPasses,
   coherentRange,
@@ -42,15 +54,25 @@ import {
   predictsInside,
   splitSample,
 } from '../lib/calibration.js';
-import type { Band, Observation } from '../lib/calibration.js';
+import type { Band, BandBaseline, Observation } from '../lib/calibration.js';
 import { announceTarget } from '../lib/dbTarget.js';
 import { isAreaGeometry } from '../lib/geometry.js';
 import type { ContourInput } from '../lib/geometry.js';
+import { readCachedIsochrone, writeCachedIsochrone } from '../lib/isochroneCache.js';
+import type { IsochroneRequest } from '../lib/isochroneCache.js';
 import { weightedSample } from '../lib/sampling.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// cityscope-backend/data/ is git-ignored.
+const CACHE_DIR = path.resolve(__dirname, '../../data/isochrones');
 
 const ISOCHRONE_URL = 'https://api.mapbox.com/isochrone/v1/mapbox/walking';
 const REQUEST_GAP_MS = 250;
 const WORST_CELLS_SHOWN = 10;
+
+/** Simplification off: by default Mapbox simplifies a 5-minute area to about 10 points. */
+const GENERALIZE = 0;
 
 interface Cell {
   h3: string;
@@ -162,12 +184,17 @@ function readContours(body: unknown): ContourInput[] {
   return BANDS.map((band) => byBand.get(band) as ContourInput);
 }
 
+/** What is asked of Mapbox for a cell: the same question on every run. */
+function isochroneRequest(cell: Cell): IsochroneRequest {
+  return { lng: cell.lng.toFixed(6), lat: cell.lat.toFixed(6), contoursMinutes: BANDS, generalize: GENERALIZE };
+}
+
 // The token is in the request URL, so the URL is never printed or put in an
-// error message.
-async function fetchContours(cell: Cell, token: string): Promise<ContourInput[]> {
+// error message. Returns the response body as it arrived, for the cache.
+async function fetchIsochrone(cell: Cell, request: IsochroneRequest, token: string): Promise<unknown> {
   const url =
-    `${ISOCHRONE_URL}/${cell.lng.toFixed(6)},${cell.lat.toFixed(6)}` +
-    `?contours_minutes=${BANDS.join(',')}&polygons=true&generalize=0` +
+    `${ISOCHRONE_URL}/${request.lng},${request.lat}` +
+    `?contours_minutes=${request.contoursMinutes.join(',')}&polygons=true&generalize=${request.generalize}` +
     `&access_token=${encodeURIComponent(token)}`;
 
   let response: Response;
@@ -181,13 +208,17 @@ async function fetchContours(cell: Cell, token: string): Promise<ContourInput[]>
     const detail = (await response.text().catch(() => '')).slice(0, 200);
     throw new Error(`Mapbox answered ${response.status} for cell ${cell.h3}${detail ? `: ${detail}` : ''}`);
   }
-  return readContours(await response.json());
+  const body: unknown = await response.json();
+  return body;
 }
 
+// The base rates go into `checks` under their own key, merged with `||`, so
+// the other keys there (London's GP check) survive a recalibration. $8 is the
+// base rates by band.
 const UPSERT_CALIBRATION_SQL = `
   INSERT INTO reach_calibration
-    (city_id, method, metres_per_minute, k_low, k_high, agreement, passing_stops, sample_size)
-  VALUES ($1, 'estimate', $2, $3, $4, $5::jsonb, $6::int[], $7)
+    (city_id, method, metres_per_minute, k_low, k_high, agreement, passing_stops, sample_size, checks)
+  VALUES ($1, 'estimate', $2, $3, $4, $5::jsonb, $6::int[], $7, jsonb_build_object('calibrationBaseline', $8::jsonb))
   ON CONFLICT (city_id) DO UPDATE SET
     method = EXCLUDED.method,
     metres_per_minute = EXCLUDED.metres_per_minute,
@@ -196,6 +227,7 @@ const UPSERT_CALIBRATION_SQL = `
     agreement = EXCLUDED.agreement,
     passing_stops = EXCLUDED.passing_stops,
     sample_size = EXCLUDED.sample_size,
+    checks = reach_calibration.checks || jsonb_build_object('calibrationBaseline', $8::jsonb),
     computed_at = now()
 `;
 
@@ -207,12 +239,14 @@ interface Calibration {
   kLow: number;
   kHigh: number;
   byBand: Record<Band, number>;
+  /** The held-out base rate of each band, to read the agreement against. */
+  baseline: Record<Band, BandBaseline>;
   stops: Band[];
   sampleSize: number;
 }
 
-// `checks` is left out of the update on purpose: a later step stores another
-// city's checks there, and a recalibration must not wipe them.
+// `checks` is merged, never replaced: reach:check-gp stores London's GP check
+// there, and a recalibration must not wipe it.
 async function storeCalibration(client: PoolClient, cityId: string, result: Calibration): Promise<void> {
   await client.query('BEGIN');
   try {
@@ -224,6 +258,7 @@ async function storeCalibration(client: PoolClient, cityId: string, result: Cali
       JSON.stringify(result.byBand),
       result.stops,
       result.sampleSize,
+      JSON.stringify(result.baseline),
     ]);
     // The published payload was built without this calibration.
     await client.query('DELETE FROM reach_payloads WHERE city_id = $1', [cityId]);
@@ -245,7 +280,7 @@ function printReport(
   heldOut: readonly Observation[],
   heldOutCells: readonly Cell[],
 ): void {
-  const { kFit, k, kLow, kHigh, byBand, stops } = result;
+  const { kFit, k, kLow, kHigh, byBand, baseline, stops } = result;
 
   console.log('');
   console.log(`${cityName}: walking estimate = straight-line metres / k`);
@@ -255,12 +290,15 @@ function printReport(
       `bootstrap range ${kLow}-${kHigh}, ${BOOTSTRAP_ROUNDS} rounds)`,
   );
   console.log('');
-  console.log(`Agreement at k_fit on the ${heldOutCells.length} held-out cells (bar ${AGREEMENT_BAR}):`);
+  console.log(`Agreement at k_fit on the ${heldOutCells.length} held-out cells (bar ${AGREEMENT_BAR}),`);
+  console.log('beside the base rate: the share inside at all, which always answering "inside" would score:');
   for (const band of BANDS) {
     const checks = heldOut.filter((o) => o.band === band).length;
+    const { insideShare, alwaysInsideAgreement } = baseline[band];
     console.log(
       `  ${pad(`${band} min`, 8)}${byBand[band].toFixed(3)}  ${pad(`(${checks} checks)`, 14)}` +
-        `${stops.includes(band) ? 'pass' : 'fail'}`,
+        `${pad(stops.includes(band) ? 'pass' : 'fail', 6)}` +
+        `base rate ${insideShare.toFixed(3)} (always inside agrees ${alwaysInsideAgreement.toFixed(3)})`,
     );
   }
   console.log('');
@@ -315,10 +353,7 @@ async function main(): Promise<void> {
   // This script writes, so it names its target before connecting.
   announceTarget();
 
-  const token = process.env.MAPBOX_TOKEN?.trim();
-  if (!token) {
-    throw new Error('Set MAPBOX_TOKEN in the environment (or the dotenv file) to request isochrones');
-  }
+  const token = process.env.MAPBOX_TOKEN?.trim() ?? '';
 
   const client = await pool.connect();
   try {
@@ -343,17 +378,53 @@ async function main(): Promise<void> {
     const { heldOut: heldOutCells } = splitSample(sample);
     const heldOutH3 = new Set(heldOutCells.map((c) => c.h3));
 
+    // Which sampled cells already have Mapbox's answer on disk. The token is
+    // only needed for the rest.
+    const cacheDir = path.join(CACHE_DIR, city.id);
+    const cached = new Map<string, unknown>();
+    for (const cell of sample) {
+      const response = readCachedIsochrone(CACHE_DIR, city.id, cell.h3, isochroneRequest(cell));
+      if (response !== null) cached.set(cell.h3, response);
+    }
+    const toRequest = sample.length - cached.size;
+    console.log(`Mapbox cache (${cacheDir}): ${cached.size} of ${sample.length} cells cached, ${toRequest} to request`);
+    if (toRequest > 0 && !token) {
+      throw new Error(
+        `Set MAPBOX_TOKEN in the environment (or the dotenv file): ${toRequest} sampled cells have no cached isochrone`,
+      );
+    }
+
     const allObs: Observation[] = [];
     const fitObs: Observation[] = [];
     const heldOutObs: Observation[] = [];
     let lastRequestAt = -Infinity;
+    let requests = 0;
 
     for (const [i, cell] of sample.entries()) {
-      const wait = REQUEST_GAP_MS - (performance.now() - lastRequestAt);
-      if (wait > 0) await sleep(wait);
-      lastRequestAt = performance.now();
+      const request = isochroneRequest(cell);
+      const fromCache = cached.has(cell.h3);
+      let contours: ContourInput[];
+      if (fromCache) {
+        try {
+          contours = readContours(cached.get(cell.h3));
+        } catch (err) {
+          throw new Error(
+            `${err instanceof Error ? err.message : String(err)} (cached for cell ${cell.h3} in ${cacheDir}; ` +
+              'delete that file and run again)',
+          );
+        }
+      } else {
+        const wait = REQUEST_GAP_MS - (performance.now() - lastRequestAt);
+        if (wait > 0) await sleep(wait);
+        lastRequestAt = performance.now();
 
-      const contours = await fetchContours(cell, token);
+        const response = await fetchIsochrone(cell, request, token);
+        requests++;
+        // Checked before it is kept, so the cache only ever holds usable answers.
+        contours = readContours(response);
+        writeCachedIsochrone(CACHE_DIR, city.id, cell.h3, request, response, new Date().toISOString());
+      }
+
       const observations = await observationsForCell(client, city.id, cell.h3, contours);
       const isHeldOut = heldOutH3.has(cell.h3);
       allObs.push(...observations);
@@ -361,9 +432,12 @@ async function main(): Promise<void> {
 
       console.log(
         `  ${String(i + 1).padStart(2)}/${sample.length} ${cell.h3} ` +
-          `${isHeldOut ? 'held out' : 'fit'}: ${observations.length} checks`,
+          `${isHeldOut ? 'held out' : 'fit'}: ${observations.length} checks (${fromCache ? 'cached' : 'Mapbox'})`,
       );
     }
+    console.log(
+      `Mapbox cache: ${cached.size} hits, ${sample.length - cached.size} misses; ${requests} Mapbox requests made`,
+    );
 
     if (fitObs.length === 0 || heldOutObs.length === 0) {
       throw new Error(`${city.id}: the sampled cells have no nearest places to check; run reach:build -- ${city.id} again`);
@@ -390,6 +464,7 @@ async function main(): Promise<void> {
       kLow,
       kHigh,
       byBand,
+      baseline: baselineByBand(heldOutObs),
       stops: passingStops(byBand),
       sampleSize: sample.length,
     };

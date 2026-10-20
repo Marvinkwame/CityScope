@@ -113,6 +113,36 @@ export function agreementByBand(obs: readonly Observation[], k: number): Record<
   return result;
 }
 
+/** What a band's agreement has to beat to say anything: how often the place is inside at all. */
+export interface BandBaseline {
+  /** The share of the band's observations whose place Mapbox puts inside the isochrone. */
+  insideShare: number;
+  /**
+   * The agreement of a predictor that always says "inside", whatever the
+   * distance. It equals insideShare, and is stored beside it so the comparison
+   * with the estimate's agreement can be read without working it out.
+   */
+  alwaysInsideAgreement: number;
+}
+
+/**
+ * The base rate of each band. In a dense city nearly every need is inside 15
+ * and 20 minutes, so a high agreement there can be little better than always
+ * answering "inside"; this says how much better it is. It does not depend on
+ * k. A band with no observations reads as 0, as in agreementByBand.
+ */
+export function baselineByBand(obs: readonly Observation[]): Record<Band, BandBaseline> {
+  const empty = (): BandBaseline => ({ insideShare: 0, alwaysInsideAgreement: 0 });
+  const result: Record<Band, BandBaseline> = { 5: empty(), 10: empty(), 15: empty(), 20: empty() };
+  for (const band of BANDS) {
+    const inBand = obs.filter((o) => o.band === band);
+    if (inBand.length === 0) continue;
+    const share = inBand.filter((o) => o.inside).length / inBand.length;
+    result[band] = { insideShare: share, alwaysInsideAgreement: share };
+  }
+  return result;
+}
+
 /**
  * The range k could plausibly take, by bootstrap. The unit resampled is the
  * cell, not the observation: a cell's observations share one place in the
