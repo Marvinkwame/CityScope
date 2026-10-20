@@ -129,7 +129,7 @@ City-scoped routes (`:cityId` e.g. `berlin`):
 | GET  | `/api/cities/:cityId/pois` | POI records for a city |
 | POST | `/api/cities/:cityId/pois/within` | Count POIs inside a drawn polygon (`ST_Within`) |
 | GET  | `/api/cities/:cityId/reach` | Everyday reach for a whole city: one precomputed GeoJSON of populated H3 blocks with their estimated residents and distance to the nearest of six everyday needs. Brotli-compressed when the client accepts it, with an `ETag` (`304` when unchanged); `404` until the city has been published |
-| GET  | `/api/cities/:cityId/reach/:cellId` | One block's residents and, for each need, its nearest place (name, category, coordinates, metres, estimated minutes). `400` for a malformed cell id, `404` for an unknown cell |
+| GET  | `/api/cities/:cityId/reach/:cellId` | One block's residents and, for each need, its nearest place (name, category, coordinates, metres, estimated minutes rounded up, so they agree with the map's colour). `400` for a malformed cell id, `404` for an unknown cell |
 
 The two reach endpoints are the data layer for Everyday reach; the map layer that reads them is not built yet. The data has been built and checked for all eight cities on a local database, but it has not been loaded into the deployed API yet.
 

@@ -227,7 +227,10 @@ export interface CellCard {
 /**
  * Lays one cell's nearest places out as a card, in NEEDS order whatever order
  * the rows arrive in. Minutes are the same estimate the map uses: straight-line
- * metres divided by k, rounded to a whole minute.
+ * metres divided by k, rounded up to a whole minute. The map counts a place as
+ * within a limit of T minutes when metres / k <= T, and for a whole number T
+ * that holds exactly when the rounded-up minutes are at most T, so the card
+ * never shows 15 minutes for a place the map puts outside 15.
  */
 export function shapeCellCard(
   cell: string,
@@ -253,7 +256,7 @@ export function shapeCellCard(
         lng: row.lng,
         lat: row.lat,
         metres: row.metres,
-        minutes: Math.round(row.metres / metresPerMinute),
+        minutes: Math.ceil(row.metres / metresPerMinute),
       };
     }),
   };

@@ -654,7 +654,7 @@ export function isH3CellId(value: string): boolean;  // /^89[0-9a-f]{13}$/  (res
 // reachPayload.ts
 export interface CardRow { need: NeedId; metres: number; name: string | null; category: string; lng: number; lat: number }
 export interface CellCard { cell: string; residents: number; metresPerMinute: number; needs: { need: NeedId; name: string | null; category: string | null; lng: number | null; lat: number | null; metres: number | null; minutes: number | null }[] }
-export function shapeCellCard(cell: string, residents: number, rows: readonly CardRow[], metresPerMinute: number): CellCard; // NEEDS order; minutes = Math.round(metres / k); missing need → all null
+export function shapeCellCard(cell: string, residents: number, rows: readonly CardRow[], metresPerMinute: number): CellCard; // NEEDS order; minutes = Math.ceil(metres / k), rounded up to agree with the map's metres / k ≤ T; missing need → all null
 ```
 
 **Routes:**
@@ -680,7 +680,7 @@ export function shapeCellCard(cell: string, residents: number, rows: readonly Ca
   - **`isH3CellId`:**
     - true for `'891f1d48947ffff'`;
     - false for `'881f1d4895fffff'` (resolution 8), `'891F1D48947FFFF'`, `'891f1d48947fff'`, `'891f1d48947ffffa'` and `'../etc/passwd'`.
-  - **`shapeCellCard`:** needs come out in `NEEDS` order, `minutes = Math.round(612 / 68)` is `9`, and a missing `st` gives a row with all-null values.
+  - **`shapeCellCard`:** needs come out in `NEEDS` order, `minutes = Math.ceil(612 / 68)` is `9` (exactly 9.0), 1010 m at k 66.5 is `16` (15.19 minutes must not read as 15), and a missing `st` gives a row with all-null values.
 - [ ] **Step 2: Run** `npx vitest run src/lib/reachHttp.test.ts src/lib/reachPayload.test.ts`. Expected: FAIL.
 - [ ] **Step 3: Implement** the helpers, `shapeCellCard` and the router.
 - [ ] **Step 4: Run** `npx vitest run && npx tsc --noEmit && npm run typecheck:scripts`. Expected: PASS.

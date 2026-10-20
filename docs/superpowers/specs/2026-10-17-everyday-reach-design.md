@@ -187,7 +187,7 @@ Each city is fetched over its district outline's extent plus a **2 km margin** o
 **`GET /api/cities/:cityId/reach/:cellId`**
 
 - Checks that `cellId` is a 15-character hexadecimal H3 id.
-- Returns the cell's residents and, for each need, the stored nearest place: name, category, coordinates, metres and minutes.
+- Returns the cell's residents and, for each need, the stored nearest place: name, category, coordinates, metres and minutes. Minutes are `Math.ceil(metres / k)`, rounded up: the map counts a place as within T minutes when `metres / k ≤ T`, and for a whole number T that holds exactly when the rounded-up minutes are at most T, so the card never contradicts the colour.
 - Returns `404` for an unknown cell.
 
 ### Phase 1 tests (Vitest, pure logic)

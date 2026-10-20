@@ -227,16 +227,32 @@ describe('shapeCellCard', () => {
       lng: 13.4,
       lat: 52.51,
       metres: 612,
-      minutes: Math.round(612 / 68),
+      minutes: 9,
     });
-    expect(sm.minutes).toBe(9);
+  });
+
+  // The map colours a block as within T minutes when metres / k <= T. For a
+  // whole-minute limit T, ceil(metres / k) <= T says exactly the same, so the
+  // card rounds up: 15.19 minutes must not read as 15 on a block the map
+  // shows as outside 15 minutes.
+  it('rounds minutes up, so the card never contradicts the map', () => {
+    const rows: CardRow[] = [{ need: 'sm', metres: 1010, name: 'Edge Market', category: 'supermarket', lng: 0, lat: 0 }];
+    const sm = shapeCellCard('891f1d48947ffff', 120, rows, 66.5).needs[0];
+    expect(1010 / 66.5).toBeGreaterThan(15);
+    expect(sm.minutes).toBe(16);
+  });
+
+  it('keeps an exact whole minute as it is', () => {
+    const rows: CardRow[] = [{ need: 'sm', metres: 0, name: 'Next Door', category: 'supermarket', lng: 0, lat: 0 }];
+    expect(shapeCellCard('891f1d48947ffff', 120, rows, 66.5).needs[0].minutes).toBe(0);
+    expect(shapeCellCard('891f1d48947ffff', 120, ROWS, 68).needs[0].minutes).toBe(9);
   });
 
   it('keeps an unnamed place as a null name', () => {
     const pk = shapeCellCard('891f1d48947ffff', 120, ROWS, 68).needs[4];
     expect(pk.name).toBeNull();
     expect(pk.category).toBe('park');
-    expect(pk.minutes).toBe(1);
+    expect(pk.minutes).toBe(2);
   });
 
   it('gives a need with no row all-null values', () => {
