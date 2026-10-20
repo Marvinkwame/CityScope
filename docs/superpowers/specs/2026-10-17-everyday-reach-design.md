@@ -207,6 +207,42 @@ Each city is fetched over its district outline's extent plus a **2 km margin** o
 - The agreement table, data checks and payload sizes are measured and recorded. London's target is **450 KB or less** compressed.
 - The backend tests, type check and frontend suite pass.
 
+## Amendments while building Phase 1
+
+Decisions made while building `reach/data-and-api`. Where one of them differs from the text above, this section wins.
+
+### Places and categories
+
+- **`healthcare=doctor` is stored as `doctors`.** The spec's need table listed `doctors`, `doctor` and `clinic`; storing both spellings would show two "Doctor" rows in every category list. The `dr` need therefore covers `doctors` and `clinic`.
+- **The 300 m heatmap spotlight lists all 17 displayed categories** (the 19 minus tram stops and metro entrances), including pharmacies, schools and stations. Only the heatmap itself stays on the original 11, because a nearby pharmacy or station is useful in a "what's within 300 m" card and the heatmap's meaning and brightness tuning are what needed protecting.
+- **`NONE_FOUND_METRES` (65535) marks a need with no place in a city's data.** Properties have to be plain numbers for Mapbox expressions, so a missing place is written as 65535 m, which lies outside every walking band, rather than left out. Real distances are capped at 65534 so they can never be mistaken for it.
+
+### Fetching
+
+- **Fetch boxes are the union of each city's old bounds and its district outline plus 2 km.** The outline plus a margin alone would shrink some downloads: Sydney's old box is much wider than its 33 districts, and its heatmap would have lost coverage. With the union, no city's download shrinks.
+- **`osmtogeojson` assembled multipolygon parks from Overpass `out geom` directly.** No query change was needed, such as a second pass to fetch member ways.
+
+### Population
+
+- **A pixel counts towards the H3 cell its centre falls in, and only cells whose centres lie inside the outline are kept.** This gives the cells the outline covers without testing every pixel against it, which would be hundreds of thousands of point-in-polygon tests for one city.
+- **GHSL tile numbering follows the files' georeferencing.** Tile rows and columns are anchored at 89.0996° N and 180.0079° W, not at round 10° lines, so a tile edge sits 0.9004° south of a round latitude. The nominal formula would pick the wrong tile for a box just south of one.
+
+### Calibration and publishing
+
+- **The 60 sampled cells are split by alternation, not first and last 30.** The sampler returns cells in descending-key order, which favours the more populous cells at the front, so a first/last split would give the fit half the heavier cells. Alternating (fit, held out, fit, …) makes both halves span the same range of population.
+- **The published `k` is fitted on all 60 cells; held-out agreement is measured at the fit-half `k`.** The agreement figures are therefore from a slightly different fit than the published `k`, and the method note says so.
+- **The bootstrap range is widened to include the published `k` if it falls outside.** A `k` fitted on 60 cells can land just outside the 5th to 95th percentile of 200 refits, and a headline must always sit inside its own range.
+- **Publishing is its own script.** `reach:publish` builds and stores the payload, instead of `reach:build` doing it once calibration exists. `reach:build` clears the city's calibration and payload, and `reach:calibrate` clears its payload, so the order is always build, calibrate, publish.
+- **`reach:build --dry-run` runs in a read-only transaction and writes nothing.** It counts the city's residents so the outline and population path can be checked on real data, even against production, with no risk.
+
+### Safety
+
+- **Writing scripts refuse to run unless `CITYSCOPE_DB_TARGET` names the target.** A run against production should never be a silent accident. The guard covers `migrate`, `seed-pois`, `seed-parks`, `build-reach` (except `--dry-run`), `calibrate-reach` and `publish-reach`, and `seed:all` and `seed-cities` too. `seed.ts` follows once `fix/district-outlines`, which rewrites it, is merged.
+
+### Measured results
+
+To be recorded after the full eight-city run (Task 13).
+
 ## Phase 2 — Interface (`reach/interface`)
 
 ### First task: measure recolouring speed

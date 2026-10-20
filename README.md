@@ -64,7 +64,7 @@ Responsive down to a mobile bottom-sheet layout.
 ```bash
 cd cityscope-backend
 npm install
-cp .env.example .env          # set DATABASE_URL, PORT=3001, CORS_ORIGIN
+cp .env.example .env          # set DATABASE_URL, PORT=3001, CORS_ORIGIN, CITYSCOPE_DB_TARGET=local
 
 # schema + data
 npm run seed:cities                     # seed the 8 city records
@@ -74,7 +74,29 @@ npm run seed:all                        # load districts + POIs into the DB
 
 npm run dev                   # http://localhost:3001
 ```
-> The repo ships pre-fetched `pois-data-*.json` for all cities, so you can skip `fetch:pois` and go straight to `seed:all`.
+> The repo ships pre-fetched `pois-data-*.json` for all cities, so you can skip `fetch:pois` and go straight to `seed:all`. Files fetched before the everyday-needs categories were added hold only the original 11 of the 19 categories, and the reach data below needs all 19, so fetch again for that.
+
+**`CITYSCOPE_DB_TARGET`.** The scripts that write to a database (`migrate`, `seed:cities`, `seed:pois`, `seed:parks`, `seed:all`, `reach:build`, `reach:calibrate`, `reach:publish`) refuse to run unless this names the database they are about to change, for example `local`, and they print it with the database host before connecting. It is set per run (or in `.env`), so a command aimed at the wrong database is never a silent accident. `reach:build --dry-run` writes nothing and doesn't need it.
+
+#### Everyday reach data (optional)
+
+The two `/reach` endpoints serve data built ahead of time, one city at a time. For each populated block (an H3 hexagon at resolution 9) it holds the estimated residents and the straight-line distance to the nearest supermarket, pharmacy, doctor, school, park and station. To build a city, with `CITYSCOPE_DB_TARGET` set:
+
+```bash
+npm run migrate -- 004-everyday-reach.sql   # once: reach tables + a geography index on pois
+npm run fetch:pois  -- berlin       # places, 19 categories, over the city's fetch box
+npm run fetch:parks -- berlin       # parks as shapes -> data/parks-berlin.json
+npm run seed:pois   -- berlin       # replace the city's places
+npm run seed:parks  -- berlin       # replace the city's parks
+npm run reach:build -- berlin       # cells, residents, nearest place per need
+npm run reach:calibrate -- berlin   # fit the walking estimate against Mapbox
+npm run reach:publish -- berlin     # compress the result into the one payload the API serves
+```
+
+- `reach:build` reads GHSL population tiles from `cityscope-backend/data/ghsl/` (or `--ghsl <dir>`). Download the 2025 epoch, 3-arcsecond, WGS84 tiles of GHS-POP R2023A (`GHS_POP_E2025_GLOBE_R2023A_4326_3ss`) that cover the city and unzip the `.tif` files there. `data/` is git-ignored.
+- `npm run reach:build -- berlin --dry-run` counts the city's residents in a read-only transaction and writes nothing.
+- `reach:calibrate` makes about 60 Mapbox isochrone requests per city and needs `MAPBOX_TOKEN` in `.env`: a token used only by scripts, never the frontend's public one.
+- **Rebuild after every place reload.** `reach_nearest` stores place ids, and reloading a city's places (`seed:pois`, `seed:parks`) gives every place a new id. After a reload, run `reach:build`, `reach:calibrate` and `reach:publish` again for that city. `reach:build` clears the city's calibration and payload, so its reach endpoints answer 404 until all three have run.
 
 ### 2. Frontend
 ```bash
@@ -102,14 +124,22 @@ City-scoped routes (`:cityId` e.g. `berlin`):
 | GET  | `/api/cities/:cityId/districts/:id/stats` | Live district statistics (PostGIS) |
 | GET  | `/api/cities/:cityId/pois` | POI records for a city |
 | POST | `/api/cities/:cityId/pois/within` | Count POIs inside a drawn polygon (`ST_Within`) |
+| GET  | `/api/cities/:cityId/reach` | Everyday reach for a whole city: one precomputed GeoJSON of populated H3 blocks with their estimated residents and distance to the nearest of six everyday needs. Sent Brotli-compressed with an `ETag` (`304` when unchanged); `404` until the city has been published |
+| GET  | `/api/cities/:cityId/reach/:cellId` | One block's residents and, for each need, its nearest place (name, category, coordinates, metres, estimated minutes). `400` for a malformed cell id, `404` for an unknown cell |
+
+The two reach endpoints are the data layer for Everyday reach; the map layer that reads them is not built yet.
 
 ---
 
 ## Data & honesty note
 
-POIs are real OpenStreetMap data fetched via Overpass for a fixed set of 11 categories (food & drink, culture, leisure, retail) within each city's bounding box. Counts are complete **for those categories within that bbox** — not every POI type, and the bbox is a rectangle rather than an exact administrative boundary.
+POIs are real OpenStreetMap data fetched via Overpass for a fixed set of **19 categories**: the original 11 (food & drink, culture, leisure, retail) plus the everyday needs (pharmacies, doctors and clinics, schools, rail stations and halts, tram stops and metro entrances). Two of the 19, tram stops and metro entrances, only measure the station need in Everyday reach; place lists, district statistics and drawn-area results leave them out, and the heatmap still draws only the original 11. Counts are complete **for those categories within each city's fetch box**: the extent of its district outline plus 2 km on every side (never smaller than the city's earlier bounds), so places just across the boundary count for the blocks beside it. It is not every POI type, and the box is a rectangle rather than an exact administrative boundary.
 
-Both point features and area features are included; an area such as a park or a museum building is represented by its centre point, so a distance to a large park is measured to its middle, not its nearest edge. Categories match exact OSM tag values (so `amenity=pub` counts, `amenity=public_bookcase` does not). Roughly 0.3% of rows are places mapped twice in OSM itself; they are kept rather than merged by a distance heuristic, which would also merge genuine neighbouring chain outlets.
+Both point features and area features are included; an area such as a park or a museum building is represented by its centre point, so a distance to a large park is measured to its middle, not its nearest edge. Everyday reach treats parks differently: they are also stored as shapes (a `parks` table, with multipolygon relations assembled by `osmtogeojson`), and the park need counts only parks of at least 0.5 ha (5,000 m²), measured to the nearest edge. Categories match exact OSM tag values (so `amenity=pub` counts, `amenity=public_bookcase` does not). Roughly 0.3% of rows are places mapped twice in OSM itself; they are kept rather than merged by a distance heuristic, which would also merge genuine neighbouring chain outlets.
+
+**Residents and walking times in Everyday reach are estimates.** Residents come from the GHSL population grid (2025 epoch, 3-arcsecond tiles), a modelled grid rather than a census, added up into H3 resolution-9 hexagons. A walk is estimated as straight-line distance divided by a per-city metres-per-minute figure, fitted against Mapbox walking isochrones (5, 10, 15 and 20 minutes) on a sample of 60 blocks per city. A time limit passes for a city only if the estimate agrees with Mapbox on at least 80% of a held-out half of that sample, and the payload records which ones passed. Each city's measured agreement will be added here after the full eight-city run.
+
+Population data: Schiavina, Freire, Carioli, MacManus (2023), *GHS-POP R2023A*, European Commission, Joint Research Centre (JRC), doi:[10.2905/2FF68A52-5B5B-4A22-8F40-C41DA8332CFE](https://doi.org/10.2905/2FF68A52-5B5B-4A22-8F40-C41DA8332CFE), licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
 ---
 
