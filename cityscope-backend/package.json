@@ -39,5 +39,10 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.8"
+  },
+  "overrides": {
+    "osmtogeojson": {
+      "@xmldom/xmldom": "0.8.15"
+    }
   }
 }
