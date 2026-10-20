@@ -253,39 +253,55 @@ Phase 1 was built and checked against a throwaway local PostgreSQL 18.1 / PostGI
 
 ### Measured results
 
-Measured on 2026-10-20 on `reach/data-and-api`: all eight cities were fetched, seeded, built, calibrated and published in one sequence on the local stand-in database above, then both endpoints were checked in-process against it. **Every city passes the 80% bar at all four time limits.**
+Measured on 2026-10-20 on `reach/data-and-api`: all eight cities were fetched, seeded, built, calibrated and published in one sequence on the local stand-in database above, then both endpoints were checked in-process against it. After the final review, the same day, calibration and publishing were rerun for all eight cities on the unchanged cells: Mapbox's 480 answers, now cached on disk, gave identical `k`, ranges and agreement, and the base rates below come from that rerun. **Every city passes the 80% bar at all four time limits, but at 15 and 20 minutes that says little (see "Base rates").**
 
-Agreement is the share of the 180 checks per limit (30 held-out cells × 6 needs) where the estimate agrees with Mapbox's walking isochrone, graded at the fit half's `k` (Amsterdam 67.5, Berlin 57.5, London 67, Munich 64.5, New York 67.5, Paris 65.5, Sydney 69.5, Tokyo 63.5 m/min). The published `k` is fitted on all 60 sampled cells, and no city's bootstrap range had to be widened. Residents are GHSL estimates (2025 epoch). KB in this section means 1,000 bytes.
+Agreement is the share of the 180 checks per limit (30 held-out cells × 6 needs) where the estimate agrees with Mapbox's walking isochrone. It is graded at the fit half's `k` (Amsterdam 67.5, Berlin 57.5, London 67, Munich 64.5, New York 67.5, Paris 65.5, Sydney 69.5, Tokyo 63.5 m/min), **not at the published `k`**, which is fitted on all 60 sampled cells: the agreement figures describe a slightly different fit from the `k` each payload carries. No city's bootstrap range had to be widened. Residents are GHSL estimates (2025 epoch). KB in this section means 1,000 bytes.
 
 | City | Populated cells | Est. residents | k, m/min (range) | 5 min | 10 min | 15 min | 20 min | Stops passed | Passes | Payload, Brotli |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Amsterdam | 2,216 | 888,663 | 69.5 (62–70.5) | 93.3% | 95.6% | 98.9% | 98.9% | 5, 10, 15, 20 | yes | 82,258 B |
-| Berlin | 7,869 | 3,624,966 | 62.5 (57–68) | 87.8% | 93.3% | 94.4% | 96.7% | 5, 10, 15, 20 | yes | 291,214 B |
-| London | 15,838 | 9,779,311 | 66.5 (59.5–70) | 91.7% | 94.4% | 97.2% | 98.9% | 5, 10, 15, 20 | yes | 582,863 B |
-| Munich | 2,607 | 1,533,885 | 65 (61–69) | 91.7% | 93.3% | 97.8% | 99.4% | 5, 10, 15, 20 | yes | 97,217 B |
-| New York | 6,354 | 8,416,530 | 69 (67–77) | 90.6% | 97.2% | 95.6% | 99.4% | 5, 10, 15, 20 | yes | 239,729 B |
-| Paris | 1,089 | 2,250,792 | 68.5 (65–73.5) | 91.1% | 99.4% | 99.4% | 100.0% | 5, 10, 15, 20 | yes | 39,922 B |
-| Sydney | 200 | 282,756 | 69.5 (59.5–73.5) | 91.7% | 95.6% | 99.4% | 100.0% | 5, 10, 15, 20 | yes | 8,175 B |
-| Tokyo | 6,252 | 9,059,277 | 65 (63.5–75) | 85.0% | 93.3% | 97.8% | 98.9% | 5, 10, 15, 20 | yes | 228,517 B |
+| Amsterdam | 2,216 | 888,663 | 69.5 (62–70.5) | 93.3% | 95.6% | 98.9% | 98.9% | 5, 10, 15, 20 | yes | 82,486 B |
+| Berlin | 7,869 | 3,624,966 | 62.5 (57–68) | 87.8% | 93.3% | 94.4% | 96.7% | 5, 10, 15, 20 | yes | 291,630 B |
+| London | 15,838 | 9,779,311 | 66.5 (59.5–70) | 91.7% | 94.4% | 97.2% | 98.9% | 5, 10, 15, 20 | yes | 583,036 B |
+| Munich | 2,607 | 1,533,885 | 65 (61–69) | 91.7% | 93.3% | 97.8% | 99.4% | 5, 10, 15, 20 | yes | 97,477 B |
+| New York | 6,354 | 8,416,530 | 69 (67–77) | 90.6% | 97.2% | 95.6% | 99.4% | 5, 10, 15, 20 | yes | 238,855 B |
+| Paris | 1,089 | 2,250,792 | 68.5 (65–73.5) | 91.1% | 99.4% | 99.4% | 100.0% | 5, 10, 15, 20 | yes | 40,124 B |
+| Sydney | 200 | 282,756 | 69.5 (59.5–73.5) | 91.7% | 95.6% | 99.4% | 100.0% | 5, 10, 15, 20 | yes | 8,360 B |
+| Tokyo | 6,252 | 9,059,277 | 65 (63.5–75) | 85.0% | 93.3% | 97.8% | 98.9% | 5, 10, 15, 20 | yes | 228,699 B |
 
 - The lowest single figure is Tokyo's 5-minute limit (85.0%), then Berlin's (87.8%). The 5-minute limit has the lowest agreement in every city.
-- London's payload is the one measured after the GP check was stored in it (582,992 B before). The other seven are as published.
+- Payload sizes are from the rerun, whose `meta` also carries the base rates, the source dates and each need's categories; each is within 1 KB of the first publish. London's is the one published after `reach:check-gp` was rerun.
 - The headline (the share of residents within a limit of all six needs) is not computed in Phase 1. It runs in the browser in Phase 2, so no headline figure is stated yet.
+
+**Base rates.** How often the stored nearest place lies inside each band at all, on the same 180 held-out checks. It is also the agreement of a predictor that ignores distance and always answers "inside", so it is the baseline each agreement figure has to beat. Each city's are stored in `reach_calibration.checks.calibrationBaseline` and copied into its payload's `meta.completeness.checks`.
+
+| City | 5 min | 10 min | 15 min | 20 min |
+|---|---|---|---|---|
+| Amsterdam | 56.1% | 79.4% | 87.2% | 89.4% |
+| Berlin | 43.9% | 78.3% | 90.6% | 97.8% |
+| London | 47.8% | 83.9% | 93.9% | 98.9% |
+| Munich | 48.9% | 82.8% | 91.7% | 95.0% |
+| New York | 45.6% | 80.6% | 90.6% | 95.6% |
+| Paris | 76.1% | 98.3% | 99.4% | 100.0% |
+| Sydney | 59.4% | 91.1% | 97.8% | 99.4% |
+| Tokyo | 53.9% | 83.3% | 95.6% | 97.8% |
+
+- **At 15 and 20 minutes the agreement is close to the always-inside baseline in the dense cities.** At 20 minutes it equals it in London (98.9%) and Paris (100%), and falls 1.1 points below it in Berlin (96.7% against 97.8%). At 15 minutes it is within 4 points of it everywhere except Amsterdam (+11.7), Munich (+6.1) and New York (+5.0), and Paris gains nothing (99.4% both). Always answering "inside" would clear the 80% bar at 15 minutes in every city, so passing at 15 and 20 minutes shows little on its own.
+- **The 5-minute band is the informative one.** About half the places are inside it (44–61%, Paris 76%), so neither always answering "inside" nor always "outside" scores more than 56.1% in any city except Sydney (59.4%) and Paris (76.1%), while the estimate scores 85.0–93.3%. At 10 minutes the estimate is 1.1 (Paris) to 16.7 (New York) points above the base rate, and always-inside would fail the bar only in Amsterdam (79.4%) and Berlin (78.3%).
 
 **Places per 100,000 residents, per need** (from each payload's `meta.completeness.perHundredThousand`):
 
 | City | Supermarket | Pharmacy | Doctor | School | Park | Station |
 |---|---|---|---|---|---|---|
-| Amsterdam | 29 | 10.2 | 20.8 | 40.8 | 14.3 | 59.3 |
-| Berlin | 37.9 | 18.6 | 49.9 | 29.9 | 35.7 | 53.7 |
-| London | 13 | 13.2 | 16.3 | 33.3 | 16 | 13 |
-| Munich | 35.9 | 19 | 65 | 28.8 | 26.9 | 63 |
-| New York | 13.4 | 13.4 | 18.9 | 28.6 | 8.4 | 30.7 |
-| Paris | 22.5 | 38.7 | 25.8 | 55.6 | 8.2 | 61 |
-| Sydney | 31.8 | 22.3 | 19.8 | 15.9 | 26.9 | 44.9 |
-| Tokyo | 21.1 | 26 | 26.5 | 21.8 | 7.7 | 23.4 |
+| Amsterdam | 29 | 10.2 | 20.8 | 40.8 | 14.3 | 5.2 |
+| Berlin | 37.9 | 18.6 | 49.9 | 29.9 | 35.7 | 9.6 |
+| London | 13 | 13.2 | 16.3 | 33.3 | 16 | 6.3 |
+| Munich | 35.9 | 19 | 65 | 28.8 | 26.9 | 8.5 |
+| New York | 13.4 | 13.4 | 18.9 | 28.6 | 8.4 | 6.6 |
+| Paris | 22.5 | 38.7 | 25.8 | 55.6 | 8.2 | 12.8 |
+| Sydney | 31.8 | 22.3 | 19.8 | 15.9 | 26.9 | 13.4 |
+| Tokyo | 21.1 | 26 | 26.5 | 21.8 | 7.7 | 6.8 |
 
-These figures describe what OSM holds for each city, and they are not corrected for how thoroughly each city is mapped. London's station figure (13) is the lowest, and its data has no `halt` places and only 70 `tram_stop`; Sydney has neither, and New York has two `tram_stop` and no `halt`.
+These figures describe what OSM holds for each city, and they are not corrected for how thoroughly each city is mapped. **The station column counts `station` and `halt` places only** (in OSM these include most metro stations), not tram stops or metro entrances: a station has several mapped entrances and a tram line a stop every few hundred metres, so counting those would measure how entrances and stops are mapped. The nearest-station distances still use all four categories. On this count Sydney (13.4) and Paris (12.8) are highest and Amsterdam (5.2) lowest: inside Amsterdam's outline there are 44 stations and 2 halts, against 428 tram stops that this figure leaves out. London, New York, Paris and Sydney have no `halt` at all. (The first publish counted all four categories, which gave 13 to 63.)
 
 **Places and parks, before and after the reload.** "Before" is the local copy's count before each city was reseeded, standing in for production's. Berlin's comes from the committed file production was seeded from, because the local copy had already been reseeded. The new categories (pharmacy, doctors, clinic, school, station, halt, tram stop, metro entrance) account for most of the growth in every city.
 
@@ -312,7 +328,7 @@ The eight "after" counts add up to 241,794 places. Park shapes are every park st
 
 **Findings from the run:**
 
-- **London's payload exceeds the 450 KB target** (582,863 B against 450,000 B), accepted for Phase 1. The payload already leaves out cells with no residents, but only 6% of London's cells are unpopulated (1,037 of the 16,875 in its outline), so that saves little against the target. The payload costs about 37 bytes a cell in both London and Berlin, and the outlines are 55% of London's file. An offline experiment on the stored payload showed that rounding coordinates to 4 decimals saves only 5.3%, while leaving the outlines out (the browser could rebuild each hexagon from its H3 id) would give 233,558 B. Meeting the target therefore needs a format decision, not trimming precision. The other seven cities are within 450 KB.
+- **London's payload exceeds the 450 KB target** (583,036 B against 450,000 B), accepted for Phase 1. The payload already leaves out cells with no residents, but only 6% of London's cells are unpopulated (1,037 of the 16,875 in its outline), so that saves little against the target. The payload costs about 37 bytes a cell in both London and Berlin, and the outlines are 55% of London's file. An offline experiment on the payload as first published showed that rounding coordinates to 4 decimals saves only 5.3%, while leaving the outlines out (the browser could rebuild each hexagon from its H3 id) would give 233,558 B. Meeting the target therefore needs a format decision, not trimming precision. The other seven cities are within 450 KB.
 - **New York's outline needed the sliver guard** (see Population above). Without it `reach:build` could not finish for New York.
 - **Both endpoints and the list filters were checked in-process, not on the deployed API.** A throwaway script ran the Express app on port 3098 against the local database. For all eight cities, `GET /reach` answered 200 with the right city and coverage label, one feature per populated cell, `Content-Encoding: br`, a strong ETag and `Cache-Control: public, max-age=86400`; a card for one real cell of each city answered 200 with six needs. `GET /pois` and `POST /pois/within` left out `tram_stop` and `subway_entrance` in all eight cities, and so did the district stats of Berlin, Amsterdam and New York. A temporary district holding no places (in the local copy only, deleted afterwards) returned zero counts. The same checks on the deployed API are part of the production runbook.
 - **Coverage is uneven, as OSM tagging is.** The 19 categories are a fixed set, not a promise that every city has all of them (see the Categories column above).
