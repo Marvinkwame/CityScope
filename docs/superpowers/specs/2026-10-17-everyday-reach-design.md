@@ -382,6 +382,6 @@ The Tokyo heatmap example is replaced by an Everyday reach example: 15 minutes, 
 - **The map.** All Mapbox mutation lives in `MapView.tsx`. Map event handlers read stores with `getState()`.
 - **TypeScript and colours.** Strict TypeScript with no `any`, and `import type` for types. Backend relative imports end in `.js`. No colour literals outside `theme.ts`.
 - **Overpass** needs the pipeline's `User-Agent`, or it answers 406. Back off on 502 "at capacity".
-- **Production checks.** Read-only checks against production use `SET default_transaction_read_only = on`. Any production write needs the owner's go-ahead first.
+- **Production checks.** Read-only checks against production run inside `BEGIN READ ONLY … ROLLBACK`, after confirming `SHOW transaction_read_only` returns `on` (a session `SET default_transaction_read_only` alone isn't reliable on a pooled URL). Any production write needs the owner's go-ahead first.
 - **Never commit** GHSL tiles or other downloaded data.
 - **Commits** are granular, staged by explicit path, with **no `Co-Authored-By` trailer**.
