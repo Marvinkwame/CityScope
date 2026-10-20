@@ -192,3 +192,69 @@ export function encodePayload(payload: ReachPayload): { body: Buffer; etag: stri
   const etag = `"${createHash('sha1').update(body).digest('hex').slice(0, 16)}"`;
   return { body, etag };
 }
+
+/** One need's nearest place for a cell, as the card query reads it. */
+export interface CardRow {
+  need: NeedId;
+  metres: number;
+  /** A place may have no name in OpenStreetMap. */
+  name: string | null;
+  category: string;
+  lng: number;
+  lat: number;
+}
+
+/**
+ * What the map shows when a block is picked: its residents, and for each need
+ * the nearest place with the walking minutes to it. A need with no place is
+ * still listed, with every value null, so the card always has six rows.
+ */
+export interface CellCard {
+  cell: string;
+  residents: number;
+  metresPerMinute: number;
+  needs: {
+    need: NeedId;
+    name: string | null;
+    category: string | null;
+    lng: number | null;
+    lat: number | null;
+    metres: number | null;
+    minutes: number | null;
+  }[];
+}
+
+/**
+ * Lays one cell's nearest places out as a card, in NEEDS order whatever order
+ * the rows arrive in. Minutes are the same estimate the map uses: straight-line
+ * metres divided by k, rounded to a whole minute.
+ */
+export function shapeCellCard(
+  cell: string,
+  residents: number,
+  rows: readonly CardRow[],
+  metresPerMinute: number,
+): CellCard {
+  const byNeed = new Map<NeedId, CardRow>(rows.map((row) => [row.need, row]));
+
+  return {
+    cell,
+    residents,
+    metresPerMinute,
+    needs: NEEDS.map(({ id }) => {
+      const row = byNeed.get(id);
+      if (!row) {
+        return { need: id, name: null, category: null, lng: null, lat: null, metres: null, minutes: null };
+      }
+      return {
+        need: id,
+        name: row.name,
+        category: row.category,
+        lng: row.lng,
+        lat: row.lat,
+        metres: row.metres,
+        minutes: Math.round(row.metres / metresPerMinute),
+      };
+    }),
+  };
+}

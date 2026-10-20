@@ -2,8 +2,8 @@ import { createHash } from 'node:crypto';
 import { brotliCompressSync, brotliDecompressSync, constants } from 'node:zlib';
 import { describe, it, expect } from 'vitest';
 import { NONE_FOUND_METRES } from './needs';
-import { PLACES_SOURCE, POPULATION_SOURCE, buildReachPayload, encodePayload } from './reachPayload';
-import type { CalibrationRow, CellRow, NearestRow, ReachInfo } from './reachPayload';
+import { PLACES_SOURCE, POPULATION_SOURCE, buildReachPayload, encodePayload, shapeCellCard } from './reachPayload';
+import type { CalibrationRow, CardRow, CellRow, NearestRow, ReachInfo } from './reachPayload';
 
 const RING: [number, number][] = [
   [13.4051234, 52.5200678],
@@ -196,5 +196,59 @@ describe('encodePayload', () => {
       INFO,
     );
     expect(encodePayload(changed).etag).not.toBe(etag);
+  });
+});
+
+describe('shapeCellCard', () => {
+  const ROWS: CardRow[] = [
+    { need: 'st', metres: 700, name: 'Alexanderplatz', category: 'station', lng: 13.41, lat: 52.52 },
+    { need: 'sm', metres: 612, name: 'Corner Market', category: 'supermarket', lng: 13.4, lat: 52.51 },
+    { need: 'pk', metres: 90, name: null, category: 'park', lng: 13.399, lat: 52.512 },
+  ];
+
+  it('lists the needs in NEEDS order, whatever order the rows came in', () => {
+    const card = shapeCellCard('891f1d48947ffff', 120, ROWS, 68);
+    expect(card.needs.map((n) => n.need)).toEqual(['sm', 'ph', 'dr', 'sc', 'pk', 'st']);
+  });
+
+  it('carries the cell, its residents and k', () => {
+    const card = shapeCellCard('891f1d48947ffff', 120, ROWS, 68);
+    expect(card.cell).toBe('891f1d48947ffff');
+    expect(card.residents).toBe(120);
+    expect(card.metresPerMinute).toBe(68);
+  });
+
+  it('turns metres into whole minutes at k', () => {
+    const sm = shapeCellCard('891f1d48947ffff', 120, ROWS, 68).needs[0];
+    expect(sm).toEqual({
+      need: 'sm',
+      name: 'Corner Market',
+      category: 'supermarket',
+      lng: 13.4,
+      lat: 52.51,
+      metres: 612,
+      minutes: Math.round(612 / 68),
+    });
+    expect(sm.minutes).toBe(9);
+  });
+
+  it('keeps an unnamed place as a null name', () => {
+    const pk = shapeCellCard('891f1d48947ffff', 120, ROWS, 68).needs[4];
+    expect(pk.name).toBeNull();
+    expect(pk.category).toBe('park');
+    expect(pk.minutes).toBe(1);
+  });
+
+  it('gives a need with no row all-null values', () => {
+    const card = shapeCellCard('891f1d48947ffff', 120, ROWS.filter((r) => r.need !== 'st'), 68);
+    expect(card.needs[5]).toEqual({
+      need: 'st',
+      name: null,
+      category: null,
+      lng: null,
+      lat: null,
+      metres: null,
+      minutes: null,
+    });
   });
 });
