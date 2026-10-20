@@ -228,7 +228,7 @@ Decisions made while building `reach/data-and-api`. Where one of them differs fr
 ### Population
 
 - **A pixel counts towards the H3 cell its centre falls in, and only cells whose centres lie inside the outline are kept.** This gives the cells the outline covers without a point-in-polygon test for every pixel.
-- **Outline pieces with no area are skipped.** New York's outline is the union of its five boroughs, 312 polygons, and two of them are four-point slivers whose corners differ only by floating-point noise. H3's `polygonToCells` throws on those, so `cellsForOutline` skips any polygon enclosing less than 1e-12 square degrees (about 0.01 m²). A shape with no area holds no cell centre, so the guard changes no city's cells.
+- **Outline pieces with no area are skipped.** New York's outline is the union of its five boroughs, 312 polygons, and two of them are four-point slivers whose corners differ only by floating-point noise. H3's `polygonToCells` throws on those, so `cellsForOutline` skips any polygon enclosing less than 1e-12 square degrees (about 0.01 m²), and any polygon with no rings. The area is measured from the ring's first corner: summed at full coordinates, rounding alone reaches about 1e-12 (a straight-line sliver in Sydney measured 1.36e-12), the size of the threshold. A shape with no area holds no cell centre, so the guard changes no city's cells; all eight dry runs give the same cells after the change.
 - **GHSL tile numbering follows the files' georeferencing.** Tile rows and columns are anchored at 89.0996° N and 180.0079° W, not at round 10° lines, so a tile edge sits 0.9004° south of a round latitude. The nominal formula would pick the wrong tile for a box just south of one.
 
 ### Calibration and publishing

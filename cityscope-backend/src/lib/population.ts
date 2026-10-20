@@ -95,11 +95,23 @@ export function pixelCentre(grid: RasterGrid, x: number, y: number): { lng: numb
  */
 const NOISE_AREA_DEG2 = 1e-12;
 
-/** The area a ring encloses in square degrees: flat, which is plenty for telling noise from a shape. */
-function ringAreaDeg2(ring: readonly (readonly number[])[]): number {
+/**
+ * The area a ring encloses in square degrees: flat, which is plenty for telling
+ * noise from a shape. The corners are measured from the ring's first corner, so
+ * the cross products are of small offsets rather than of full coordinates: at
+ * about 151 x -34 those are near 5,000, and their rounding alone is around
+ * 1e-12, the size of the noise guard below. An empty ring has no area.
+ */
+export function ringAreaDeg2(ring: readonly (readonly number[])[]): number {
+  if (ring.length === 0) return 0;
+  const [x0, y0] = ring[0];
   let twice = 0;
   for (let i = 0; i < ring.length - 1; i++) {
-    twice += ring[i][0] * ring[i + 1][1] - ring[i + 1][0] * ring[i][1];
+    const ax = ring[i][0] - x0;
+    const ay = ring[i][1] - y0;
+    const bx = ring[i + 1][0] - x0;
+    const by = ring[i + 1][1] - y0;
+    twice += ax * by - bx * ay;
   }
   return Math.abs(twice) / 2;
 }
@@ -109,7 +121,8 @@ function ringAreaDeg2(ring: readonly (readonly number[])[]): number {
  *
  * Merging districts (ST_Union) can leave slivers with no area, only
  * floating-point noise between their corners, and H3 throws on some of them.
- * A shape with no area holds no cell centre, so those are left out.
+ * A shape with no area holds no cell centre, so those are left out, and so is
+ * a polygon with no rings at all.
  */
 export function cellsForOutline(
   outline: PolygonGeometry | MultiPolygonGeometry,
@@ -118,7 +131,7 @@ export function cellsForOutline(
   const polygons = outline.type === 'Polygon' ? [outline.coordinates] : outline.coordinates;
   const cells = new Set<string>();
   for (const rings of polygons) {
-    if (ringAreaDeg2(rings[0]) < NOISE_AREA_DEG2) continue;
+    if (rings.length === 0 || ringAreaDeg2(rings[0]) < NOISE_AREA_DEG2) continue;
     for (const cell of polygonToCells(rings, resolution, true)) cells.add(cell);
   }
   return cells;

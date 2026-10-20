@@ -7,6 +7,7 @@ import {
   cellsForOutline,
   keptCells,
   pixelCentre,
+  ringAreaDeg2,
   tilesForBox,
   windowForBox,
 } from './population';
@@ -319,6 +320,25 @@ describe('cellsForOutline', () => {
     expect(withSlivers.size).toBeGreaterThan(0);
   });
 
+  it('reads a Polygon with no rings as empty', () => {
+    expect(cellsForOutline({ type: 'Polygon', coordinates: [] })).toEqual(new Set());
+  });
+
+  it('skips a part of a MultiPolygon that has no rings', () => {
+    const square = [
+      [
+        [13.403, 52.518],
+        [13.407, 52.518],
+        [13.407, 52.522],
+        [13.403, 52.522],
+        [13.403, 52.518],
+      ],
+    ];
+    expect(cellsForOutline({ type: 'MultiPolygon', coordinates: [[], square] })).toEqual(
+      cellsForOutline({ type: 'Polygon', coordinates: square }),
+    );
+  });
+
   it('keeps a small shape that holds a cell centre', () => {
     // Roughly 20 m across, far smaller than a cell, but drawn around a cell's
     // centre: a shape with real area, so the sliver guard must not drop it.
@@ -336,5 +356,37 @@ describe('cellsForOutline', () => {
     ];
 
     expect(cellsForOutline({ type: 'Polygon', coordinates: small }).has(cell)).toBe(true);
+  });
+});
+
+describe('ringAreaDeg2', () => {
+  it('measures a real shape', () => {
+    const square = [
+      [13.403, 52.518],
+      [13.407, 52.518],
+      [13.407, 52.522],
+      [13.403, 52.522],
+      [13.403, 52.518],
+    ];
+    expect(ringAreaDeg2(square)).toBeCloseTo(0.004 * 0.004, 15);
+  });
+
+  // Four corners on one straight line in Sydney: no area at all. Summed at
+  // full coordinates (about 151 x -34), the cross products cancel to rounding
+  // noise of 1.36e-12 square degrees, above the 1e-12 guard; measured from the
+  // ring's first corner they do not.
+  it('measures a sliver with no area as none, without float noise', () => {
+    const sliver = [
+      [151.19675113107394, -33.84374004060111],
+      [151.19672705185965, -33.84383398316063],
+      [151.19667500490667, -33.84403703895486],
+      [151.19667433552996, -33.84403965045874],
+      [151.19675113107394, -33.84374004060111],
+    ];
+    expect(ringAreaDeg2(sliver)).toBeLessThan(1e-15);
+  });
+
+  it('measures an empty ring as no area', () => {
+    expect(ringAreaDeg2([])).toBe(0);
   });
 });
