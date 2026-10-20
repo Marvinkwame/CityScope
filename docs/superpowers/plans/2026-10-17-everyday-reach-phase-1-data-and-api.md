@@ -814,12 +814,17 @@ Download and unzip each as in Task 9.
 
 ## After merge: production runbook (controller, each step with the owner's go-ahead)
 
-1. **Confirm the deploy.** `curl https://cityscope-rzj5.onrender.com/api/cities/berlin/reach` returns 404 `No reach data for this city`, which shows the code is live.
-2. **Migration:** `CITYSCOPE_DB_TARGET=production npm run migrate -- 004-everyday-reach.sql`.
-3. **Per city, using the committed place files and freshly fetched parks:** `CITYSCOPE_DB_TARGET=production npm run seed:pois -- <city>`, then `seed:parks`, `reach:build`, `reach:calibrate` (the owner adds `MAPBOX_TOKEN` to the production `.env` first) and `reach:publish`. Then `reach:check-gp -- london` and republish London.
-4. **Verify live:**
-   - both endpoints for all 8 cities;
-   - the lists exclude tram stops and metro entrances;
-   - Render and Cloudflare pass `Content-Encoding: br` through untouched;
-   - the payload sizes.
-5. **Optional:** the owner deletes the `reach-dev` Neon branch.
+Every writing command below runs from `cityscope-backend/` with `CITYSCOPE_DB_TARGET=production` set for that run only, and its first line must read `Writing to production (<the Neon host>)`. Anything else: stop.
+
+1. **Take a rollback point first.** Create a Neon branch (or snapshot) of production as it stands, named for the date, before anything is written. Restoring it is the way back if a step goes wrong.
+2. **Apply migration 004 before checking the deploy.** `npm run migrate -- 004-everyday-reach.sql`. Without the `reach_*` tables, an older build of the reach routes answers 500; this branch maps a missing table (Postgres `42P01`) to the same 404 as a city with no payload. Use the direct (non-pooler) Neon host in `DATABASE_URL` for this and every long write transaction below, not the `-pooler` one. Then check the deploy: `curl https://cityscope-rzj5.onrender.com/api/cities/berlin/reach` answers 404 with the JSON body `{"error":"No reach data for this city"}` (an older deploy answers Express's HTML `Cannot GET`), which shows the code is live.
+3. **Load and build, one city at a time.**
+   - `npm run seed:pois -- <city>` from the committed `src/scripts/pois-data-<city>.json`, and `npm run seed:parks -- <city>` from the 2026-10-20 `data/parks-<city>.json` (with its `data/parks-<city>.source.json`). **Do not refetch** places or parks: the measured results come from these files. Reseeding clears the city's reach rows.
+   - `npm run reach:build -- <city>`, then `npm run reach:calibrate -- <city>`, then `npm run reach:publish -- <city>`. Calibration reads Mapbox's answers from the cache in `data/isochrones/<city>/`: if the cells are identical to the local run's, expect `Mapbox cache: 60 hits, 0 misses; 0 Mapbox requests made`. Keep a script-only `MAPBOX_TOKEN` in the production `.env` in case any cell misses (each miss is one request, and is then cached).
+   - After all eight: `npm run reach:check-gp` (no city argument; London only, it reads `data/nhs/epraccur.csv` and calls postcodes.io), then `npm run reach:publish -- london` again so the GP check is in London's payload.
+4. **Verify each city against the spec's "Measured results".**
+   - Production `meta` equals the spec for every city: populated cells (features), residents, `metresPerMinute`, `kLow`–`kHigh`, agreement per band, stops, and the base rates in `meta.completeness.checks.calibrationBaseline` (and, for London, `londonGpShare` 0.707 and `londonGpPractices` 1,142). Any difference means the cells or the places differ from the local run: stop and find out why before going on.
+   - Both endpoints answer for all eight cities, with `curl`; the place lists, `/pois/within` and district statistics leave out tram stops and metro entrances.
+   - Render and Cloudflare pass the stored Brotli body through untouched: `curl -sI -H 'Accept-Encoding: br'` shows `Content-Encoding: br`, the stored ETag and `Cache-Control: public, max-age=86400`, and a request without `Accept-Encoding: br` gets plain JSON.
+   - The payload sizes on the wire match the spec's.
+5. **Finish with a docs commit** that flips the three "not loaded yet" statements: the README's API note, `CLAUDE.md`'s Everyday reach status line, and the spec's "The local stand-in database" section. Once production is verified, the owner may delete the rollback branch.
