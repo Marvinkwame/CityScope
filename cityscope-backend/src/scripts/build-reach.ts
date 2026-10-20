@@ -25,6 +25,7 @@ import type { AreaGeometry } from '../lib/geometry.js';
 import { readGhslWindow } from '../lib/ghsl.js';
 import { NEEDS, NONE_FOUND_METRES, PARK_MIN_AREA_M2 } from '../lib/needs.js';
 import type { Need } from '../lib/needs.js';
+import { placeCountQuery } from '../lib/needPlaces.js';
 import { addPixelsToCells, cellsForOutline, keptCells, tilesForBox } from '../lib/population.js';
 import type { Box } from '../lib/population.js';
 
@@ -248,6 +249,20 @@ async function writeCity(client: PoolClient, cityId: string, kept: ReadonlyMap<s
 
     for (const need of NEEDS) {
       const needStartedAt = performance.now();
+
+      // With no place for the need anywhere in the city, the search below
+      // would walk the whole index for every cell and find nothing. Count
+      // first, and skip it: its cells read as the none-found distance.
+      const counted = placeCountQuery(need, cityId);
+      const { rows: countRows } = await client.query<{ places: number }>(counted.text, counted.values);
+      if ((countRows[0]?.places ?? 0) === 0) {
+        console.log(
+          `  ${need.id} ${need.label}: no places in the city's data, skipped; ` +
+            `all ${cells.length.toLocaleString('en-GB')} cells read as ${NONE_FOUND_METRES} m`,
+        );
+        continue;
+      }
+
       const { sql, thirdParam } = nearestStatement(need);
       const result = await client.query(sql, [cityId, need.id, thirdParam]);
       const rows = result.rowCount ?? 0;
