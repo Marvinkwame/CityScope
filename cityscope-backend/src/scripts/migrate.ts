@@ -2,10 +2,13 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pool from '../db.js';
+import { announceTarget } from '../lib/dbTarget.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function main() {
+  announceTarget();
+
   const file = process.argv[2];
   if (!file) {
     console.error('Usage: tsx src/scripts/migrate.ts <migration-file.sql>');

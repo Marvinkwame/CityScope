@@ -1,8 +1,11 @@
 import pg from 'pg';
 import 'dotenv/config';
 import { CITY_CONFIGS } from '../config/cities.js';
+import { announceTarget } from '../lib/dbTarget.js';
 
 async function seedCities() {
+  announceTarget();
+
   const client = new pg.Client({
     connectionString: process.env.DATABASE_URL,
   });

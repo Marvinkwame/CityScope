@@ -4,6 +4,7 @@ import 'dotenv/config';
 import { cityRouter } from './routes/cities.js';
 import { districtRouter } from './routes/districts.js';
 import { poiRouter } from './routes/pois.js';
+import { reachRouter } from './routes/reach.js';
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -20,6 +21,7 @@ app.use(express.json({ limit: '512kb' }));
 app.use('/api/cities', cityRouter);
 app.use('/api/cities/:cityId/districts', districtRouter);
 app.use('/api/cities/:cityId/pois', poiRouter);
+app.use('/api/cities/:cityId/reach', reachRouter);
 
 // Legacy routes (default to Berlin)
 app.use('/api/districts', districtRouter);

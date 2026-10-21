@@ -31,7 +31,13 @@ export function formatDistance(metres: number): string {
   return `${value} ${unit}`;
 }
 
-/** "restaurant" -> "Restaurant". */
+/** Categories whose plain capitalised name reads wrongly as a label. */
+const LABEL_OVERRIDES: Readonly<Record<string, string>> = {
+  doctors: 'Doctor',
+  halt: 'Rail halt',
+};
+
+/** "restaurant" -> "Restaurant"; "doctors" -> "Doctor". */
 export function categoryLabel(category: string): string {
-  return category.charAt(0).toUpperCase() + category.slice(1);
+  return LABEL_OVERRIDES[category] ?? category.charAt(0).toUpperCase() + category.slice(1);
 }

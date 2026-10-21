@@ -1,13 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import ChildCareIcon from '@mui/icons-material/ChildCare';
+import LocalPharmacyIcon from '@mui/icons-material/LocalPharmacy';
 import PlaceIcon from '@mui/icons-material/Place';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
+import TrainIcon from '@mui/icons-material/Train';
 import { CATEGORY_ICONS, FALLBACK_ICON } from './categoryIcons';
 
-// The backend's 11 categories (cityscope-backend/src/lib/poiCategories.ts).
+// The backend's displayed categories; tram stops and metro entrances never reach the lists.
 const CATEGORIES = [
   'restaurant', 'cafe', 'pub', 'bar', 'supermarket', 'bakery',
   'park', 'playground', 'attraction', 'museum', 'hotel',
+  'pharmacy', 'doctors', 'clinic', 'school', 'station', 'halt',
 ];
 
 describe('category icons', () => {
@@ -28,6 +31,8 @@ describe('category icons', () => {
     expect(CATEGORY_ICONS.restaurant).toBe(RestaurantIcon);
     // Material has no playground glyph; Toys renders as a toy car.
     expect(CATEGORY_ICONS.playground).toBe(ChildCareIcon);
+    expect(CATEGORY_ICONS.pharmacy).toBe(LocalPharmacyIcon);
+    expect(CATEGORY_ICONS.station).toBe(TrainIcon);
   });
 
   it('falls back to a pin for unknown categories', () => {

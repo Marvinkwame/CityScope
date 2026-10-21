@@ -5,13 +5,20 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
+    "typecheck:scripts": "tsc -p tsconfig.scripts.json",
     "start": "node dist/index.js",
     "seed": "tsx src/scripts/seed.ts",
     "seed:cities": "tsx src/scripts/seed-cities.ts",
     "seed:pois": "tsx src/scripts/seed-pois.ts",
+    "seed:parks": "tsx src/scripts/seed-parks.ts",
     "seed:all": "tsx src/scripts/seed-all.ts",
     "fetch:pois": "tsx src/scripts/fetch-pois.ts",
+    "fetch:parks": "tsx src/scripts/fetch-parks.ts",
     "migrate": "tsx src/scripts/migrate.ts",
+    "reach:build": "tsx src/scripts/build-reach.ts",
+    "reach:calibrate": "tsx src/scripts/calibrate-reach.ts",
+    "reach:publish": "tsx src/scripts/publish-reach.ts",
+    "reach:check-gp": "tsx src/scripts/check-gp-coverage.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -26,8 +33,16 @@
     "@types/express": "^5.0.6",
     "@types/node": "^25.9.1",
     "@types/pg": "^8.20.0",
+    "geotiff": "3.0.5",
+    "h3-js": "4.5.0",
+    "osmtogeojson": "3.0.0-beta.5",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.8"
+  },
+  "overrides": {
+    "osmtogeojson": {
+      "@xmldom/xmldom": "0.8.15"
+    }
   }
 }

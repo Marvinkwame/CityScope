@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { REFERENCE_P99, densityP99, heatmapWeight } from './heatmapExposure';
+import { HEATMAP_CATEGORIES, REFERENCE_P99, densityP99, heatmapPoints, heatmapWeight } from './heatmapExposure';
 
 // The same 400 m cell size the implementation uses, at a fixed latitude. The
 // grid hugs lng 0 so a tiny drift in the implementation's mean latitude can't
@@ -61,5 +61,22 @@ describe('heatmapWeight', () => {
 
   it('is floored for a city far denser than the reference', () => {
     expect(heatmapWeight(uniformCity(500))).toBe(0.25);
+  });
+});
+
+describe('heatmapPoints', () => {
+  const at = (category: string) => ({ category, lng: 0, lat: 0 });
+
+  it('keeps the original categories', () => {
+    const kept = heatmapPoints([at('cafe'), at('park')]);
+    expect(kept.map((p) => p.category)).toEqual(['cafe', 'park']);
+  });
+
+  it('drops the everyday-needs categories', () => {
+    expect(heatmapPoints([at('pharmacy'), at('school'), at('station'), at('doctors')])).toEqual([]);
+  });
+
+  it('keeps only the original eleven', () => {
+    expect(HEATMAP_CATEGORIES.size).toBe(11);
   });
 });
