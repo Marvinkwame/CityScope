@@ -289,7 +289,7 @@ Agreement is the share of the 180 checks per limit (30 held-out cells × 6 needs
 | Tokyo | 53.9% | 83.3% | 95.6% | 97.8% |
 
 - **At 15 and 20 minutes the agreement is close to the always-inside baseline in the dense cities.** At 20 minutes it equals it in London (98.9%) and Paris (100%), and falls 1.1 points below it in Berlin (96.7% against 97.8%). At 15 minutes it is within 4 points of it everywhere except Amsterdam (+11.7), Munich (+6.1) and New York (+5.0), and Paris gains nothing (99.4% both). Always answering "inside" would clear the 80% bar at 15 minutes in every city, so passing at 15 and 20 minutes shows little on its own.
-- **The 5-minute band is the informative one.** About half the places are inside it (44–61%, Paris 76%), so neither always answering "inside" nor always "outside" scores more than 56.1% in any city except Sydney (59.4%) and Paris (76.1%), while the estimate scores 85.0–93.3%. At 10 minutes the estimate is 1.1 (Paris) to 16.7 (New York) points above the base rate, and always-inside would fail the bar only in Amsterdam (79.4%) and Berlin (78.3%).
+- **The 5-minute band is the informative one.** About half the places are inside it (44–59%, Paris 76%), so neither always answering "inside" nor always "outside" scores more than 56.1% in any city except Sydney (59.4%) and Paris (76.1%), while the estimate scores 85.0–93.3%. At 10 minutes the estimate is 1.1 (Paris) to 16.7 (New York) points above the base rate, and always-inside would fail the bar only in Amsterdam (79.4%) and Berlin (78.3%).
 
 **Places per 100,000 residents, per need** (from each payload's `meta.completeness.perHundredThousand`):
 
