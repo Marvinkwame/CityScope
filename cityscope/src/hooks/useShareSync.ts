@@ -5,6 +5,7 @@ import { useLayerStore } from '../store/layerStore';
 import { useIsochroneStore } from '../store/isochroneStore';
 import { useRouteStore } from '../store/routeStore';
 import { useDrawStore } from '../store/drawStore';
+import { useReachStore } from '../store/reachStore';
 import { useCities } from './useCities';
 import { encodeState, decodeState, SHARE_HASH_PREFIX } from '../lib/shareCodec';
 import { collectShareState, applyShareState } from '../lib/shareState';
@@ -43,6 +44,7 @@ export function useShareSync(): void {
       useIsochroneStore.subscribe(write),
       useRouteStore.subscribe(write),
       useDrawStore.subscribe(write),
+      useReachStore.subscribe(write),
     ];
     map.on('moveend', write);
     return () => {

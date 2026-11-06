@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { encodeState, decodeState, type ShareState } from './shareCodec';
+import { encodeState, decodeState, effectiveReach, type ShareReach, type ShareState } from './shareCodec';
 
 const base: ShareState = {
   v: 1,
@@ -105,5 +105,45 @@ describe('decodeState output narrowing', () => {
   it('ignores unknown keys inside view', () => {
     const decoded = decodeState(raw({ ...base, view: { ...base.view, extra: 9 } }));
     expect(decoded?.view).toEqual(base.view);
+  });
+});
+
+describe('shareCodec reach entry', () => {
+  const R: ShareReach = { t: 10, n: ['sm', 'pk'], c: '891f1d48947ffff' };
+  const iso: ShareState['tool'] = { kind: 'isochrone', profile: 'walking', contourMinutes: [5], origin: { lng: 13.4, lat: 52.5 } };
+  const decode = (obj: unknown) => decodeState(raw(obj));
+
+  it('round-trips a reach entry with a block', () => {
+    const s: ShareState = { ...base, reach: R };
+    expect(decodeState(encodeState(s))).toEqual(s);
+  });
+  it('drops reach whose t is not 5, 10, 15 or 20', () => {
+    for (const t of [12, '15']) {
+      const d = decode({ ...base, reach: { t, n: ['sm'] } });
+      expect(d).not.toBeNull();
+      expect(Object.keys(d!)).not.toContain('reach');
+    }
+  });
+  it('drops reach whose n is empty, not an array, or holds an unknown need', () => {
+    for (const n of [[], 'sm', ['sm', 'bus']]) {
+      const d = decode({ ...base, reach: { t: 15, n } });
+      expect(d).not.toBeNull();
+      expect(Object.keys(d!)).not.toContain('reach');
+    }
+  });
+  it('de-duplicates n and puts it in display order', () => {
+    expect(decode({ ...base, reach: { t: 15, n: ['st', 'sm', 'st'] } })?.reach).toEqual({ t: 15, n: ['sm', 'st'] });
+  });
+  it('drops only c when it is not a resolution-9 H3 id', () => {
+    for (const c of ['891F1D48947FFFF', '891f1d48947fff', '881f1d48947ffff', 42])
+      expect(decode({ ...base, reach: { t: 15, n: ['sm'], c } })?.reach).toEqual({ t: 15, n: ['sm'] });
+  });
+  it('decodes an old link exactly as before, with no reach key', () => {
+    expect(Object.keys(decodeState(encodeState(base))!)).not.toContain('reach');
+  });
+  it('lets a tool or the heatmap win over reach', () => {
+    expect(effectiveReach({ ...base, reach: R, tool: iso })).toBeUndefined();
+    expect(effectiveReach({ ...base, reach: R, layers: { ...base.layers, heatmap: true } })).toBeUndefined();
+    expect(effectiveReach({ ...base, reach: R })).toEqual(R);
   });
 });

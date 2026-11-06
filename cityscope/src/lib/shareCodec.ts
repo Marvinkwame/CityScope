@@ -1,5 +1,7 @@
 import type { TravelProfile } from '../store/isochroneStore';
 import type { PolygonGeometry } from '../store/drawStore';
+import { canonicalNeeds, isNeedId, isReachMinutes } from './reach/model';
+import type { NeedId, ReachMinutes } from './reach/model';
 
 /** The URL hash prefix that marks a share link. */
 export const SHARE_HASH_PREFIX = '#s=';
@@ -11,6 +13,13 @@ export type ShareTool =
   | { kind: 'route'; profile: TravelProfile; origin: LngLat; destination: LngLat }
   | { kind: 'draw'; polygon: PolygonGeometry };
 
+/** Everyday reach: time limit, chosen needs, and the selected block if any. */
+export interface ShareReach {
+  t: ReachMinutes;
+  n: NeedId[];
+  c?: string;
+}
+
 export interface ShareState {
   v: 1;
   city: string;
@@ -18,6 +27,12 @@ export interface ShareState {
   layers: { roads: boolean; buildings: boolean; districts: boolean; heatmap: boolean };
   is3D: boolean;
   tool?: ShareTool;
+  reach?: ShareReach;
+}
+
+/** A tool or the heatmap owns the map, so a link carrying both shows them, not reach. */
+export function effectiveReach(state: ShareState): ShareReach | undefined {
+  return state.tool || state.layers.heatmap ? undefined : state.reach;
 }
 
 function toBase64Url(json: string): string {
@@ -109,6 +124,19 @@ function parseTool(v: unknown): ShareTool | undefined {
   return undefined;
 }
 
+/** Same test as the backend's isH3CellId: a resolution-9 H3 cell. */
+const H3_CELL = /^89[0-9a-f]{13}$/;
+
+/** Validates the reach entry; an invalid one is dropped, and only a bad `c` is dropped alone. */
+function parseReach(v: unknown): ShareReach | undefined {
+  if (typeof v !== 'object' || v === null) return undefined;
+  const r = v as Record<string, unknown>;
+  if (!isReachMinutes(r.t)) return undefined;
+  if (!Array.isArray(r.n) || r.n.length === 0 || !r.n.every(isNeedId)) return undefined;
+  const c = typeof r.c === 'string' && H3_CELL.test(r.c) ? r.c : undefined;
+  return { t: r.t, n: canonicalNeeds(r.n), ...(c ? { c } : {}) };
+}
+
 /**
  * Decodes a share hash, returning null for anything malformed so a bad link
  * can never crash the app. The result is rebuilt field by field rather than
@@ -132,6 +160,7 @@ export function decodeState(raw: string): ShareState | null {
     if (typeof obj.is3D !== 'boolean') return null;
 
     const tool = parseTool(obj.tool);
+    const reach = parseReach(obj.reach);
 
     return {
       v: 1,
@@ -151,6 +180,7 @@ export function decodeState(raw: string): ShareState | null {
       },
       is3D: obj.is3D,
       ...(tool ? { tool } : {}),
+      ...(reach ? { reach } : {}),
     };
   } catch {
     return null;
