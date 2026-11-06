@@ -64,3 +64,42 @@ export function cardIsStale(card: CellCard, props: ReachProperties, k: number): 
   if (card.metresPerMinute !== k) return true;
   return REACH_NEEDS.some(({ id }) => (cardNeed(card, id)?.metres ?? NONE_FOUND_METRES) !== props[id]);
 }
+
+/** The mean of a ring's distinct corners (a closed ring repeats its first point, which is dropped). */
+export function cellCentre(ring: ReadonlyArray<[number, number]>): [number, number] {
+  const first = ring[0];
+  const last = ring[ring.length - 1];
+  const closed = ring.length > 1 && first[0] === last[0] && first[1] === last[1];
+  const corners = closed ? ring.slice(0, -1) : ring;
+  const sum = corners.reduce<[number, number]>((acc, [x, y]) => [acc[0] + x, acc[1] + y], [0, 0]);
+  return [sum[0] / corners.length, sum[1] / corners.length];
+}
+
+/**
+ * Lines from the block's centre to each chosen need's place that is within the
+ * limit by the payload. None from a stale card, so a line never points at a
+ * place the block's colour didn't count.
+ */
+export function linkLines(
+  card: CellCard,
+  props: ReachProperties,
+  k: number,
+  minutes: ReachMinutes,
+  chosen: readonly NeedId[],
+  centre: [number, number],
+): GeoJSON.FeatureCollection<GeoJSON.LineString> {
+  const features: GeoJSON.Feature<GeoJSON.LineString>[] = [];
+  if (!cardIsStale(card, props, k)) {
+    for (const { id } of REACH_NEEDS) {
+      if (!chosen.includes(id) || !isWithin(props[id], minutes, k)) continue;
+      const found = cardNeed(card, id);
+      if (!found || found.lng === null || found.lat === null || found.category === null) continue;
+      features.push({
+        type: 'Feature',
+        geometry: { type: 'LineString', coordinates: [centre, [found.lng, found.lat]] },
+        properties: { need: id, category: found.category },
+      });
+    }
+  }
+  return { type: 'FeatureCollection', features };
+}

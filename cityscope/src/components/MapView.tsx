@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import type { ExpressionSpecification } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -26,12 +26,13 @@ import {
   reachHeightExpression,
 } from '../lib/reach/expressions';
 import { reachLayerVisibility } from '../lib/reach/layerVisibility';
+import { cellCentre, linkLines } from '../lib/reach/card';
 import { missingCounts } from '../lib/reach/summary';
 import type { NeedId, ReachPayload } from '../lib/reach/model';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import { useDrawStore } from '../store/drawStore';
 import type { PolygonGeometry } from '../store/drawStore';
-import { createPin } from '../lib/mapPins';
+import { createCategoryPin, createPin } from '../lib/mapPins';
 import { DRAW_STYLES } from '../constants/drawStyles';
 import { useRoute } from '../hooks/useRoute';
 import { useDistricts } from '../hooks/useDistricts';
@@ -39,6 +40,7 @@ import { usePois } from '../hooks/usePois';
 import { useIsochrone } from '../hooks/useIsochrone';
 import { useReachPayload } from '../hooks/useReachPayload';
 import { useReachSummary } from '../hooks/useReachSummary';
+import { useReachCard } from '../hooks/useReachCard';
 import {
   ROAD_LAYER_FILTER,
   BUILDING_LAYER_FILTER,
@@ -60,6 +62,8 @@ import {
   REACH_SELECTED_SOURCE_ID,
   REACH_SELECTED_CASING_LAYER_ID,
   REACH_SELECTED_LAYER_ID,
+  REACH_LINKS_SOURCE_ID,
+  REACH_LINKS_LAYER_ID,
   FEATURE_TYPE_PRIORITY,
   classifyLayerId,
 } from '../constants/layerConfig';
@@ -377,6 +381,8 @@ function MapView() {
   const drawRef = useRef<MapboxDraw | null>(null);
   // The block that carries the `selected` feature state, so the next selection can clear it.
   const reachSelectedIdRef = useRef<string | null>(null);
+  // The category pins at the ends of the block's lines, each with its root's disposer.
+  const reachPinsRef = useRef<Array<{ marker: mapboxgl.Marker; dispose: () => void }>>([]);
   const [mapReady, setMapReady] = useState(false);
 
   const layers = useLayerStore((state) => state.layers);
@@ -405,6 +411,7 @@ function MapView() {
   const reachSummary = useReachSummary();
   const reachColumns = reachSummary?.columns;
   const reachK = reachSummary?.meta.metresPerMinute;
+  const { data: reachCard } = useReachCard();
 
   // Initialize map
   useEffect(() => {
@@ -633,6 +640,11 @@ function MapView() {
       }
       drawRef.current = null;
       reachSelectedIdRef.current = null;
+      reachPinsRef.current.forEach(({ marker, dispose }) => {
+        marker.remove();
+        dispose();
+      });
+      reachPinsRef.current = [];
       mapRef.current?.remove();
       mapRef.current = null;
       setMapReady(false);
@@ -859,6 +871,67 @@ function MapView() {
       visible.selection,
     );
   }, [reachEnabled, reachReady, is3D, mapReady]);
+
+  // Lines from the selected block's centre to its nearest chosen places within
+  // the limit. None while the card is loading or stale, or without a selection
+  // (see `linkLines`). Memoised so the effects below only run on a real change.
+  const reachLinks = useMemo(() => {
+    if (!reachEnabled || !reachCard || !reachPayload || reachK === undefined) return null;
+    const feature = reachPayload.features.find((f) => f.properties.h === reachSelectedCell);
+    if (!feature || reachCard.cell !== feature.properties.h) return null;
+    const centre = cellCentre(feature.geometry.coordinates[0]);
+    return linkLines(reachCard, feature.properties, reachK, reachMinutes, reachNeeds, centre);
+  }, [reachEnabled, reachCard, reachPayload, reachK, reachSelectedCell, reachMinutes, reachNeeds]);
+  const linksVisible = reachLayerVisibility({ enabled: reachEnabled, ready: reachReady, is3D }).selection;
+
+  // The dashed lines, drawn in the answer colour above the context layers.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    const data = linksVisible && reachLinks ? reachLinks : EMPTY_COLLECTION;
+
+    const source = map.getSource(REACH_LINKS_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
+    if (source) {
+      source.setData(data);
+    } else {
+      map.addSource(REACH_LINKS_SOURCE_ID, { type: 'geojson', data });
+      map.addLayer(
+        {
+          id: REACH_LINKS_LAYER_ID,
+          type: 'line',
+          source: REACH_LINKS_SOURCE_ID,
+          paint: {
+            'line-color': ROLE.answer,
+            'line-width': 2,
+            'line-dasharray': [2, 1],
+          },
+        },
+        answerBeforeId(map.getStyle().layers),
+      );
+    }
+  }, [reachLinks, linksVisible, mapReady]);
+
+  // One category pin per line end, removed and disposed on every change and on unmount.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !linksVisible || !reachLinks) return;
+
+    const pins = reachLinks.features.map((f) => {
+      const { element, dispose } = createCategoryPin(String(f.properties?.category));
+      const [lng, lat] = f.geometry.coordinates[1];
+      const marker = new mapboxgl.Marker({ element }).setLngLat([lng, lat]).addTo(map);
+      return { marker, dispose };
+    });
+    reachPinsRef.current = pins;
+
+    return () => {
+      pins.forEach(({ marker, dispose }) => {
+        marker.remove();
+        dispose();
+      });
+      reachPinsRef.current = [];
+    };
+  }, [reachLinks, linksVisible, mapReady]);
 
   // Sync isochrone polygon layers
   useEffect(() => {

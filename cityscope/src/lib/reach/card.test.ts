@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cardIsStale, cardRows } from './card';
+import { cardIsStale, cardRows, cellCentre, linkLines } from './card';
 import { NEED_IDS, NONE_FOUND_METRES } from './model';
 import type { CellCard, ReachProperties } from './model';
 
@@ -91,5 +91,21 @@ describe('cardIsStale', () => {
     expect(cardIsStale(found, PROPS, 68.5)).toBe(true);
     const lost = { ...CARD, needs: CARD.needs.map((n) => (n.need === 'pk' ? { ...n, metres: null } : n)) };
     expect(cardIsStale(lost, PROPS, 68.5)).toBe(true);
+  });
+});
+
+describe('cellCentre', () => {
+  it('finds the centre of a closed hexagon ring', () => {
+    expect(cellCentre([[0, 0], [2, 0], [3, 1], [2, 2], [0, 2], [-1, 1], [0, 0]])).toEqual([1, 1]);
+  });
+});
+
+describe('linkLines', () => {
+  it('draws lines only to chosen places within the limit', () => {
+    expect(linkLines(CARD, PROPS, 68.5, 5, NEED_IDS, [13.4, 52.5]).features.map((f) => f.properties!.need)).toEqual(['pk', 'st']);
+    expect(linkLines(CARD, PROPS, 68.5, 5, ['sm', 'st'], [13.4, 52.5]).features.map((f) => f.properties!.need)).toEqual(['st']);
+  });
+  it('draws no lines from a card that is newer than the payload', () => {
+    expect(linkLines({ ...CARD, metresPerMinute: 70 }, PROPS, 68.5, 15, NEED_IDS, [13.4, 52.5]).features).toEqual([]);
   });
 });
