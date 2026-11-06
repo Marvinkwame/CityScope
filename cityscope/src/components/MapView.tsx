@@ -891,6 +891,11 @@ function MapView() {
     if (!outline) return;
 
     const index = reachSelectedCell ? reachIndex.get(reachSelectedCell) : undefined;
+    // A selection the loaded payload doesn't list (another city's block, a stale
+    // link) is dropped rather than left selected.
+    if (reachSelectedCell && reachPayload && index === undefined) {
+      useReachStore.getState().selectCell(null);
+    }
     const feature = index === undefined ? undefined : reachPayload?.features[index];
     outline.setData(
       feature ? { type: 'FeatureCollection', features: [feature] } : EMPTY_COLLECTION,

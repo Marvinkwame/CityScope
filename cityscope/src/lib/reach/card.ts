@@ -6,7 +6,7 @@
 
 import { categoryLabel } from '../../components/results/format';
 import { NONE_FOUND_METRES, REACH_NEEDS } from './model';
-import type { CellCard, CellCardNeed, NeedId, ReachMinutes, ReachProperties } from './model';
+import type { CellCard, CellCardNeed, NeedId, ReachMinutes, ReachPayload, ReachProperties } from './model';
 import { isWithin } from './summary';
 
 export interface CardRowView {
@@ -57,6 +57,20 @@ export function cardRows(
       place: found && found.lng !== null && found.lat !== null ? { lng: found.lng, lat: found.lat } : null,
     };
   });
+}
+
+/**
+ * Whether to ask the endpoint for a block's card: reach is on, a block is
+ * selected and the current city's loaded payload lists it. A block from another
+ * city (or a stale link) would only 404.
+ */
+export function cardRequestable(
+  enabled: boolean,
+  selectedCell: string | null,
+  payload: ReachPayload | undefined,
+): boolean {
+  if (!enabled || selectedCell === null || !payload) return false;
+  return payload.features.some((f) => f.properties.h === selectedCell);
 }
 
 /** True when the card was built from other data than the payload: another k, or any need's metres. */

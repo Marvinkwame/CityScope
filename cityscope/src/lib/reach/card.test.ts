@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { cardIsStale, cardRows, cellCentre, linkLines } from './card';
+import { cardIsStale, cardRequestable, cardRows, cellCentre, linkLines } from './card';
 import { missingCount } from './expressions';
 import { NEED_IDS, NONE_FOUND_METRES, REACH_MINUTES } from './model';
-import type { CellCard, NeedId, ReachProperties } from './model';
+import type { CellCard, NeedId, ReachPayload, ReachProperties } from './model';
 
 // The payload's block, at k 68.5 straight-line metres a minute.
 const PROPS: ReachProperties = {
@@ -129,5 +129,28 @@ describe('linkLines', () => {
   });
   it('draws no lines from a card that is newer than the payload', () => {
     expect(linkLines({ ...CARD, metresPerMinute: 70 }, PROPS, 68.5, 15, NEED_IDS, [13.4, 52.5]).features).toEqual([]);
+  });
+});
+
+describe('cardRequestable', () => {
+  const PAYLOAD = {
+    type: 'FeatureCollection',
+    features: [{ type: 'Feature', geometry: { type: 'Polygon', coordinates: [] }, properties: PROPS }],
+  } as unknown as ReachPayload;
+
+  it('is false when reach is off', () => {
+    expect(cardRequestable(false, PROPS.h, PAYLOAD)).toBe(false);
+  });
+  it('is false when no block is selected', () => {
+    expect(cardRequestable(true, null, PAYLOAD)).toBe(false);
+  });
+  it('is false while there is no payload', () => {
+    expect(cardRequestable(true, PROPS.h, undefined)).toBe(false);
+  });
+  it("is false when the block isn't in the payload (the old city's block)", () => {
+    expect(cardRequestable(true, '891f18845dbffff', PAYLOAD)).toBe(false);
+  });
+  it('is true when the block is in the payload', () => {
+    expect(cardRequestable(true, PROPS.h, PAYLOAD)).toBe(true);
   });
 });

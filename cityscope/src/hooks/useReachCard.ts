@@ -1,7 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useCityStore } from '../store/cityStore';
 import { useReachStore } from '../store/reachStore';
+import { useReachPayload } from './useReachPayload';
+import { cardRequestable } from '../lib/reach/card';
 import { ReachCellNotFoundError, fetchReachCard, shouldRetry } from '../lib/reach/api';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
@@ -12,10 +14,18 @@ export function useReachCard() {
   const reachOn = useReachStore((s) => s.enabled);
   const selectedCell = useReachStore((s) => s.selectedCell);
 
+  const payload = useReachPayload().data;
+  // Only a block the current city's payload lists: on a city change the old
+  // block is still selected for one render, and its request would 404.
+  const requestable = useMemo(
+    () => cardRequestable(reachOn, selectedCell, payload),
+    [reachOn, selectedCell, payload],
+  );
+
   const query = useQuery({
     queryKey: ['reach-card', cityId, selectedCell],
     queryFn: () => fetchReachCard(API_BASE, cityId, selectedCell as string),
-    enabled: reachOn && selectedCell !== null,
+    enabled: requestable,
     retry: shouldRetry,
   });
 
