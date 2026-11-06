@@ -336,6 +336,79 @@ The eight "after" counts add up to 241,794 places. Park shapes are every park st
 - **Both endpoints and the list filters were checked in-process, not on the deployed API.** A throwaway script ran the Express app on port 3098 against the local database. For all eight cities, `GET /reach` answered 200 with the right city and coverage label, one feature per populated cell, `Content-Encoding: br`, a strong ETag and `Cache-Control: public, max-age=86400`; a card for one real cell of each city answered 200 with six needs. `GET /pois` and `POST /pois/within` left out `tram_stop` and `subway_entrance` in all eight cities, and so did the district stats of Berlin, Amsterdam and New York. A temporary district holding no places (in the local copy only, deleted afterwards) returned zero counts. The same checks on the deployed API are part of the production runbook. After the production load on 2026-11-06 they passed there for both reach endpoints and `GET /pois` in all eight cities (71 checks, including the stored ETag and compressed size reaching the client unchanged, `304`, and plain JSON without Brotli), and for `POST /pois/within` and district stats in Berlin.
 - **Coverage is uneven, as OSM tagging is.** The 19 categories are a fixed set, not a promise that every city has all of them (see the Categories column above).
 
+## Amendments while building Phase 2
+
+Decisions made while building `reach/interface` on 2026-11-06, from the Phase 2 plan (`docs/superpowers/plans/2026-11-06-everyday-reach-phase-2-interface.md`; the numbers in brackets are its decision numbers) and the reviews of its tasks. Where one of them differs from "Phase 2 — Interface" below, this section wins. They are checked by unit tests; the live browser checks (plan Task 12) have not run yet.
+
+### Recolouring
+
+Recolouring: measurement pending (Task 1); provisional settings feature state, recolour on release
+
+### Switching, fetching and links
+
+- **Reach and the other full-map views turn each other off (2).** Turning reach on switches off the heatmap and the isochrone, route and draw tools; turning any of them on switches reach off (`lib/viewExclusivity.ts`). The heatmap and the tools still coexist with each other, as before.
+- **In a link, a tool or the heatmap beats `reach` (3).** The spec names only tools. The app never writes the heatmap and reach into one link, so a hand-made link with both resolves the same way (`effectiveReach` in `lib/shareCodec.ts`). An invalid `t` or `n` drops the `reach` entry, but an invalid `c` drops only `c`, and `n` is de-duplicated and put in display order (4).
+- **The payload is fetched the first time the switch goes on for a city, never in advance (5).** A 404 is not retried, and it keeps that city's switch disabled with "Not built for this city yet".
+
+### Colours and 3D
+
+- **The three classes are three solid colours, and the flat fill fades as a whole layer (6).** Mapbox GL 3.20's `fill-extrusion-color` ignores a colour's alpha, so the columns could not share a translucent ramp with the flat fill. The final tokens in `theme.ts` are `REACH_CLASS.allMet = CYAN` (`ROLE.answer`), `oneMissing = darken(CYAN, 0.45)` and `twoPlusMissing = darken(CYAN, 0.82)`, with `REACH_FILL_OPACITY = 0.8` for the flat fill; the columns draw the same colours solid. The plan began the darkest class at `darken(CYAN, 0.72)`, which the contrast guard (`reachContrast.test.ts`) failed at 1.84:1 against its neighbour. On `SURFACE.land` the neighbouring classes now measure 2.56:1 and 2.19:1 flat, and 2.93:1 and 2.71:1 solid; the selection casing measures 6.48:1 against the flat all-met class. These replace the 2.1:1 and 2.7:1 of a three-class ramp in "Measured facts".
+- **Columns rise 0.1 m per estimated resident in every city (7)** (`REACH_EXTRUSION_M_PER_RESIDENT`). **New York's columns are the tallest, not Paris's** as "Map" below expected. Measured on production on 2026-11-06, the busiest blocks hold 8,920 estimated residents in New York (about 892 m tall), 7,705 in Sydney, 6,000 in Paris (about 600 m), 4,810 in Tokyo and 4,076 in London. Paris has the highest median block (2,103 residents, against 234 in Amsterdam, the lowest), but not the single busiest one.
+
+### Panel
+
+- **The per-need bars show all six needs at the chosen time, with the unchosen ones dimmed (9).**
+- **With two chosen needs the headline reads "of both chosen needs"**, not "of all two chosen needs".
+- **The 80% bar stays (19; owner, 2026-11-06).** The method note shows each offered limit's agreement beside what always answering "within" would score (each payload's `meta.completeness.checks.calibrationBaseline`), and says the 5-minute figure is the informative one.
+- **Percentages (20).** A share shows as a whole percent, except that one from 99.5% to just under 100% shows one decimal, rounded down, and one above 0 and below 0.5% shows "<1%". Only an exact 0 or 1 reads "0%" or "100%" (`percent` in `lib/reach/copy.ts`). Paris at 20 minutes, all six needs, reads 99.9%.
+
+### Selection, the block card, lines and pins
+
+- **A selection never reloads the reach tiles (12).** The 2D outline is a gold line over a dark casing: two line layers on a one-block source of their own. In 3D the selected column turns `ROLE.you` through the feature state `selected`, which works because the reach source uses `promoteId: 'h'`. Neither changes a filter or a data-driven paint property on the reach source, each of which makes Mapbox reload every tile of it.
+- **The card follows the payload (14).** Each row's minutes and ✓/✗ come from the payload's metres and `k`, the numbers the block's colour comes from, so they show before the card request has returned. The card endpoint supplies only each place's name, category and position. The payload is cached by the browser for a day while the card is read fresh, so after a data reload they can differ: when the card's metres or `k` differ from the payload's, it says "This block's data has changed since the map loaded. Reload to update." and no lines are drawn.
+- **Only chosen needs are marked (15).** ✓/✗, lines and pins apply to the chosen needs only, and unchosen rows on the card are dimmed and unmarked. As the spec says, lines and pins go only to needs within the limit.
+- **Category pins are DOM markers (16)** that render `CategoryIcon` through `react-dom/client`. They are built in `lib/mapPins.ts` with `createElement` rather than JSX, and their roots are unmounted on the next tick, outside React's commit: unmounting a root during a commit makes React 19.2 log a warning, and passive-effect cleanups run inside the commit.
+- **Card names (17).** Tram stops and metro entrances, which can be a block's nearest station, are labelled "Tram stop" and "Metro entrance" with their own icons. A place without a name shows as "Unnamed park", "Unnamed tram stop" and so on.
+- **The desktop block card shares the spotlight card's slot** (`MapCardSlot`), so the reduced-motion setting now also applies to the spotlight card.
+
+### Layer order
+
+- **District outlines draw above the blocks (18; owner, 2026-11-06).** The reach fill and columns sit beneath the district layers, so the outlines stay readable over the blocks: a deliberate exception to "context under answers", noted in `lib/layerOrder.ts`.
+
+### Headlines
+
+Measured on 2026-11-06 (20:28 UTC) from the deployed API, `GET /reach` for each city (payloads built that day), with the app's summary rule: the share of estimated residents whose block has all six needs within 15 minutes (`metres ≤ 15 × k`) at the published `k`, and at `kLow` and `kHigh` for the range, formatted with the percent rule above. Alphabetical, and not a ranking (see "Comparing cities" under "Decisions made during design"). The README carries the same table.
+
+| City | Coverage | k (kLow–kHigh) | Headline | Range | Shares at k, kLow, kHigh |
+|---|---|---|---|---|---|
+| Amsterdam | whole city | 69.5 (62–70.5) | 74% | 69–75% | 0.74093, 0.69139, 0.74543 |
+| Berlin | whole city | 62.5 (57–68) | 67% | 62–72% | 0.67420, 0.62378, 0.71744 |
+| London | all 33 boroughs | 66.5 (59.5–70) | 69% | 60–73% | 0.68819, 0.59834, 0.72900 |
+| Munich | whole city | 65 (61–69) | 81% | 78–85% | 0.81026, 0.77939, 0.84639 |
+| New York | the five boroughs | 69 (67–77) | 73% | 71–78% | 0.72942, 0.71269, 0.77663 |
+| Paris | the 20 arrondissements | 68.5 (65–73.5) | 99% | 99%–99.5% | 0.99425, 0.99111, 0.99564 |
+| Sydney | 33 inner suburbs | 69.5 (59.5–73.5) | 93% | 90–96% | 0.93051, 0.90433, 0.95719 |
+| Tokyo | the 23 wards | 65 (63.5–75) | 81% | 80–89% | 0.81312, 0.79662, 0.88569 |
+
+- **Paris's range reads "99%–99.5%"**, the panel's `rangeLine` form when an end isn't a whole percent: at `kHigh` its share is 99.564%, which the percent rule shows as 99.5% rather than rounding up to 100%. (The plan had listed "99–100%".) At 20 minutes Paris reads 99.9%.
+- Every city offers all four stops and passes; no block in any city has a need with no place (no 65535 distances).
+- Tokyo's figures match the welcome example's (81%, range 80–89%).
+
+### Where it breaks
+
+Calibration step 7 asked for the cells with the largest misses, two or three of them in the README with screenshots. The README lists the three held-out blocks with the most wrong checks in the 2026-11-06 production calibration, out of 24 each (six needs at four limits), graded at the fit half's `k` as the calibration grades them. "Within" means the estimate or Mapbox counts the stored nearest place as inside that limit; metres are straight-line, to a park's edge.
+
+| Block | k_fit | Wrong | Estimate within, Mapbox not | Mapbox within, estimate not | Link's `t` |
+|---|---|---|---|---|---|
+| Tokyo `892f5aadb8fffff` (35.67383, 139.71863) | 63.5 | 7 | school at 5 and 10 (276 m), metro entrance at 5 (303 m), park at 10 (370 m), supermarket at 10 (487 m) | doctor at 5 (332 m), pharmacy at 5 (333 m) | 5 |
+| Munich `891f8d4e977ffff` (48.08126, 11.49144) | 64.5 | 5 | park at 10 (439 m), supermarket at 10 (465 m), school at 10 (621 m) | doctor at 10 (751 m), metro entrance at 15 (998 m) | 10 |
+| Berlin `891f1d482b7ffff` (52.52519, 13.27961) | 57.5 | 5 | park at 10 and 15 (Schlosspark Charlottenburg, 379 m), school at 15 and 20 (857 m) | station at 15 (Westend, 863 m) | 15 |
+
+- **Where the lists come from.** The calibration prints each wrong check as need@limit. Tokyo's and Munich's lists are from the production run's output. Berlin's production output was not kept, so its list is from the local run of 2026-10-20 (`pk@10,15 sc@15,20 st@15`), which production reproduced block for block from the same inputs and the same cached isochrones. Which way each check went was reconstructed offline with the calibration's rules (the nearest place on the spheroid from the committed place files and the 2026-10-20 park files, a park counted from 0.5 ha and measured to its edge, and a place inside a limit when Mapbox's cached isochrone touches it). The reconstruction gives exactly the printed lists for all three blocks, and the metres are the production block cards' (`GET /reach/:cellId` on 2026-11-06), which equal each block's payload properties.
+- **At the published `k`, which the map uses** (Tokyo 65, Munich 65, Berlin 62.5, each a little faster than the fit half's), Tokyo and Munich keep the same misses and Berlin has 4: Westend station (863 m, 13.8 minutes) counts as within 15, as Mapbox says. The README says so.
+- **The share links** frame each block at zoom 15, flat, with all six needs, the block selected (`c`) and `t` at the limit with the most misses, and no tool. Each was encoded as the app's codec encodes and decoded back through `decodeState` to the same object. They open only once Phase 2 is merged and deployed, and need checking then.
+- **Screenshots** of the three blocks have not been taken: they are to come from the owner after the deploy. Until then, or if the owner declines, the links stand alone.
+
 ## Phase 2 — Interface (`reach/interface`)
 
 ### First task: measure recolouring speed
