@@ -133,7 +133,7 @@ City-scoped routes (`:cityId` e.g. `berlin`):
 | GET  | `/api/cities/:cityId/reach/:cellId` | One block's residents and, for each need, its nearest place (name, category, coordinates, metres, estimated minutes rounded up, so they agree with the map's colour). `400` for a malformed cell id, `404` for an unknown cell |
 | GET  | `/health` | Keep-warm target; answers without touching the database |
 
-The two reach endpoints are the data layer for Everyday reach; the map layer that reads them is not built yet. The data has been built and checked for all eight cities on a local database, but it has not been loaded into the deployed API yet.
+The two reach endpoints are the data layer for Everyday reach; the map layer that reads them is not built yet. All eight cities are live on the deployed API (loaded on 2026-11-06), and each matches the local test run block for block.
 
 ---
 
