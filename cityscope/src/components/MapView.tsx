@@ -290,22 +290,39 @@ interface ReachColouredFor {
   k: number;
 }
 
-function addReachLayers(map: mapboxgl.Map, data: ReachPayload) {
+/**
+ * The payload as the reach source's data: each block's feature id is its index
+ * in `payload.features`, which feature state needs. Mapbox would hash an H3 id
+ * (a string) to a 32-bit id, so two blocks could share their state; an index
+ * never does. Each feature is a shallow copy, so the cached payload is never
+ * changed.
+ */
+function reachSourceData(payload: ReachPayload): GeoJSON.FeatureCollection {
+  return { type: 'FeatureCollection', features: payload.features.map((f, i) => ({ ...f, id: i })) };
+}
+
+/** Each block's index in `payload.features` (its feature id), by H3 id. */
+function reachIndexByCell(payload: ReachPayload | undefined): ReadonlyMap<string, number> {
+  const index = new Map<string, number>();
+  payload?.features.forEach((f, i) => index.set(f.properties.h, i));
+  return index;
+}
+
+function addReachLayers(map: mapboxgl.Map, data: GeoJSON.FeatureCollection, k: number) {
   if (map.getSource(REACH_SOURCE_ID)) return;
 
-  // promoteId makes each block's H3 id its feature id, which feature state needs.
-  // The attribution shows only while a layer on this source is visible.
+  // The data carries numeric feature ids (see reachSourceData). The
+  // attribution shows only while a layer on this source is visible.
   map.addSource(REACH_SOURCE_ID, {
     type: 'geojson',
     data,
-    promoteId: 'h',
     attribution: REACH_ATTRIBUTION,
   });
 
   // Beneath the district outlines and any analysis result (see lib/layerOrder.ts).
   const beforeId = reachBeforeId(map.getStyle().layers);
   const { needs, minutes } = useReachStore.getState();
-  const missing = reachMissing(needs, minutes, data.meta.metresPerMinute);
+  const missing = reachMissing(needs, minutes, k);
 
   map.addLayer(
     {
@@ -387,8 +404,9 @@ function MapView() {
   const routeDestinationMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const geoSearchMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const drawRef = useRef<MapboxDraw | null>(null);
-  // The block that carries the `selected` feature state, so the next selection can clear it.
-  const reachSelectedIdRef = useRef<string | null>(null);
+  // The feature id (index) of the block that carries the `selected` feature
+  // state, so the next selection can clear it.
+  const reachSelectedIdRef = useRef<number | null>(null);
   // The payload the reach source holds, and what its colours were worked out
   // for, so turning reach back on redoes neither when nothing changed meanwhile.
   const reachSourcePayloadRef = useRef<ReachPayload | null>(null);
@@ -424,6 +442,9 @@ function MapView() {
   const reachColumns = reachSummary?.columns;
   const reachK = reachSummary?.meta.metresPerMinute;
   const { data: reachCard } = useReachCard();
+  // Once per payload: the source's data with numeric ids, and each block's id by H3 id.
+  const reachSource = useMemo(() => (reachPayload ? reachSourceData(reachPayload) : null), [reachPayload]);
+  const reachIndex = useMemo(() => reachIndexByCell(reachPayload), [reachPayload]);
 
   // Initialize map
   useEffect(() => {
@@ -805,19 +826,19 @@ function MapView() {
   // below shows them.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady || !reachEnabled || !reachPayload) return;
+    if (!map || !mapReady || !reachEnabled || !reachPayload || !reachSource) return;
     if (reachSourcePayloadRef.current === reachPayload) return;
 
     const source = map.getSource(REACH_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
     if (source) {
       // The two effects below, keyed on the payload too, give the new city's
       // blocks their colours and move the selection.
-      source.setData(reachPayload);
+      source.setData(reachSource);
     } else {
-      addReachLayers(map, reachPayload);
+      addReachLayers(map, reachSource, reachPayload.meta.metresPerMinute);
     }
     reachSourcePayloadRef.current = reachPayload;
-  }, [reachPayload, reachEnabled, mapReady]);
+  }, [reachPayload, reachSource, reachEnabled, mapReady]);
 
   // Recolour the blocks for the chosen time and needs, a new payload or its
   // speed k, while reach is on. Never on a selection change: either path
@@ -838,10 +859,12 @@ function MapView() {
     }
 
     if (REACH_RECOLOUR === 'feature-state') {
-      // Feature state restyles without reloading tiles.
+      // Feature state restyles without reloading tiles. The counts follow the
+      // payload's block order, and block i's feature id is i. A previous
+      // city's states on the same ids are overwritten here.
       const missing = missingCounts(reachColumns, reachNeeds, reachMinutes, reachK);
-      for (let i = 0; i < reachColumns.ids.length; i++) {
-        map.setFeatureState({ source: REACH_SOURCE_ID, id: reachColumns.ids[i] }, { missing: missing[i] });
+      for (let i = 0; i < missing.length; i++) {
+        map.setFeatureState({ source: REACH_SOURCE_ID, id: i }, { missing: missing[i] });
       }
     } else {
       // A data-driven paint change reloads every tile of the source. Mapbox
@@ -867,14 +890,13 @@ function MapView() {
     const outline = map.getSource(REACH_SELECTED_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
     if (!outline) return;
 
-    const feature = reachSelectedCell
-      ? reachPayload?.features.find((f) => f.properties.h === reachSelectedCell)
-      : undefined;
+    const index = reachSelectedCell ? reachIndex.get(reachSelectedCell) : undefined;
+    const feature = index === undefined ? undefined : reachPayload?.features[index];
     outline.setData(
       feature ? { type: 'FeatureCollection', features: [feature] } : EMPTY_COLLECTION,
     );
 
-    const next = feature ? feature.properties.h : null;
+    const next = feature && index !== undefined ? index : null;
     const previous = reachSelectedIdRef.current;
     if (previous !== null && previous !== next) {
       map.removeFeatureState({ source: REACH_SOURCE_ID, id: previous }, 'selected');
@@ -883,7 +905,7 @@ function MapView() {
       map.setFeatureState({ source: REACH_SOURCE_ID, id: next }, { selected: true });
     }
     reachSelectedIdRef.current = next;
-  }, [reachSelectedCell, reachPayload, mapReady]);
+  }, [reachSelectedCell, reachPayload, reachIndex, mapReady]);
 
   // Show the reach layers for the switch, the payload and 3D: the flat fill in
   // 2D, the columns in 3D. Mapbox skips an unchanged visibility, so a re-run
