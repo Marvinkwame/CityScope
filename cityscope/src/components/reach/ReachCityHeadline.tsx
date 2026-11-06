@@ -6,13 +6,14 @@ import { alpha } from '@mui/material/styles';
 import { useReachSummary } from '../../hooks/useReachSummary';
 import { useReachStore } from '../../store/reachStore';
 import { useUIStore } from '../../store/uiStore';
-import { coverageLine, headlineSentence, percent } from '../../lib/reach/copy';
+import { coverageLine, headlineSentence, percent, rangeLine } from '../../lib/reach/copy';
 import { MONO, ROLE } from '../../theme';
 
 /**
- * The phone card's city view: the headline the sidebar panel leads with, and
- * a way into the sidebar to change it. A component of its own so the summary
- * pass runs only on phones, while no block is selected.
+ * The phone card's city view: the headline the sidebar panel leads with (the
+ * figure, its sentence and its range), and a way into the sidebar to change
+ * it. A component of its own so the summary pass runs only on phones, while no
+ * block is selected.
  */
 function ReachCityHeadline() {
   const reach = useReachSummary();
@@ -25,13 +26,22 @@ function ReachCityHeadline() {
       <Typography sx={{ fontFamily: MONO, fontSize: '0.58rem', lineHeight: 1.5, color: 'rgba(255,255,255,0.58)' }}>
         {coverageLine(reach.meta)}
       </Typography>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.75, borderLeft: `2px solid ${ROLE.answer}`, pl: 1 }}>
+      {/* Announced as it changes, as the sidebar's headline is. */}
+      <Box
+        aria-live="polite"
+        sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.75, borderLeft: `2px solid ${ROLE.answer}`, pl: 1 }}
+      >
         <Typography sx={{ fontFamily: MONO, fontSize: '1.6rem', fontWeight: 600, lineHeight: 1.05, color: ROLE.answer }}>
           {percent(reach.summary.share)}
         </Typography>
-        <Typography sx={{ fontSize: '0.72rem', lineHeight: 1.4, color: 'rgba(255,255,255,0.88)' }}>
-          {headlineSentence(needs, minutes)}
-        </Typography>
+        <Box>
+          <Typography sx={{ fontSize: '0.72rem', lineHeight: 1.4, color: 'rgba(255,255,255,0.88)' }}>
+            {headlineSentence(needs, minutes)}
+          </Typography>
+          <Typography sx={{ fontFamily: MONO, fontSize: '0.64rem', color: 'rgba(255,255,255,0.66)', mt: 0.5 }}>
+            {rangeLine(reach.summary.low, reach.summary.high)}
+          </Typography>
+        </Box>
       </Box>
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 0.5 }}>
         <Button
