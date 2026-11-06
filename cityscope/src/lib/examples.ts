@@ -1,6 +1,6 @@
 import type SvgIcon from '@mui/material/SvgIcon';
-import BlurOnIcon from '@mui/icons-material/BlurOn';
 import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk';
+import HexagonOutlinedIcon from '@mui/icons-material/HexagonOutlined';
 import PentagonIcon from '@mui/icons-material/Pentagon';
 import type { ShareState } from './shareCodec';
 
@@ -17,7 +17,9 @@ export interface Example {
 /**
  * The welcome card's one-click examples, one per analysis style. The
  * Shoreditch polygon was checked against production data: 244 POIs in
- * 0.61 km², led by restaurants, cafes, bars and pubs.
+ * 0.61 km², led by restaurants, cafes, bars and pubs. The Tokyo reach
+ * example was chosen on a figure of 81% within 15 minutes of all six needs
+ * (range 80–89%, measured 2026-11-06).
  */
 export const EXAMPLES: ReadonlyArray<Example> = [
   {
@@ -66,16 +68,17 @@ export const EXAMPLES: ReadonlyArray<Example> = [
     },
   },
   {
-    id: 'tokyo-density',
-    title: 'Where Tokyo is busiest',
-    kicker: 'Tokyo · density heatmap',
-    icon: BlurOnIcon,
+    id: 'tokyo-reach',
+    title: 'Everyday needs within 15 minutes in Tokyo',
+    kicker: 'Tokyo · everyday reach',
+    icon: HexagonOutlinedIcon,
     state: {
       v: 1,
       city: 'tokyo',
-      view: { lng: 139.735, lat: 35.685, zoom: 11.3, bearing: 0, pitch: 0 },
-      layers: { roads: true, buildings: true, districts: false, heatmap: true },
-      is3D: false,
+      view: { lng: 139.735, lat: 35.685, zoom: 11.3, bearing: -20, pitch: 60 },
+      layers: { roads: true, buildings: true, districts: false, heatmap: false },
+      is3D: true,
+      reach: { t: 15, n: ['sm', 'ph', 'dr', 'sc', 'pk', 'st'] },
     },
   },
 ];

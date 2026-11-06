@@ -33,7 +33,12 @@ function WelcomeDialog() {
     applyShareState(example.state, map, cities);
     // The isochrone and drawn-area results live in the sidebar, which starts
     // closed on phones; open it so the answer is visible, not just the shape.
-    if (example.state.tool) useUIStore.getState().setSidebarOpen(true);
+    // On phones the bottom card shows the reach headline, and an open drawer
+    // would cover it, so reach opens the sidebar only at the desktop width
+    // (600 px, the same rule as uiStore).
+    if (example.state.tool || (example.state.reach && window.innerWidth >= 600)) {
+      useUIStore.getState().setSidebarOpen(true);
+    }
     close();
   };
 
