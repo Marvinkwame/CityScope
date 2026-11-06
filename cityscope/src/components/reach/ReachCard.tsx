@@ -29,6 +29,16 @@ interface ShownBlock {
 
 const NOTE_SX = { fontSize: '0.64rem', lineHeight: 1.45, color: 'rgba(255,255,255,0.5)' } as const;
 
+/** A text button in the you colour, as the panels' actions are. */
+const ACTION_SX = {
+  color: ROLE.you,
+  textTransform: 'none',
+  fontSize: '0.75rem',
+  px: 0.75,
+  minWidth: 0,
+  '&:hover': { background: alpha(ROLE.you, 0.08) },
+} as const;
+
 function clearBlock() {
   useReachStore.getState().selectCell(null);
 }
@@ -46,8 +56,36 @@ function BlockTitle({ residents }: { residents: number }) {
 }
 
 /**
+ * The payload still loading, or failed, on phones. There the switch's spinner
+ * and its Retry sit in the closed sidebar drawer, so the card says it instead.
+ */
+function PhoneStatus({ status, onRetry, retrying }: { status: 'loading' | 'error'; onRetry: () => void; retrying: boolean }) {
+  if (status === 'loading') {
+    return (
+      <Typography role="status" sx={{ fontFamily: MONO, fontSize: '0.64rem', color: 'rgba(255,255,255,0.58)', px: 1.25, py: 1 }}>
+        Loading Everyday reach…
+      </Typography>
+    );
+  }
+  return (
+    <Box
+      role="status"
+      sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, px: 1.25, py: 0.75 }}
+    >
+      <Typography sx={{ fontFamily: MONO, fontSize: '0.64rem', color: 'error.main' }}>
+        Couldn&apos;t load Everyday reach
+      </Typography>
+      <Button size="small" onClick={onRetry} disabled={retrying} sx={ACTION_SX}>
+        Retry
+      </Button>
+    </Box>
+  );
+}
+
+/**
  * The selected block's nearest everyday places. On phones it is the one bottom
- * card, so with no block selected it shows the city's headline instead.
+ * card, so with no block selected it shows the city's headline instead, or
+ * that the payload is loading or failed.
  */
 function ReachCard() {
   const theme = useTheme();
@@ -56,7 +94,7 @@ function ReachCard() {
   const minutes = useReachStore((s) => s.minutes);
   const needs = useReachStore((s) => s.needs);
   const selectedCell = useReachStore((s) => s.selectedCell);
-  const { availability, data: payload } = useReachPayload();
+  const { availability, data: payload, refetch, isFetching } = useReachPayload();
   const cardQuery = useReachCard();
 
   const props = useMemo(
@@ -79,7 +117,9 @@ function ReachCard() {
   const block = live ?? (isPhone ? null : lastBlock);
 
   const ready = reachOn && availability === 'ready';
-  const visible = ready && (isPhone || live !== null);
+  // Loading and an error are only ever reported while the switch is on.
+  const phoneStatus = isPhone && (availability === 'loading' || availability === 'error') ? availability : null;
+  const visible = (ready && (isPhone || live !== null)) || phoneStatus !== null;
 
   const loading = live !== null && cardQuery.isLoading;
   const failed = live !== null && !card && cardQuery.isError && !(cardQuery.error instanceof ReachCellNotFoundError);
@@ -104,15 +144,7 @@ function ReachCard() {
                 size="small"
                 startIcon={<ArrowBackIcon />}
                 onClick={clearBlock}
-                sx={{
-                  color: ROLE.you,
-                  textTransform: 'none',
-                  fontSize: '0.75rem',
-                  px: 0.75,
-                  ml: -0.75,
-                  minWidth: 0,
-                  '&:hover': { background: alpha(ROLE.you, 0.08) },
-                }}
+                sx={{ ...ACTION_SX, ml: -0.75 }}
               >
                 Back to the city
               </Button>
@@ -158,6 +190,8 @@ function ReachCard() {
             </Typography>
           </Box>
         </>
+      ) : phoneStatus ? (
+        <PhoneStatus status={phoneStatus} onRetry={() => void refetch()} retrying={isFetching} />
       ) : (
         isPhone && <ReachCityHeadline />
       )}
