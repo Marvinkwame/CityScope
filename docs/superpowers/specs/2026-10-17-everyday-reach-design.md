@@ -348,7 +348,7 @@ Recolouring: measurement pending (Task 1); provisional settings feature state, r
 
 - **Reach and the other full-map views turn each other off (2).** Turning reach on switches off the heatmap and the isochrone, route and draw tools; turning any of them on switches reach off (`lib/viewExclusivity.ts`). The heatmap and the tools still coexist with each other, as before.
 - **In a link, a tool or the heatmap beats `reach` (3).** The spec names only tools. The app never writes the heatmap and reach into one link, so a hand-made link with both resolves the same way (`effectiveReach` in `lib/shareCodec.ts`). An invalid `t` or `n` drops the `reach` entry, but an invalid `c` drops only `c`, and `n` is de-duplicated and put in display order (4).
-- **The payload is fetched the first time the switch goes on for a city, never in advance (5).** A 404 is not retried, and it keeps that city's switch disabled with "Not built for this city yet".
+- **The payload is fetched the first time the switch goes on for a city, never in advance (5).** It stays cached until five minutes after you leave that city (TanStack Query's default `gcTime`; holding all eight parsed payloads would cost too much memory). A 404 is not retried, and it keeps that city's switch disabled with "Not built for this city yet".
 
 ### Colours and 3D
 

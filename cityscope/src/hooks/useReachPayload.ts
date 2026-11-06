@@ -10,7 +10,9 @@ const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
 
 /**
  * The city's everyday reach payload (0.1 to 4.8 MB of GeoJSON), fetched when the
- * layer is switched on and kept for the session. Structural sharing is off: it
+ * layer is switched on. It stays cached until five minutes after you leave that
+ * city (TanStack's default `gcTime`, kept on purpose: holding every city's
+ * parsed payload would cost too much memory). Structural sharing is off: it
  * would deep-compare every block on a refetch.
  */
 export function useReachPayload(): UseQueryResult<ReachPayload, Error> & { availability: ReachAvailability } {
