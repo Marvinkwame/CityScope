@@ -342,7 +342,19 @@ Decisions made while building `reach/interface` on 2026-11-06, from the Phase 2 
 
 ### Recolouring
 
-Recolouring: measurement pending (Task 1); provisional settings feature state, recolour on release
+Measured on 2026-11-06 in the built-in Chromium browser (desktop, a 525 × 534 px map at 60 frames a second) on London's 15,838 blocks, switching the limit between 10 and 15 minutes ten times for each approach. Medians:
+
+| | Until the new colours are drawn | Longest main-thread task |
+|---|---|---|
+| Flat fill, data-driven expression | 330 ms | none over 50 ms |
+| Flat fill, feature state | 173 ms | 183 ms |
+| 3D columns, expression | 488 ms | 219 ms |
+| 3D columns, feature state | 197 ms | 283 ms |
+
+- A new expression makes Mapbox reload every tile of the source in its workers, so the next frame still shows the old colours; feature state is updated in place, on the main thread.
+- **Approach: feature state** (`REACH_RECOLOUR = 'feature-state'`): 370 ms for the two layers together, against 818 ms.
+- **The map recolours when the slider is released** (`RECOLOUR_ON_RELEASE = true`): at four times the desktop time, Lighthouse's factor for a mid-range phone, a recolour takes 0.7–0.8 s, far more than one frame. The headline still updates while the slider moves.
+- **Known cost:** with feature state a recolour blocks the main thread for about 0.2–0.3 s on desktop, an estimated 0.7–1.1 s on a mid-range phone, once per release or need toggle. Spreading the state writes over several frames would remove that pause; Phase 2 does not.
 
 ### Switching, fetching and links
 

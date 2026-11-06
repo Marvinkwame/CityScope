@@ -2,9 +2,11 @@
  * How the reach layer recolours when the time or the needs change, and how tall
  * a block stands per resident.
  *
- * PROVISIONAL: these two values are placeholders until the recolouring
- * measurement in the spec's "Amendments while building Phase 2" section is
- * recorded. That measurement may change them.
+ * The first two are set by the recolouring measurement of 2026-11-06 (the
+ * spec's "Amendments while building Phase 2", Recolouring): feature state drew
+ * London's new colours in 173–197 ms against 330–488 ms for an expression, and
+ * either takes several frames on a mid-range phone, so the map recolours when
+ * the slider is released.
  */
 export const REACH_RECOLOUR: 'feature-state' | 'expression' = 'feature-state';
 
