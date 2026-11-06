@@ -3,7 +3,7 @@ import Box from '@mui/material/Box';
 import ButtonBase from '@mui/material/ButtonBase';
 import Typography from '@mui/material/Typography';
 import { alpha } from '@mui/material/styles';
-import { useMapStore } from '../../store/mapStore';
+import { flyToPlace } from '../../lib/flyToPlace';
 import { MONO, ROLE } from '../../theme';
 import CategoryIcon from './CategoryIcon';
 import SectionLabel from './SectionLabel';
@@ -17,12 +17,6 @@ export interface PlaceItem {
   lat: number;
   /** Optional right-hand detail, such as "120 m". */
   meta?: string;
-}
-
-// A camera move, not a source or layer change. One of two camera moves
-// components make directly (GeoSearch has the other).
-function flyTo(place: PlaceItem) {
-  useMapStore.getState().map?.flyTo({ center: [place.lng, place.lat], zoom: 16, duration: 800 });
 }
 
 /**
@@ -60,7 +54,7 @@ function PlaceList({
             <Box component="li" key={p.id}>
               <ButtonBase
                 disableRipple
-                onClick={() => flyTo(p)}
+                onClick={() => flyToPlace(p.lng, p.lat)}
                 aria-label={`${name}, ${categoryLabel(p.category)}${p.meta ? `, ${p.meta}` : ''}. Show on map`}
                 sx={{
                   width: '100%',
