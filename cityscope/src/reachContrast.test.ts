@@ -46,4 +46,10 @@ describe('reach class contrast', () => {
   it('keeps the selection casing at least 3:1 from the strongest class', () => {
     expect(contrast(solid(REACH_SELECTION.casing), flat(REACH_CLASS.allMet))).toBeGreaterThanOrEqual(3);
   });
+
+  // Most blocks at 5 minutes are in the darkest class, so it must still read as
+  // filled rather than as bare land.
+  it('keeps the darkest class at least 1.5:1 from the land in the flat fill', () => {
+    expect(contrast(flat(REACH_CLASS.twoPlusMissing), solid(SURFACE.land))).toBeGreaterThanOrEqual(1.5);
+  });
 });

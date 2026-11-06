@@ -48,12 +48,12 @@ export const SURFACE = {
  */
 export const REACH_CLASS = {
   allMet: CYAN,
-  oneMissing: darken(CYAN, 0.45),
-  twoPlusMissing: darken(CYAN, 0.82),
+  oneMissing: darken(CYAN, 0.35),
+  twoPlusMissing: darken(CYAN, 0.65),
 } as const;
 
 /** The flat reach fill's single layer opacity. */
-export const REACH_FILL_OPACITY = 0.8;
+export const REACH_FILL_OPACITY = 0.9;
 
 /** The selected block: a gold line over an ink casing. */
 export const REACH_SELECTION = { line: ROLE.you, casing: INK } as const;
