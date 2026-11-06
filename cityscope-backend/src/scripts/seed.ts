@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import 'dotenv/config';
 import { CITY_CONFIGS } from '../config/cities.js';
+import { announceTarget } from '../lib/dbTarget.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -19,6 +20,8 @@ interface FeatureCollection {
 }
 
 async function seed() {
+  announceTarget();
+
   const cityId = process.argv[2];
   if (!cityId) {
     console.error('Usage: tsx seed.ts <cityId>');
