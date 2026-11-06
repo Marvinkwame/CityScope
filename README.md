@@ -131,8 +131,19 @@ City-scoped routes (`:cityId` e.g. `berlin`):
 | POST | `/api/cities/:cityId/pois/within` | Count POIs inside a drawn polygon (`ST_Within`) |
 | GET  | `/api/cities/:cityId/reach` | Everyday reach for a whole city: one precomputed GeoJSON of populated H3 blocks with their estimated residents and distance to the nearest of six everyday needs. Brotli-compressed when the client accepts it, with an `ETag` (`304` when unchanged); `404` until the city has been published |
 | GET  | `/api/cities/:cityId/reach/:cellId` | One block's residents and, for each need, its nearest place (name, category, coordinates, metres, estimated minutes rounded up, so they agree with the map's colour). `400` for a malformed cell id, `404` for an unknown cell |
+| GET  | `/health` | Keep-warm target; answers without touching the database |
 
 The two reach endpoints are the data layer for Everyday reach; the map layer that reads them is not built yet. The data has been built and checked for all eight cities on a local database, but it has not been loaded into the deployed API yet.
+
+---
+
+## Deployment
+
+Frontend on **Vercel** → API on **Render** → **Neon** Postgres + PostGIS.
+
+**Keeping the API awake.** Render's free tier stops a service after 15 minutes without traffic, and the next visitor waits while it starts again (measured at 8–38 s). An external scheduler ([cron-job.org](https://cron-job.org)) calls `GET /health` every 10 minutes, so the API never reaches that limit. One always-on service fits within Render's 750 free instance hours a month.
+
+`/health` deliberately skips the database. Neon's free compute allowance can't cover staying awake around the clock, and it wakes on the next real query anyway. If a ping is ever missed, the welcome card says the server is waking up, so a cold start is explained rather than a blank map.
 
 ---
 
