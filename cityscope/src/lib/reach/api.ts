@@ -38,7 +38,10 @@ export function shouldRetry(failureCount: number, error: unknown): boolean {
 
 export type ReachAvailability = 'off' | 'loading' | 'ready' | 'not-built' | 'not-reliable' | 'error';
 
-/** "Not built" and "not reliable" hold even while the switch is off, so the switch can be disabled. */
+/**
+ * "Not built" and "not reliable" hold even while the switch is off, so the
+ * switch can be disabled. Loading and an error show only while it is on.
+ */
 export function reachAvailability(q: {
   enabled: boolean;
   data: ReachPayload | undefined;
@@ -48,6 +51,6 @@ export function reachAvailability(q: {
   if (q.data) return q.data.meta.passes ? 'ready' : 'not-reliable';
   if (q.error instanceof ReachNotBuiltError) return 'not-built';
   if (q.error) return q.enabled ? 'error' : 'off';
-  if (q.isFetching) return 'loading';
+  if (q.isFetching) return q.enabled ? 'loading' : 'off';
   return 'off';
 }

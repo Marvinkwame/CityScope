@@ -71,4 +71,8 @@ describe('reach api', () => {
     expect(reachAvailability({ enabled: false, data: undefined, error: new ReachNotBuiltError(), isFetching: false })).toBe('not-built');
     expect(reachAvailability({ enabled: true, data: undefined, error: new Error('x'), isFetching: false })).toBe('error');
   });
+
+  it('reports a fetch still running after the switch went off as off, not loading', () => {
+    expect(reachAvailability({ enabled: false, data: undefined, error: null, isFetching: true })).toBe('off');
+  });
 });
