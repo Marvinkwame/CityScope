@@ -338,7 +338,7 @@ The eight "after" counts add up to 241,794 places. Park shapes are every park st
 
 ## Amendments while building Phase 2
 
-Decisions made while building `reach/interface` on 2026-11-06, from the Phase 2 plan (`docs/superpowers/plans/2026-11-06-everyday-reach-phase-2-interface.md`; the numbers in brackets are its decision numbers) and the reviews of its tasks. Where one of them differs from "Phase 2 — Interface" below, this section wins. They are checked by unit tests; the live browser checks (plan Task 12) have not run yet.
+Decisions made while building `reach/interface` on 2026-11-06, from the Phase 2 plan (`docs/superpowers/plans/2026-11-06-everyday-reach-phase-2-interface.md`; the numbers in brackets are its decision numbers) and the reviews of its tasks. Where one of them differs from "Phase 2 — Interface" below, this section wins. They are checked by unit tests, and were checked live in the browser on 2026-11-06 (see "Live checks" below).
 
 ### Recolouring
 
@@ -420,6 +420,39 @@ Calibration step 7 asked for the cells with the largest misses, two or three of 
 - **At the published `k`, which the map uses** (Tokyo 65, Munich 65, Berlin 62.5, each a little faster than the fit half's), Tokyo and Munich keep the same misses and Berlin has 4: Westend station (863 m, 13.8 minutes) counts as within 15, as Mapbox says. The README says so.
 - **The share links** frame each block at zoom 15, flat, with all six needs, the block selected (`c`) and `t` at the limit with the most misses, and no tool. Each was encoded as the app's codec encodes and decoded back through `decodeState` to the same object. They open only once Phase 2 is merged and deployed, and need checking then.
 - **Screenshots** of the three blocks have not been taken: they are to come from the owner after the deploy. Until then, or if the owner declines, the links stand alone.
+
+### Live checks (plan Task 12)
+
+Run on 2026-11-06 in the built-in Chromium browser against the owner's dev servers (the backend reading production), at desktop and phone widths.
+
+- **Switching and views:**
+  - Every way of switching the layer passed: the switch itself; the heatmap and each tool turning reach off, and reach turning them off; a share link; the Tokyo example; a city change, which clears the block and loads the new city.
+  - The 2D fill and the 3D columns both work. The 3D buildings hide while reach is on and come back when it goes off.
+  - District outlines draw above the blocks.
+- **Panel:**
+  - The panel lays out in the spec's order.
+  - The slider works from the keyboard and announces "10 minutes".
+  - With a single need, the sentence reads "of a pharmacy" and the legend "Met / Not met"; the last toggle is disabled; the card dims the unchosen rows.
+- **Selection and card:**
+  - In 3D the selected block turns gold with its outline at its foot, and gets six lines and pins, which clear on deselect.
+  - A ✗ row flies the map to its place.
+  - On five blocks at 5, 10 and 15 minutes, the card's ✗ count equalled the block's class.
+  - 320 random cards matched the payloads exactly, on the local and the production API.
+- **Links:** a share-link round trip restored time, needs and block; an old link opened unchanged, with reach off.
+- **States:**
+  - Error with Retry, not built, not reliable and the stale card all show as designed, as do the phone's loading and error lines.
+  - Paris at 20 minutes reads "99.9%".
+  - At 375 × 560 the phone card stays clear of the search box.
+- **Console:** a clean run logged no errors and no warnings.
+- **Selection reloads no tiles:** five selections in Tokyo caused no reload of the reach source, and each settled in 66–100 ms.
+- **Recolouring on the real layer:**
+  - Tokyo's 6,252 blocks in 3D drew in 171 ms, with a longest main-thread task of 207 ms.
+  - London's 15,838 blocks in 2D drew in 292 ms, with a longest task of 450 ms. That is more than the measurement above, because the panel and the summary re-render in the same task.
+  - The pause comes once per slider release or need toggle.
+- **One bug found and fixed:**
+  - After a city change with a block selected, the card was requested once for the new city with the old city's block, giving a 404 and a console error.
+  - The card is now requested only for a block in the current city's payload, and a selected block missing from that payload is cleared.
+- **Not checked live:** the reduced-motion setting, which this browser cannot emulate.
 
 ## Phase 2 — Interface (`reach/interface`)
 
