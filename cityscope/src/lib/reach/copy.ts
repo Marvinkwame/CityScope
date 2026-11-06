@@ -57,10 +57,14 @@ export function headlineSentence(needs: readonly NeedId[], minutes: number): str
 
 const WHOLE_PERCENT = /^\d+%$/;
 
-/** "range 62–72%", or with each end in full when either isn't a plain whole percent. */
+/**
+ * "range 62–72%", or with each end in full when either isn't a plain whole
+ * percent. When both ends read the same, says so rather than "range 92–92%".
+ */
 export function rangeLine(low: number, high: number): string {
   const lo = percent(low);
   const hi = percent(high);
+  if (lo === hi) return 'no change across the pace range';
   if (WHOLE_PERCENT.test(lo) && WHOLE_PERCENT.test(hi)) return `range ${lo.slice(0, -1)}–${hi}`;
   return `range ${lo}–${hi}`;
 }
@@ -114,7 +118,9 @@ export function gpCheckLine(share: number, practices: number): string {
 
 const DAY = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 
-/** An ISO timestamp as its UTC day, e.g. "20 Oct 2026". */
+/** An ISO timestamp as its UTC day, e.g. "20 Oct 2026"; one it can't read comes back unchanged. */
 export function formatDate(iso: string): string {
-  return DAY.format(new Date(iso));
+  const date = new Date(iso);
+  // An invalid date would make format() throw, and nothing above would catch it.
+  return Number.isNaN(date.getTime()) ? iso : DAY.format(date);
 }

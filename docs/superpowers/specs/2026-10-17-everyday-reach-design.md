@@ -360,7 +360,7 @@ Recolouring: measurement pending (Task 1); provisional settings feature state, r
 - **The per-need bars show all six needs at the chosen time, with the unchosen ones dimmed (9).**
 - **With two chosen needs the headline reads "of both chosen needs"**, not "of all two chosen needs".
 - **The 80% bar stays (19; owner, 2026-11-06).** The method note shows each offered limit's agreement beside what always answering "within" would score (each payload's `meta.completeness.checks.calibrationBaseline`), and says the 5-minute figure is the informative one.
-- **Percentages (20).** A share shows as a whole percent, except that one from 99.5% to just under 100% shows one decimal, rounded down, and one above 0 and below 0.5% shows "<1%". Only an exact 0 or 1 reads "0%" or "100%" (`percent` in `lib/reach/copy.ts`). Paris at 20 minutes, all six needs, reads 99.9%.
+- **Percentages (20).** A share shows as a whole percent, except that one from 99.5% to just under 100% shows one decimal, rounded down, and one above 0 and below 0.5% shows "<1%". Only an exact 0 or 1 reads "0%" or "100%" (`percent` in `lib/reach/copy.ts`). Paris at 20 minutes, all six needs, reads 99.9%. When both ends of the range read the same, the range line says "no change across the pace range" instead of "range 92–92%" (26 single-need city and time combinations in the 2026-11-06 data).
 
 ### Selection, the block card, lines and pins
 

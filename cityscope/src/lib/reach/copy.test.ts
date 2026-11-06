@@ -57,6 +57,12 @@ describe('rangeLine', () => {
     expect(rangeLine(0.6199, 0.7204)).toBe('range 62–72%');
     expect(rangeLine(0.9941, 0.9993)).toBe('range 99%–99.9%');
   });
+
+  it('says the figure does not move when both ends read the same', () => {
+    expect(rangeLine(0.921, 0.924)).toBe('no change across the pace range');
+    expect(rangeLine(0.9991, 0.9996)).toBe('no change across the pace range');
+    expect(rangeLine(1, 1)).toBe('no change across the pace range');
+  });
 });
 
 describe('rangeExplanation', () => {
@@ -116,5 +122,10 @@ describe('gpCheckLine', () => {
 describe('formatDate', () => {
   it('writes a timestamp as a UTC day', () => {
     expect(formatDate('2026-10-20T23:30:00.000Z')).toBe('20 Oct 2026');
+  });
+
+  it('returns a timestamp it cannot read unchanged rather than throwing', () => {
+    expect(formatDate('not a date')).toBe('not a date');
+    expect(formatDate('')).toBe('');
   });
 });
