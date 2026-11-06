@@ -3,12 +3,6 @@ import Collapse from '@mui/material/Collapse';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemText from '@mui/material/ListItemText';
-import Switch from '@mui/material/Switch';
-import CircularProgress from '@mui/material/CircularProgress';
-import CircleIcon from '@mui/icons-material/Circle';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -23,6 +17,7 @@ import { usePois } from '../hooks/usePois';
 import IsochroneControls from './IsochroneControls';
 import RouteControls from './RouteControls';
 import DrawControls from './DrawControls';
+import LayerSwitchRow from './LayerSwitchRow';
 import { AMBER, CYAN, MONO, DISPLAY, PANEL_GRADIENT, SURFACE, heatRampGradientCss } from '../theme';
 import { useUIStore } from '../store/uiStore';
 import { NAV_HEIGHT } from './Navbar';
@@ -140,55 +135,16 @@ function Sidebar() {
               const on = layers[id];
               return (
                 <Fragment key={id}>
-                  <ListItem
-                    disablePadding
-                    sx={{
-                      mb: 0.5,
-                      px: 1,
-                      py: 0.5,
-                      borderRadius: '5px',
-                      background: on ? 'rgba(255,255,255,0.025)' : 'transparent',
-                      transition: 'all 0.15s ease',
-                      '&:hover': { background: 'rgba(255,255,255,0.04)' },
+                  <LayerSwitchRow
+                    label={label}
+                    colour={color}
+                    on={on}
+                    busy={id === 'heatmap' && poisFetching}
+                    onChange={(next) => {
+                      if (id === 'heatmap' && next) clearReach();
+                      toggleLayer(id);
                     }}
-                  >
-                    <ListItemIcon sx={{ minWidth: 26 }}>
-                      <CircleIcon
-                        sx={{
-                          color: on ? color : 'rgba(255,255,255,0.25)',
-                          fontSize: 8,
-                          transition: 'all 0.2s ease',
-                        }}
-                      />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <Typography
-                          sx={{
-                            fontFamily: 'inherit',
-                            fontSize: '0.84rem',
-                            fontWeight: on ? 500 : 400,
-                            color: on ? 'rgba(255,255,255,0.90)' : 'rgba(255,255,255,0.50)',
-                            transition: 'color 0.15s ease',
-                          }}
-                        >
-                          {label}
-                        </Typography>
-                      }
-                    />
-                    {id === 'heatmap' && poisFetching && (
-                      <CircularProgress size={12} sx={{ color: AMBER, mr: 1 }} />
-                    )}
-                    <Switch
-                      edge="end"
-                      size="small"
-                      checked={on}
-                      onChange={() => {
-                        if (id === 'heatmap' && !on) clearReach();
-                        toggleLayer(id);
-                      }}
-                    />
-                  </ListItem>
+                  />
 
                   {id === 'heatmap' && (
                     <Collapse in={layers.heatmap}>
