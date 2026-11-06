@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import 'dotenv/config';
 import { CITY_CONFIGS } from '../config/cities.js';
+import { announceTarget } from '../lib/dbTarget.js';
+import { clearStaleReach, staleReachNotice } from '../lib/reachReset.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -15,6 +17,8 @@ interface Poi {
 }
 
 async function seed() {
+  announceTarget();
+
   const cityId = process.argv[2];
   if (!cityId) {
     console.error('Usage: tsx seed-pois.ts <cityId>');
@@ -41,6 +45,14 @@ async function seed() {
 
   const pois: Poi[] = JSON.parse(raw);
 
+  // A fetch that came back empty must not replace a city with nothing. This
+  // check comes before the connection, so the delete below never runs.
+  if (!Array.isArray(pois) || pois.length === 0) {
+    console.error(`${dataPath} holds no places; refusing to replace ${cityConfig.name} with nothing`);
+    console.error(`Run "npm run fetch:pois -- ${cityId}" again`);
+    process.exit(1);
+  }
+
   const client = new pg.Client({
     connectionString: process.env.DATABASE_URL,
   });
@@ -48,9 +60,12 @@ async function seed() {
 
   // One transaction per city: the live demo reads this table, so a failure
   // partway through must leave the previous data in place rather than a
-  // half-deleted city.
+  // half-deleted city. The reload gives every place a new id, so the city's
+  // reach data, which points at the old ids, goes in the same transaction.
+  let clearedReach = false;
   try {
     await client.query('BEGIN');
+    clearedReach = await clearStaleReach(client, cityId);
     await client.query('DELETE FROM pois WHERE city_id = $1', [cityId]);
 
     const batchSize = 500;
@@ -82,6 +97,7 @@ async function seed() {
   }
 
   console.log(`Seeded ${pois.length} POIs for ${cityConfig.name}`);
+  if (clearedReach) console.log(staleReachNotice(cityId));
 }
 
 seed().catch((err) => {

@@ -12,7 +12,7 @@ import { useRouteStore } from '../store/routeStore';
 import { useGeoSearchStore } from '../store/geoSearchStore';
 import { isHydrating } from '../lib/shareState';
 import { showsPolygon } from '../lib/drawFeatures';
-import { heatmapWeight } from '../lib/heatmapExposure';
+import { heatmapPoints, heatmapWeight } from '../lib/heatmapExposure';
 import { answerBeforeId, contextBeforeId } from '../lib/layerOrder';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import { useDrawStore } from '../store/drawStore';
@@ -506,9 +506,12 @@ function MapView() {
     const map = mapRef.current;
     if (!map || !mapReady || !poisData) return;
 
+    // The everyday-needs categories are for the place lists, not the heatmap.
+    const points = heatmapPoints(poisData);
+
     const geojson: GeoJSON.FeatureCollection = {
       type: 'FeatureCollection',
-      features: poisData.map((poi) => ({
+      features: points.map((poi) => ({
         type: 'Feature' as const,
         geometry: {
           type: 'Point' as const,
@@ -522,7 +525,7 @@ function MapView() {
     };
 
     // The legend's Low/Medium/High is relative to the city, so exposure is too.
-    const weight = heatmapWeight(poisData);
+    const weight = heatmapWeight(points);
 
     const source = map.getSource(POI_HEATMAP_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
     if (source) {

@@ -15,6 +15,21 @@ interface LngLat {
 }
 
 /**
+ * The categories the POI heatmap draws: the original eleven. The everyday-needs
+ * categories (pharmacy, doctors, clinic, school, station, halt) are served for
+ * the place lists but stay off the heatmap, so its per-city tuning is unchanged.
+ */
+export const HEATMAP_CATEGORIES: ReadonlySet<string> = new Set([
+  'restaurant', 'cafe', 'pub', 'bar', 'supermarket', 'bakery',
+  'park', 'playground', 'attraction', 'museum', 'hotel',
+]);
+
+/** The points the heatmap shows, and the ones its weight is computed from. */
+export function heatmapPoints<T extends { category: string }>(pois: readonly T[]): T[] {
+  return pois.filter((poi) => HEATMAP_CATEGORIES.has(poi.category));
+}
+
+/**
  * The 99th-percentile count of POIs per 400 m cell, over occupied cells only.
  * Measures how hot the hottest parts of a city run, ignoring a few freak cells.
  */

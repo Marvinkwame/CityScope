@@ -2,7 +2,9 @@ import { execSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
+import 'dotenv/config';
 import { CITY_CONFIGS } from '../config/cities.js';
+import { announceTarget } from '../lib/dbTarget.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -13,6 +15,8 @@ function run(script: string, args: string[] = []) {
 }
 
 async function seedAll() {
+  announceTarget();
+
   console.log('=== Seeding cities table ===');
   run('seed-cities.ts');
 

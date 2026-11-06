@@ -4,6 +4,7 @@ import pool from '../db.js';
 import { densityPerKm2 } from '../lib/statsMath.js';
 import { isPolygonGeometry, isContourInputArray } from '../lib/geometry.js';
 import { groupPoisByBand, type BandRow } from '../lib/isochroneBands.js';
+import { MEASUREMENT_ONLY_CATEGORIES } from '../lib/needs.js';
 
 export const poiRouter = Router({ mergeParams: true });
 
@@ -12,8 +13,8 @@ poiRouter.get('/', async (req: Request, res: Response) => {
     const cityId = req.params.cityId ?? 'berlin';
 
     const result = await pool.query(
-      'SELECT id, name, category, lat, lng FROM pois WHERE city_id = $1',
-      [cityId],
+      'SELECT id, name, category, lat, lng FROM pois WHERE city_id = $1 AND category <> ALL($2::text[])',
+      [cityId, [...MEASUREMENT_ONLY_CATEGORIES]],
     );
     res.json(result.rows);
   } catch (err) {
@@ -40,6 +41,7 @@ poiRouter.post('/within', async (req: Request, res: Response) => {
          SELECT p.category
          FROM pois p, poly
          WHERE p.city_id = $2 AND ST_Within(p.geom, poly.g)
+           AND p.category <> ALL($3::text[])
        )
        SELECT
          (SELECT count(*) FROM inside)                  AS poi_count,
@@ -47,12 +49,12 @@ poiRouter.post('/within', async (req: Request, res: Response) => {
          COALESCE((
            SELECT json_agg(tc) FROM (
              SELECT category, count(*)::int AS count
-             -- Every category (there are 11), largest first. The client shows
+             -- Every displayed category, largest first. The client shows
              -- the top 5 and counts the rest as "+ N more categories".
              FROM inside GROUP BY category ORDER BY count(*) DESC
            ) tc
          ), '[]'::json)                                 AS top_categories`,
-      [JSON.stringify(polygon), cityId],
+      [JSON.stringify(polygon), cityId, [...MEASUREMENT_ONLY_CATEGORIES]],
     );
 
     const row = result.rows[0];
@@ -94,8 +96,9 @@ poiRouter.post('/in-isochrone', async (req: Request, res: Response) => {
        SELECT b.contour, p.id, p.name, p.category, p.lat, p.lng
        FROM bands b
        JOIN pois p ON p.city_id = $2 AND ST_Within(p.geom, b.g)
+         AND p.category <> ALL($3::text[])
        ORDER BY b.contour, p.category, p.name`,
-      [JSON.stringify(contours), cityId],
+      [JSON.stringify(contours), cityId, [...MEASUREMENT_ONLY_CATEGORIES]],
     );
 
     const rows: BandRow[] = result.rows.map((r) => ({

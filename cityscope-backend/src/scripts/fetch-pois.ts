@@ -2,7 +2,9 @@ import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CITY_CONFIGS } from '../config/cities.js';
+import { overpassFetch } from '../lib/overpass.js';
 import { buildOverpassQuery, classifyPoi } from '../lib/poiCategories.js';
+import { osmBaseOf, placesRecordName, writeFetchRecord } from '../lib/sourceDates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -40,29 +42,17 @@ async function fetchPois() {
     process.exit(1);
   }
 
-  const { south, west, north, east } = cityConfig.bounds;
+  const { south, west, north, east } = cityConfig.fetchBounds;
   const bbox = `${south},${west},${north},${east}`;
 
   const query = buildOverpassQuery(bbox);
 
   console.log(`Fetching POIs for ${cityConfig.name} from Overpass API...`);
 
-  const res = await fetch('https://overpass-api.de/api/interpreter', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'User-Agent': 'CityScope/1.0 (educational geospatial portfolio)',
-      'Accept': 'application/json',
-    },
-    body: `data=${encodeURIComponent(query)}`,
-  });
-
-  if (!res.ok) {
-    throw new Error(`Overpass API returned ${res.status}: ${res.statusText}`);
-  }
-
-  const data = (await res.json()) as OverpassResponse;
-  console.log(`Received ${data.elements.length} elements from Overpass API`);
+  const data = (await overpassFetch(query)) as OverpassResponse;
+  const fetchedAt = new Date().toISOString();
+  const osmBase = osmBaseOf(data);
+  console.log(`Received ${data.elements.length} elements from Overpass API (OSM data as of ${osmBase ?? 'an unstated time'})`);
 
   const pois: Poi[] = [];
   let rejected = 0;
@@ -90,6 +80,12 @@ async function fetchPois() {
   const outputPath = path.resolve(__dirname, `pois-data-${cityId}.json`);
   writeFileSync(outputPath, JSON.stringify(pois, null, 2));
   console.log(`Saved ${pois.length} POIs to ${outputPath} (${rejected} elements rejected by classifyPoi)`);
+
+  // When the places were fetched, and the OSM database state they come from,
+  // committed beside the places file; reach:publish puts both into meta.sources.
+  const recordPath = path.resolve(__dirname, placesRecordName(cityId));
+  writeFetchRecord(recordPath, fetchedAt, osmBase);
+  console.log(`Recorded the fetch time in ${recordPath}`);
 }
 
 fetchPois().catch((err) => {
