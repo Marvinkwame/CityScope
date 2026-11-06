@@ -10,6 +10,7 @@ import { useIsochroneStore } from '../store/isochroneStore';
 import { useHeatmapStore } from '../store/heatmapStore';
 import { useRouteStore } from '../store/routeStore';
 import { useGeoSearchStore } from '../store/geoSearchStore';
+import { resetForCityChange } from '../lib/cityChange';
 import { isHydrating } from '../lib/shareState';
 import { showsPolygon } from '../lib/drawFeatures';
 import { heatmapPoints, heatmapWeight } from '../lib/heatmapExposure';
@@ -467,11 +468,7 @@ function MapView() {
       essential: true,
     });
 
-    useFeatureStore.getState().clearFeature();
-    useIsochroneStore.getState().reset();
-    useHeatmapStore.getState().setClickOrigin(null);
-    useRouteStore.getState().reset();
-    useGeoSearchStore.getState().setResult(null);
+    resetForCityChange();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCity.id, mapReady]);
 

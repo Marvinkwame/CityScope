@@ -26,6 +26,7 @@ import DrawControls from './DrawControls';
 import { AMBER, CYAN, MONO, DISPLAY, PANEL_GRADIENT, SURFACE, heatRampGradientCss } from '../theme';
 import { useUIStore } from '../store/uiStore';
 import { NAV_HEIGHT } from './Navbar';
+import { clearReach } from '../lib/viewExclusivity';
 
 const SIDEBAR_WIDTH = 296;
 /** Width of the edge handle that rides the panel's right edge. */
@@ -182,7 +183,10 @@ function Sidebar() {
                       edge="end"
                       size="small"
                       checked={on}
-                      onChange={() => toggleLayer(id)}
+                      onChange={() => {
+                        if (id === 'heatmap' && !on) clearReach();
+                        toggleLayer(id);
+                      }}
                     />
                   </ListItem>
 

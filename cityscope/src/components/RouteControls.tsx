@@ -15,6 +15,7 @@ import { useDrawStore } from '../store/drawStore';
 import { alpha, darken } from '@mui/material/styles';
 import { INK, MONO, ROLE } from '../theme';
 import RouteResultsPanel from './RouteResultsPanel';
+import { clearReach } from '../lib/viewExclusivity';
 
 /** Set A / Set B buttons: outlined in the "you" colour, filled while that endpoint is being placed. */
 function endpointButtonSx(active: boolean) {
@@ -46,6 +47,7 @@ function RouteControls() {
     if (checked) {
       useIsochroneStore.getState().setEnabled(false);
       useDrawStore.getState().setEnabled(false);
+      clearReach();
     }
     setEnabled(checked);
   };
