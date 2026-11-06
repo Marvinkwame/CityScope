@@ -282,6 +282,14 @@ function visibleReachLayers(map: mapboxgl.Map): string[] {
   );
 }
 
+/** What the reach blocks' colours were last worked out for. */
+interface ReachColouredFor {
+  payload: ReachPayload;
+  needs: readonly NeedId[];
+  minutes: number;
+  k: number;
+}
+
 function addReachLayers(map: mapboxgl.Map, data: ReachPayload) {
   if (map.getSource(REACH_SOURCE_ID)) return;
 
@@ -381,6 +389,10 @@ function MapView() {
   const drawRef = useRef<MapboxDraw | null>(null);
   // The block that carries the `selected` feature state, so the next selection can clear it.
   const reachSelectedIdRef = useRef<string | null>(null);
+  // The payload the reach source holds, and what its colours were worked out
+  // for, so turning reach back on redoes neither when nothing changed meanwhile.
+  const reachSourcePayloadRef = useRef<ReachPayload | null>(null);
+  const reachColouredForRef = useRef<ReachColouredFor | null>(null);
   // The category pins at the ends of the block's lines, each with its root's disposer.
   const reachPinsRef = useRef<Array<{ marker: mapboxgl.Marker; dispose: () => void }>>([]);
   const [mapReady, setMapReady] = useState(false);
@@ -640,6 +652,8 @@ function MapView() {
       }
       drawRef.current = null;
       reachSelectedIdRef.current = null;
+      reachSourcePayloadRef.current = null;
+      reachColouredForRef.current = null;
       reachPinsRef.current.forEach(({ marker, dispose }) => {
         marker.remove();
         dispose();
@@ -785,11 +799,14 @@ function MapView() {
   }, [is3D, mapReady]);
 
   // Everyday reach: add the blocks and the selected-block outline once a payload
-  // is there, or swap in a new city's blocks. Every layer starts hidden; the
-  // visibility effect below shows them.
+  // is there, or swap in a new city's blocks. Only while reach is on: a city
+  // change while it is off posts nothing to the worker, and the swap happens
+  // when it is next turned on. Every layer starts hidden; the visibility effect
+  // below shows them.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady || !reachPayload) return;
+    if (!map || !mapReady || !reachEnabled || !reachPayload) return;
+    if (reachSourcePayloadRef.current === reachPayload) return;
 
     const source = map.getSource(REACH_SOURCE_ID) as mapboxgl.GeoJSONSource | undefined;
     if (source) {
@@ -799,15 +816,26 @@ function MapView() {
     } else {
       addReachLayers(map, reachPayload);
     }
-  }, [reachPayload, mapReady]);
+    reachSourcePayloadRef.current = reachPayload;
+  }, [reachPayload, reachEnabled, mapReady]);
 
   // Recolour the blocks for the chosen time and needs, a new payload or its
-  // speed k. Never on a selection change: either path restyles every block.
-  // Runs after the effect above, so the source exists.
+  // speed k, while reach is on. Never on a selection change: either path
+  // restyles every block. Runs after the effect above, so the source exists.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapReady || !reachPayload || !reachColumns || reachK === undefined) return;
+    if (!map || !mapReady || !reachEnabled || !reachPayload || !reachColumns || reachK === undefined) return;
     if (!map.getSource(REACH_SOURCE_ID)) return;
+    const last = reachColouredForRef.current;
+    if (
+      last &&
+      last.payload === reachPayload &&
+      last.needs === reachNeeds &&
+      last.minutes === reachMinutes &&
+      last.k === reachK
+    ) {
+      return;
+    }
 
     if (REACH_RECOLOUR === 'feature-state') {
       // Feature state restyles without reloading tiles.
@@ -826,7 +854,8 @@ function MapView() {
         reachExtrusionColourExpression(missing),
       );
     }
-  }, [reachPayload, reachColumns, reachNeeds, reachMinutes, reachK, mapReady]);
+    reachColouredForRef.current = { payload: reachPayload, needs: reachNeeds, minutes: reachMinutes, k: reachK };
+  }, [reachPayload, reachColumns, reachNeeds, reachMinutes, reachK, reachEnabled, mapReady]);
 
   // Outline the selected block on its own one-block source, and turn its column
   // gold through feature state. Neither touches the blocks' filter or paint, so a
