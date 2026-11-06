@@ -1,8 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { answerBeforeId, contextBeforeId } from './layerOrder';
+import { ANSWER_LAYER_IDS, answerBeforeId, contextBeforeId, reachBeforeId } from './layerOrder';
 import {
+  DISTRICT_FILL_LAYER_ID,
+  DISTRICT_LINE_LAYER_ID,
   ISOCHRONE_FILL_LAYER_ID,
   ISOCHRONE_LINE_LAYER_ID,
+  REACH_EXTRUSION_LAYER_ID,
+  REACH_FILL_LAYER_ID,
+  REACH_LINKS_LAYER_ID,
   ROUTE_LAYER_ID,
 } from '../constants/layerConfig';
 
@@ -39,5 +44,35 @@ describe('layer order', () => {
     const layers = [background, road];
     expect(answerBeforeId(layers)).toBeUndefined();
     expect(contextBeforeId(layers)).toBeUndefined();
+  });
+});
+
+describe('everyday reach layer order', () => {
+  it('puts the reach fill beneath the district outlines', () => {
+    expect(
+      reachBeforeId([
+        background,
+        road,
+        { id: DISTRICT_FILL_LAYER_ID, type: 'fill' },
+        { id: DISTRICT_LINE_LAYER_ID, type: 'line' },
+        label,
+      ]),
+    ).toBe(DISTRICT_FILL_LAYER_ID);
+  });
+
+  it('puts district layers added later above the reach fill', () => {
+    expect(contextBeforeId([background, road, { id: REACH_FILL_LAYER_ID, type: 'fill' }, label])).toBe('road-label');
+  });
+
+  it('puts the reach fill beneath an isochrone', () => {
+    expect(reachBeforeId([background, road, { id: ISOCHRONE_FILL_LAYER_ID, type: 'fill' }, label])).toBe(
+      ISOCHRONE_FILL_LAYER_ID,
+    );
+  });
+
+  it('counts the lines to nearest places as an answer, but not the reach fill or columns', () => {
+    expect(ANSWER_LAYER_IDS).toContain(REACH_LINKS_LAYER_ID);
+    expect(ANSWER_LAYER_IDS).not.toContain(REACH_FILL_LAYER_ID);
+    expect(ANSWER_LAYER_IDS).not.toContain(REACH_EXTRUSION_LAYER_ID);
   });
 });

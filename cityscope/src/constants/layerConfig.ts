@@ -41,6 +41,17 @@ export const ISOCHRONE_LINE_LAYER_ID = 'isochrone-line';
 export const ROUTE_SOURCE_ID = 'route-source';
 export const ROUTE_LAYER_ID = 'route-layer';
 
+// Everyday reach: the city's blocks, the selected block's outline, and the
+// lines from the selected block to its nearest places.
+export const REACH_SOURCE_ID = 'reach-source';
+export const REACH_FILL_LAYER_ID = 'reach-fill';
+export const REACH_EXTRUSION_LAYER_ID = 'reach-extrusion';
+export const REACH_SELECTED_SOURCE_ID = 'reach-selected-source';
+export const REACH_SELECTED_CASING_LAYER_ID = 'reach-selected-casing';
+export const REACH_SELECTED_LAYER_ID = 'reach-selected';
+export const REACH_LINKS_SOURCE_ID = 'reach-links-source';
+export const REACH_LINKS_LAYER_ID = 'reach-links';
+
 export const FEATURE_TYPE_PRIORITY: Record<LayerId, number> = {
   buildings: 0,
   roads: 1,
