@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { cardIsStale, cardRows, cellCentre, linkLines } from './card';
-import { NEED_IDS, NONE_FOUND_METRES } from './model';
-import type { CellCard, ReachProperties } from './model';
+import { missingCount } from './expressions';
+import { NEED_IDS, NONE_FOUND_METRES, REACH_MINUTES } from './model';
+import type { CellCard, NeedId, ReachProperties } from './model';
 
 // The payload's block, at k 68.5 straight-line metres a minute.
 const PROPS: ReachProperties = {
@@ -74,6 +75,27 @@ describe('cardRows', () => {
     expect(rows.map((r) => r.within)).toEqual([true, false, false, true, true, true]);
     expect(rows.map((r) => r.minutesText)).toEqual(['~6 min', '~16 min', '—', '~15 min', '~2 min', '~1 min']);
     expect(rows.find((r) => r.need === 'st')).toMatchObject({ name: '', iconCategory: 'station', place: null });
+  });
+});
+
+describe('the card and the block colour agree', () => {
+  // The fixture block, one with places exactly on and just past the 10-minute
+  // limit at k 68.5 (685 m), and one with no doctor or station at all.
+  const BLOCKS: ReachProperties[] = [
+    PROPS,
+    { ...PROPS, h: 'edge', sm: 685, ph: 686, dr: 684, sc: 1370, pk: 1371, st: 0 },
+    { ...PROPS, h: 'bare', dr: NONE_FOUND_METRES, st: NONE_FOUND_METRES, sc: 2000 },
+  ];
+  const NEED_SETS: readonly (readonly NeedId[])[] = [NEED_IDS, ['sm'], ['dr'], ['sm', 'ph'], ['sc', 'pk', 'st'], ['ph', 'dr', 'sc', 'pk']];
+
+  it("marks as many chosen needs ✗ as the block's class counts missing, at every time and for every need set", () => {
+    for (const props of BLOCKS)
+      for (const minutes of REACH_MINUTES)
+        for (const chosen of NEED_SETS)
+          for (const card of [CARD, undefined]) {
+            const crosses = cardRows(card, props, 68.5, minutes, chosen).filter((r) => r.chosen && r.within === false).length;
+            expect(crosses, `${props.h} at ${minutes} min for ${chosen.join(',')}`).toBe(missingCount(props, chosen, minutes, 68.5));
+          }
   });
 });
 
