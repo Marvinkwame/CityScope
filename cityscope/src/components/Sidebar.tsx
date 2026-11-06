@@ -18,10 +18,14 @@ import IsochroneControls from './IsochroneControls';
 import RouteControls from './RouteControls';
 import DrawControls from './DrawControls';
 import LayerSwitchRow from './LayerSwitchRow';
-import { AMBER, CYAN, MONO, DISPLAY, PANEL_GRADIENT, SURFACE, heatRampGradientCss } from '../theme';
+import ReachPanel from './reach/ReachPanel';
+import { AMBER, CYAN, MONO, DISPLAY, PANEL_GRADIENT, ROLE, SURFACE, heatRampGradientCss } from '../theme';
 import { useUIStore } from '../store/uiStore';
+import { useReachStore } from '../store/reachStore';
+import { useReachPayload } from '../hooks/useReachPayload';
+import { switchCaption } from '../lib/reach/copy';
 import { NAV_HEIGHT } from './Navbar';
-import { clearReach } from '../lib/viewExclusivity';
+import { clearForReach, clearReach } from '../lib/viewExclusivity';
 
 const SIDEBAR_WIDTH = 296;
 /** Width of the edge handle that rides the panel's right edge. */
@@ -202,6 +206,7 @@ function Sidebar() {
                 </Fragment>
               );
             })}
+            <ReachLayerRow />
           </List>
         </Module>
 
@@ -333,6 +338,43 @@ function Sidebar() {
         <ChevronRightIcon sx={{ fontSize: 18 }} />
       )}
     </Box>
+    </>
+  );
+}
+
+/**
+ * The Everyday reach switch and its panel. A component of its own so the
+ * payload query's state changes re-render this row, not the whole sidebar.
+ */
+function ReachLayerRow() {
+  const on = useReachStore((s) => s.enabled);
+  const setEnabled = useReachStore((s) => s.setEnabled);
+  const { availability } = useReachPayload();
+  const caption = switchCaption(availability);
+  const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+
+  return (
+    <>
+      <LayerSwitchRow
+        label="Everyday reach"
+        colour={ROLE.answer}
+        on={on}
+        busy={availability === 'loading'}
+        disabled={caption !== null}
+        caption={caption}
+        onChange={(next) => {
+          if (next) {
+            clearForReach();
+            setEnabled(true);
+          } else {
+            setEnabled(false);
+          }
+        }}
+      />
+      {/* Unmounted while off, so the panel's summary and effects only run with the layer on. */}
+      <Collapse in={on} timeout={reduceMotion ? 0 : undefined} unmountOnExit>
+        <ReachPanel />
+      </Collapse>
     </>
   );
 }
