@@ -3,14 +3,18 @@ import ChildCareIcon from '@mui/icons-material/ChildCare';
 import LocalPharmacyIcon from '@mui/icons-material/LocalPharmacy';
 import PlaceIcon from '@mui/icons-material/Place';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
+import SubwayIcon from '@mui/icons-material/Subway';
 import TrainIcon from '@mui/icons-material/Train';
+import TramIcon from '@mui/icons-material/Tram';
 import { CATEGORY_ICONS, FALLBACK_ICON } from './categoryIcons';
 
-// The backend's displayed categories; tram stops and metro entrances never reach the lists.
+// The backend's displayed categories, plus tram stops and metro entrances,
+// which appear only on the everyday reach card, never in place lists.
 const CATEGORIES = [
   'restaurant', 'cafe', 'pub', 'bar', 'supermarket', 'bakery',
   'park', 'playground', 'attraction', 'museum', 'hotel',
   'pharmacy', 'doctors', 'clinic', 'school', 'station', 'halt',
+  'tram_stop', 'subway_entrance',
 ];
 
 describe('category icons', () => {
@@ -33,6 +37,8 @@ describe('category icons', () => {
     expect(CATEGORY_ICONS.playground).toBe(ChildCareIcon);
     expect(CATEGORY_ICONS.pharmacy).toBe(LocalPharmacyIcon);
     expect(CATEGORY_ICONS.station).toBe(TrainIcon);
+    expect(CATEGORY_ICONS.tram_stop).toBe(TramIcon);
+    expect(CATEGORY_ICONS.subway_entrance).toBe(SubwayIcon);
   });
 
   it('falls back to a pin for unknown categories', () => {

@@ -16,6 +16,7 @@ import { useDrawStore } from '../store/drawStore';
 import { alpha, darken } from '@mui/material/styles';
 import { AMBER, CYAN, INK, MONO } from '../theme';
 import IsochroneResultsPanel from './IsochroneResultsPanel';
+import { clearReach } from '../lib/viewExclusivity';
 
 const TIME_PRESETS = [5, 10, 15, 20, 30] as const;
 
@@ -53,6 +54,7 @@ function IsochroneControls() {
     if (checked) {
       useRouteStore.getState().setEnabled(false);
       useDrawStore.getState().setEnabled(false);
+      clearReach();
     }
     setEnabled(checked);
   };

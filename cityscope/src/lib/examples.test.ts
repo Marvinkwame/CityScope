@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { decodeState, encodeState } from './shareCodec';
+import { decodeState, effectiveReach, encodeState } from './shareCodec';
 import { EXAMPLES } from './examples';
 
 describe('EXAMPLES', () => {
@@ -20,5 +20,10 @@ describe('EXAMPLES', () => {
 
   it('keeps POI counts out of the kickers, which would go stale on a re-seed', () => {
     for (const e of EXAMPLES) expect(e.kicker).not.toMatch(/\d/);
+  });
+
+  it('has one example that opens Everyday reach', () => {
+    const reach = EXAMPLES.filter((e) => effectiveReach(e.state));
+    expect(reach.map((e) => e.id)).toEqual(['tokyo-reach']);
   });
 });

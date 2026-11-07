@@ -1,4 +1,4 @@
-import { alpha, createTheme } from '@mui/material/styles';
+import { alpha, createTheme, darken } from '@mui/material/styles';
 import type { ExpressionSpecification } from 'mapbox-gl';
 
 /**
@@ -40,6 +40,23 @@ export const SURFACE = {
   hover: '#1C1D22', // hover fill on graphite
   extrusion: '#3E424B', // 3D buildings
 } as const;
+
+/**
+ * Everyday reach class colours, solid because `fill-extrusion-color` ignores
+ * alpha. The flat fill draws them at REACH_FILL_OPACITY, the 3D columns draw
+ * them solid, and reachContrast.test.ts checks both.
+ */
+export const REACH_CLASS = {
+  allMet: CYAN,
+  oneMissing: darken(CYAN, 0.35),
+  twoPlusMissing: darken(CYAN, 0.65),
+} as const;
+
+/** The flat reach fill's single layer opacity. */
+export const REACH_FILL_OPACITY = 0.9;
+
+/** The selected block: a gold line over an ink casing. */
+export const REACH_SELECTION = { line: ROLE.you, casing: INK } as const;
 
 export const PANEL_GRADIENT = `linear-gradient(180deg, ${SURFACE.panelTop} 0%, ${SURFACE.land} 100%)`;
 

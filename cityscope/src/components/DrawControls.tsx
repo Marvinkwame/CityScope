@@ -14,6 +14,7 @@ import { ROLE } from '../theme';
 import CategoryBars from './results/CategoryBars';
 import StatRow from './results/StatRow';
 import { formatCount } from './results/format';
+import { clearReach } from '../lib/viewExclusivity';
 
 function DrawControls() {
   const enabled = useDrawStore((s) => s.enabled);
@@ -27,6 +28,7 @@ function DrawControls() {
     if (checked) {
       useIsochroneStore.getState().setEnabled(false);
       useRouteStore.getState().setEnabled(false);
+      clearReach();
     }
     setEnabled(checked);
   };

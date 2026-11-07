@@ -16,15 +16,18 @@ import PlaceIcon from '@mui/icons-material/Place';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import SchoolIcon from '@mui/icons-material/School';
 import SportsBarIcon from '@mui/icons-material/SportsBar';
+import SubwayIcon from '@mui/icons-material/Subway';
 import TrainIcon from '@mui/icons-material/Train';
+import TramIcon from '@mui/icons-material/Tram';
 
 export type CategoryIconComponent = typeof SvgIcon;
 
 /**
  * One Material icon per displayed POI category: the 17 the backend serves from
- * poiCategories.ts. Tram stops and metro entrances never reach the lists, so
- * they have no icon. Material has no playground glyph; ChildCare reads closest
- * (Toys renders as a toy car).
+ * poiCategories.ts, plus tram stops and metro entrances, which never reach the
+ * place lists but can be a block's nearest station on the everyday reach card.
+ * Material has no playground glyph; ChildCare reads closest (Toys renders as a
+ * toy car).
  */
 export const CATEGORY_ICONS: Readonly<Partial<Record<string, CategoryIconComponent>>> = {
   restaurant: RestaurantIcon,
@@ -44,6 +47,8 @@ export const CATEGORY_ICONS: Readonly<Partial<Record<string, CategoryIconCompone
   school: SchoolIcon,
   station: TrainIcon,
   halt: DirectionsRailwayIcon,
+  tram_stop: TramIcon,
+  subway_entrance: SubwayIcon,
 };
 
 /** The icon for any category not in the map. */

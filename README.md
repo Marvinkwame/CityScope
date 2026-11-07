@@ -8,18 +8,19 @@
 
 ## What it does
 
-Real OpenStreetMap POI data (about 242,000 places across **8 cities** in the repository's data files, 232,620 of them in the 17 categories the app displays; the deployed site is reloaded with this data after the Everyday reach branch merges), analysed four different ways:
+Real OpenStreetMap POI data (about 242,000 places across **8 cities**, 232,620 of them in the 17 categories the app displays), analysed five different ways:
 
 | Feature | Description |
 |---------|-------------|
+| **Everyday reach** | How close a city's residents live to six everyday needs: a supermarket, pharmacy, doctor, school, park and station. Every populated block (an **H3** resolution-9 hexagon) is coloured by how many of the chosen needs lie within 5, 10, 15 or 20 minutes' walk, and the headline (the share of estimated residents within reach of them all, with its range) is recalculated in the browser in one pass over **typed arrays**, with no server call. Walking times are a straight-line estimate **calibrated against Mapbox walking isochrones**. Click a block for its nearest places; in 3D each block rises by its residents. |
 | **District Statistics** | Click a district → the backend runs a live **PostGIS** query (`ST_Contains` / `ST_Area`) returning POI count, area, density per km², top categories, and how the district compares to the city-wide average. |
 | **Draw Area & Analyse** | Sketch any polygon on the map → it's POSTed to the backend, which counts the POIs inside with **`ST_Within`** and returns a category breakdown, area, and density. |
 | **Isochrone Analysis** | Click any point to draw walking / cycling / driving reachability polygons across multiple time bands (5–30 min). POIs are spatially joined to each band and aggregated in the sidebar with fly-to. |
 | **Route Planning** | Place two pins (A → B) for a real route with distance, duration, and a turn-by-turn step list. Walking / cycling / driving profiles. |
 | **POI Heatmap + Spotlight** | Kernel-density heatmap; click anywhere for the nearest places within 300 m by category (computed client-side with Turf.js), sorted by distance. |
 | **Geocoding Search** | Debounced search for addresses / landmarks worldwide, biased to the active city. Fly-to + pin. |
-| **Save & Share** | The full view — city, camera, layers, 3D, and the active analysis tool with its inputs — serialises to a base64url **URL hash**, so any configured view is a shareable, restorable link. |
-| **Layers, 3D & Multi-city** | Toggle roads / buildings / districts / heatmap; extrude buildings in 3D; switch between 8 cities. |
+| **Save & Share** | The full view — city, camera, layers, 3D, the active analysis tool with its inputs, and Everyday reach's time, needs and selected block — serialises to a base64url **URL hash**, so any configured view is a shareable, restorable link. |
+| **Layers, 3D & Multi-city** | Toggle roads / buildings / districts / heatmap, and Everyday reach as a fifth switch with its own panel; extrude buildings in 3D; switch between 8 cities. |
 
 Responsive down to a mobile bottom-sheet layout.
 
@@ -133,7 +134,7 @@ City-scoped routes (`:cityId` e.g. `berlin`):
 | GET  | `/api/cities/:cityId/reach/:cellId` | One block's residents and, for each need, its nearest place (name, category, coordinates, metres, estimated minutes rounded up, so they agree with the map's colour). `400` for a malformed cell id, `404` for an unknown cell |
 | GET  | `/health` | Keep-warm target; answers without touching the database |
 
-The two reach endpoints are the data layer for Everyday reach; the map layer that reads them is not built yet. All eight cities are live on the deployed API (loaded on 2026-11-06), and each matches the local test run block for block.
+The Everyday reach map layer reads these two endpoints: the city's payload the first time the layer is switched on, and a block's card when that block is selected. All eight cities are live on the deployed API (loaded on 2026-11-06), and each matches the local test run block for block.
 
 ---
 
@@ -155,7 +156,28 @@ Both point features and area features are included; an area such as a park or a 
 
 **Residents and walking times in Everyday reach are estimates.** Residents come from the GHSL population grid (2025 epoch, 3-arcsecond tiles), a modelled grid rather than a census, added up into H3 resolution-9 hexagons. A walk is estimated as straight-line distance divided by a per-city metres-per-minute figure, fitted against Mapbox walking isochrones (5, 10, 15 and 20 minutes) on a sample of 60 blocks per city. A time limit passes for a city only if the estimate agrees with Mapbox on at least 80% of a held-out half of that sample, and the payload records which ones passed. Measured on 2026-10-20, **every one of the eight cities passed at all four time limits**. Agreement on the held-out half ran from 85.0% (Tokyo, 5 minutes) to 100.0% (Paris and Sydney, 20 minutes), and at 15 minutes from 94.4% (Berlin) to 99.4% (Paris and Sydney). The 5-minute limit has the lowest agreement in every city. The published speeds are between 62.5 (Berlin) and 69.5 (Amsterdam and Sydney) straight-line metres per minute. Agreement is graded at the speed fitted on the other half of the sample, while the published speed is refitted on all 60 blocks, so the figures describe a slightly different fit from the one the map uses.
 
-**Read the agreement against the base rate:** how often the nearest place is within the limit at all, which is what always answering "within" would score. At 5 minutes that is 44–59% (Paris 76%), so the estimate's 85–93% is real information. At 15 and 20 minutes it is 87–100%, and in the dense cities the estimate barely beats it: at 20 minutes it equals it in London and Paris and falls 1.1 points short in Berlin, and always answering "within" would itself clear the 80% bar at 15 minutes in every city. The 5-minute limit is therefore the informative one. Each payload carries its base rates beside its agreement. The per-city figures, residents, payload sizes and places per 100,000 residents are in the spec's [measured results](docs/superpowers/specs/2026-10-17-everyday-reach-design.md#measured-results).
+**Read the agreement against the base rate:** how often the nearest place is within the limit at all, which is what always answering "within" would score. At 5 minutes that is 44–59% (Paris 76%), so the estimate's 85–93% is real information. At 15 and 20 minutes it is 87–100%, and in the dense cities the estimate barely beats it: at 20 minutes it equals it in London and Paris and falls 1.1 points short in Berlin, and always answering "within" would itself clear the 80% bar at 15 minutes in every city. The 5-minute limit is therefore the informative one. Each payload carries its base rates beside its agreement, and the app's method note shows each time limit's agreement next to what always answering "within" would score. The per-city figures, residents, payload sizes and places per 100,000 residents are in the spec's [measured results](docs/superpowers/specs/2026-10-17-everyday-reach-design.md#measured-results).
+
+**Each city's headline**, measured on 2026-11-06 from the deployed API with the app's own rule: the share of estimated residents whose block has all six needs within 15 minutes' walk at the city's published pace (`metres ≤ 15 × k`), and the range from the slow to the fast end of its calibrated pace. **This is not a ranking.** The cities cover very different areas, from Sydney's 33 inner suburbs (26.5 km²) to London's 33 boroughs (1,595 km²), and OpenStreetMap is more complete in some than in others.
+
+| City | Covers | All six needs within 15 minutes | Range |
+|---|---|---|---|
+| Amsterdam | whole city | 74% | 69–75% |
+| Berlin | whole city | 67% | 62–72% |
+| London | all 33 boroughs | 69% | 60–73% |
+| Munich | whole city | 81% | 78–85% |
+| New York | the five boroughs | 73% | 71–78% |
+| Paris | the 20 arrondissements | 99% | 99%–99.5% |
+| Sydney | 33 inner suburbs | 93% | 90–96% |
+| Tokyo | the 23 wards | 81% | 80–89% |
+
+**Where it breaks.** The three held-out blocks the estimate got most wrong in the 2026-11-06 calibration on production, out of 24 checks each (six needs at four limits), graded as the calibration grades them, at the pace fitted on the other half of the sample. One pace per city can't tell a direct street from a long way round, so the misses go both ways. Each link opens the block and its card at the limit where it went most wrong; the links work once this version of the frontend is deployed.
+
+- **Tokyo**, block `892f5aadb8fffff` (35.67383, 139.71863): 7 of 24 wrong. The estimate counted a school and a metro entrance about 280 and 300 m away as within 5 minutes, and the supermarket (about 490 m), the school and Meiji Park (about 370 m to its edge) as within 10; Mapbox's walks reached none of them in time. Mapbox did reach a doctor and a pharmacy about 330 m away within 5 minutes, which the estimate put just over. [Open at 5 minutes](https://city-scope-seven.vercel.app/#s=eyJ2IjoxLCJjaXR5IjoidG9reW8iLCJ2aWV3Ijp7ImxuZyI6MTM5LjcxODYzLCJsYXQiOjM1LjY3MzgzLCJ6b29tIjoxNSwiYmVhcmluZyI6MCwicGl0Y2giOjB9LCJsYXllcnMiOnsicm9hZHMiOnRydWUsImJ1aWxkaW5ncyI6dHJ1ZSwiZGlzdHJpY3RzIjpmYWxzZSwiaGVhdG1hcCI6ZmFsc2V9LCJpczNEIjpmYWxzZSwicmVhY2giOnsidCI6NSwibiI6WyJzbSIsInBoIiwiZHIiLCJzYyIsInBrIiwic3QiXSwiYyI6Ijg5MmY1YWFkYjhmZmZmZiJ9fQ)
+- **Munich**, block `891f8d4e977ffff` (48.08126, 11.49144): 5 of 24 wrong. The estimate counted the supermarket (about 470 m), the park (about 440 m to its edge) and the school (about 620 m) as within 10 minutes, and Mapbox reached none of them in time; Mapbox reached the doctor (about 750 m) within 10 minutes and a metro entrance (about 1 km) within 15, which the estimate put just outside. [Open at 10 minutes](https://city-scope-seven.vercel.app/#s=eyJ2IjoxLCJjaXR5IjoibXVuaWNoIiwidmlldyI6eyJsbmciOjExLjQ5MTQ0LCJsYXQiOjQ4LjA4MTI2LCJ6b29tIjoxNSwiYmVhcmluZyI6MCwicGl0Y2giOjB9LCJsYXllcnMiOnsicm9hZHMiOnRydWUsImJ1aWxkaW5ncyI6dHJ1ZSwiZGlzdHJpY3RzIjpmYWxzZSwiaGVhdG1hcCI6ZmFsc2V9LCJpczNEIjpmYWxzZSwicmVhY2giOnsidCI6MTAsIm4iOlsic20iLCJwaCIsImRyIiwic2MiLCJwayIsInN0Il0sImMiOiI4OTFmOGQ0ZTk3N2ZmZmYifX0)
+- **Berlin**, block `891f1d482b7ffff` (52.52519, 13.27961): 5 of 24 wrong. The estimate counted Schlosspark Charlottenburg (about 380 m to its edge) as within 10 and 15 minutes, and a school about 860 m away as within 15 and 20; Mapbox reached the park only within 20 minutes, and the school not even then. Mapbox reached Westend station (about 860 m) within 15 minutes, which the estimate put a few metres outside. [Open at 15 minutes](https://city-scope-seven.vercel.app/#s=eyJ2IjoxLCJjaXR5IjoiYmVybGluIiwidmlldyI6eyJsbmciOjEzLjI3OTYxLCJsYXQiOjUyLjUyNTE5LCJ6b29tIjoxNSwiYmVhcmluZyI6MCwicGl0Y2giOjB9LCJsYXllcnMiOnsicm9hZHMiOnRydWUsImJ1aWxkaW5ncyI6dHJ1ZSwiZGlzdHJpY3RzIjpmYWxzZSwiaGVhdG1hcCI6ZmFsc2V9LCJpczNEIjpmYWxzZSwicmVhY2giOnsidCI6MTUsIm4iOlsic20iLCJwaCIsImRyIiwic2MiLCJwayIsInN0Il0sImMiOiI4OTFmMWQ0ODJiN2ZmZmYifX0)
+
+The map uses each city's published pace, fitted on all 60 blocks, which in these three cities is a little faster than the pace the checks were graded at, so a block card's marks can differ from them: at Berlin's 62.5 m a minute, Westend station counts as within 15 minutes, as Mapbox says.
 
 **London's doctors were checked against the NHS list of GP practices.** Of the 1,142 practices inside London's outline, 70.7% have an OpenStreetMap doctor or clinic within 150 m (median distance 57 m), so about three in ten do not. The test is strict, because a postcode places a practice only roughly, but it does mean OSM's London doctors may be incomplete or tagged differently, and London's distances to a doctor may be overstated.
 

@@ -17,6 +17,28 @@ export interface BarRow {
   barPct: number;
 }
 
+/**
+ * One drawn bar row, whatever it measures: category counts or the share of
+ * residents within reach of a need. Pure data, so non-component code can
+ * build rows without importing a component.
+ */
+export interface BarRowView {
+  key: string;
+  /** The POI category whose icon leads the row. */
+  iconCategory: string;
+  label: string;
+  /** The main figure, e.g. "924" or "86%". */
+  value: string;
+  /** A quieter figure after the value, e.g. "28%". */
+  detail?: string;
+  /** 0..100: the bar's width. */
+  barPct: number;
+  /** The whole row as one sentence for screen readers. */
+  srLabel: string;
+  /** Drawn faded, e.g. a need that isn't chosen. */
+  dimmed?: boolean;
+}
+
 export interface Bars {
   rows: BarRow[];
   /** How many categories did not make the top `limit`. */

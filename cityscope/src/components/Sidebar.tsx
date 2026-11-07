@@ -3,12 +3,6 @@ import Collapse from '@mui/material/Collapse';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemText from '@mui/material/ListItemText';
-import Switch from '@mui/material/Switch';
-import CircularProgress from '@mui/material/CircularProgress';
-import CircleIcon from '@mui/icons-material/Circle';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -23,9 +17,15 @@ import { usePois } from '../hooks/usePois';
 import IsochroneControls from './IsochroneControls';
 import RouteControls from './RouteControls';
 import DrawControls from './DrawControls';
-import { AMBER, CYAN, MONO, DISPLAY, PANEL_GRADIENT, SURFACE, heatRampGradientCss } from '../theme';
+import LayerSwitchRow from './LayerSwitchRow';
+import ReachPanel from './reach/ReachPanel';
+import { AMBER, CYAN, MONO, DISPLAY, PANEL_GRADIENT, ROLE, SURFACE, heatRampGradientCss } from '../theme';
 import { useUIStore } from '../store/uiStore';
+import { useReachStore } from '../store/reachStore';
+import { useReachPayload } from '../hooks/useReachPayload';
+import { switchCaption } from '../lib/reach/copy';
 import { NAV_HEIGHT } from './Navbar';
+import { clearForReach, clearReach } from '../lib/viewExclusivity';
 
 const SIDEBAR_WIDTH = 296;
 /** Width of the edge handle that rides the panel's right edge. */
@@ -139,52 +139,16 @@ function Sidebar() {
               const on = layers[id];
               return (
                 <Fragment key={id}>
-                  <ListItem
-                    disablePadding
-                    sx={{
-                      mb: 0.5,
-                      px: 1,
-                      py: 0.5,
-                      borderRadius: '5px',
-                      background: on ? 'rgba(255,255,255,0.025)' : 'transparent',
-                      transition: 'all 0.15s ease',
-                      '&:hover': { background: 'rgba(255,255,255,0.04)' },
+                  <LayerSwitchRow
+                    label={label}
+                    colour={color}
+                    on={on}
+                    busy={id === 'heatmap' && poisFetching}
+                    onChange={(next) => {
+                      if (id === 'heatmap' && next) clearReach();
+                      toggleLayer(id);
                     }}
-                  >
-                    <ListItemIcon sx={{ minWidth: 26 }}>
-                      <CircleIcon
-                        sx={{
-                          color: on ? color : 'rgba(255,255,255,0.25)',
-                          fontSize: 8,
-                          transition: 'all 0.2s ease',
-                        }}
-                      />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <Typography
-                          sx={{
-                            fontFamily: 'inherit',
-                            fontSize: '0.84rem',
-                            fontWeight: on ? 500 : 400,
-                            color: on ? 'rgba(255,255,255,0.90)' : 'rgba(255,255,255,0.50)',
-                            transition: 'color 0.15s ease',
-                          }}
-                        >
-                          {label}
-                        </Typography>
-                      }
-                    />
-                    {id === 'heatmap' && poisFetching && (
-                      <CircularProgress size={12} sx={{ color: AMBER, mr: 1 }} />
-                    )}
-                    <Switch
-                      edge="end"
-                      size="small"
-                      checked={on}
-                      onChange={() => toggleLayer(id)}
-                    />
-                  </ListItem>
+                  />
 
                   {id === 'heatmap' && (
                     <Collapse in={layers.heatmap}>
@@ -242,6 +206,7 @@ function Sidebar() {
                 </Fragment>
               );
             })}
+            <ReachLayerRow />
           </List>
         </Module>
 
@@ -373,6 +338,43 @@ function Sidebar() {
         <ChevronRightIcon sx={{ fontSize: 18 }} />
       )}
     </Box>
+    </>
+  );
+}
+
+/**
+ * The Everyday reach switch and its panel. A component of its own so the
+ * payload query's state changes re-render this row, not the whole sidebar.
+ */
+function ReachLayerRow() {
+  const on = useReachStore((s) => s.enabled);
+  const setEnabled = useReachStore((s) => s.setEnabled);
+  const { availability } = useReachPayload();
+  const caption = switchCaption(availability);
+  const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+
+  return (
+    <>
+      <LayerSwitchRow
+        label="Everyday reach"
+        colour={ROLE.answer}
+        on={on}
+        busy={availability === 'loading'}
+        disabled={caption !== null}
+        caption={caption}
+        onChange={(next) => {
+          if (next) {
+            clearForReach();
+            setEnabled(true);
+          } else {
+            setEnabled(false);
+          }
+        }}
+      />
+      {/* Unmounted while off, so the panel's summary and effects only run with the layer on. */}
+      <Collapse in={on} timeout={reduceMotion ? 0 : undefined} unmountOnExit>
+        <ReachPanel />
+      </Collapse>
     </>
   );
 }

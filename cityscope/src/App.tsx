@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import MapView from './components/MapView';
 import FeaturePanel from './components/FeaturePanel';
 import HeatmapSpotlightCard from './components/HeatmapSpotlightCard';
+import ReachCard from './components/reach/ReachCard';
 import GeoSearch from './components/GeoSearch';
 import WelcomeDialog from './components/WelcomeDialog';
 import ServerStatusPill from './components/ServerStatusPill';
@@ -31,6 +32,7 @@ function App() {
       >
         <MapView />
         <HeatmapSpotlightCard />
+        <ReachCard />
         <ServerStatusPill />
         <GeoSearch key={selectedCity.id} />
       </Box>

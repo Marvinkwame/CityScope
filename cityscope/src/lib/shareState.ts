@@ -8,7 +8,9 @@ import { useDrawStore } from '../store/drawStore';
 import { useFeatureStore } from '../store/featureStore';
 import { useHeatmapStore } from '../store/heatmapStore';
 import { useGeoSearchStore } from '../store/geoSearchStore';
-import type { ShareState } from './shareCodec';
+import { useReachStore } from '../store/reachStore';
+import { clearReach } from './viewExclusivity';
+import { effectiveReach, type ShareState } from './shareCodec';
 
 // Module-level flag so MapView can suppress its city-change reset/flyTo while we hydrate.
 let hydrating = false;
@@ -19,6 +21,7 @@ export function collectShareState(map: MapboxMap): ShareState {
   const iso = useIsochroneStore.getState();
   const route = useRouteStore.getState();
   const draw = useDrawStore.getState();
+  const reach = useReachStore.getState();
 
   let tool: ShareState['tool'];
   if (iso.enabled && iso.origin) {
@@ -35,7 +38,10 @@ export function collectShareState(map: MapboxMap): ShareState {
     view: { lng: c.lng, lat: c.lat, zoom: map.getZoom(), bearing: map.getBearing(), pitch: map.getPitch() },
     layers: { ...useLayerStore.getState().layers },
     is3D: useMapStore.getState().is3D,
-    tool,
+    ...(tool ? { tool } : {}),
+    ...(reach.enabled
+      ? { reach: { t: reach.minutes, n: reach.needs, ...(reach.selectedCell ? { c: reach.selectedCell } : {}) } }
+      : {}),
   };
 }
 
@@ -59,6 +65,7 @@ export function applyShareState(state: ShareState, map: MapboxMap, cities: City[
   useIsochroneStore.getState().setEnabled(false);
   useRouteStore.getState().setEnabled(false);
   useDrawStore.getState().setEnabled(false);
+  clearReach();
 
   const t = state.tool;
   if (t?.kind === 'isochrone') {
@@ -77,6 +84,15 @@ export function applyShareState(state: ShareState, map: MapboxMap, cities: City[
     const d = useDrawStore.getState();
     d.setEnabled(true);
     d.setPolygon(t.polygon);
+  }
+
+  const reach = effectiveReach(state);
+  if (reach) {
+    const rs = useReachStore.getState();
+    rs.setMinutes(reach.t);
+    rs.setNeeds(reach.n);
+    rs.selectCell(reach.c ?? null);
+    rs.setEnabled(true);
   }
 
   map.jumpTo({

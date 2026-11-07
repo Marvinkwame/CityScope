@@ -31,10 +31,15 @@ export function formatDistance(metres: number): string {
   return `${value} ${unit}`;
 }
 
-/** Categories whose plain capitalised name reads wrongly as a label. */
+/**
+ * Categories whose plain capitalised name reads wrongly as a label. Tram stops
+ * and metro entrances appear only on the everyday reach card.
+ */
 const LABEL_OVERRIDES: Readonly<Record<string, string>> = {
   doctors: 'Doctor',
   halt: 'Rail halt',
+  tram_stop: 'Tram stop',
+  subway_entrance: 'Metro entrance',
 };
 
 /** "restaurant" -> "Restaurant"; "doctors" -> "Doctor". */

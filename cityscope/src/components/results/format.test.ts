@@ -60,6 +60,11 @@ describe('categoryLabel', () => {
     expect(categoryLabel('halt')).toBe('Rail halt');
   });
 
+  it('labels the two station categories the card can show', () => {
+    expect(categoryLabel('tram_stop')).toBe('Tram stop');
+    expect(categoryLabel('subway_entrance')).toBe('Metro entrance');
+  });
+
   it('capitalises the new single-word categories as they are', () => {
     expect(categoryLabel('school')).toBe('School');
   });

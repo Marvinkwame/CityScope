@@ -336,6 +336,124 @@ The eight "after" counts add up to 241,794 places. Park shapes are every park st
 - **Both endpoints and the list filters were checked in-process, not on the deployed API.** A throwaway script ran the Express app on port 3098 against the local database. For all eight cities, `GET /reach` answered 200 with the right city and coverage label, one feature per populated cell, `Content-Encoding: br`, a strong ETag and `Cache-Control: public, max-age=86400`; a card for one real cell of each city answered 200 with six needs. `GET /pois` and `POST /pois/within` left out `tram_stop` and `subway_entrance` in all eight cities, and so did the district stats of Berlin, Amsterdam and New York. A temporary district holding no places (in the local copy only, deleted afterwards) returned zero counts. The same checks on the deployed API are part of the production runbook. After the production load on 2026-11-06 they passed there for both reach endpoints and `GET /pois` in all eight cities (71 checks, including the stored ETag and compressed size reaching the client unchanged, `304`, and plain JSON without Brotli), and for `POST /pois/within` and district stats in Berlin.
 - **Coverage is uneven, as OSM tagging is.** The 19 categories are a fixed set, not a promise that every city has all of them (see the Categories column above).
 
+## Amendments while building Phase 2
+
+Decisions made while building `reach/interface` on 2026-11-06, from the Phase 2 plan (`docs/superpowers/plans/2026-11-06-everyday-reach-phase-2-interface.md`; the numbers in brackets are its decision numbers) and the reviews of its tasks. Where one of them differs from "Phase 2 — Interface" below, this section wins. They are checked by unit tests, and were checked live in the browser on 2026-11-06 (see "Live checks" below).
+
+### Recolouring
+
+Measured on 2026-11-06 in the built-in Chromium browser (desktop, a 525 × 534 px map at 60 frames a second) on London's 15,838 blocks, switching the limit between 10 and 15 minutes ten times for each approach. Medians:
+
+| | Until the new colours are drawn | Longest main-thread task |
+|---|---|---|
+| Flat fill, data-driven expression | 330 ms | none over 50 ms |
+| Flat fill, feature state | 173 ms | 183 ms |
+| 3D columns, expression | 488 ms | 219 ms |
+| 3D columns, feature state | 197 ms | 283 ms |
+
+- A new expression makes Mapbox reload every tile of the source in its workers, so the next frame still shows the old colours; feature state is updated in place, on the main thread.
+- **Approach: feature state** (`REACH_RECOLOUR = 'feature-state'`): 370 ms for the two layers together, against 818 ms.
+- **The map recolours when the slider is released** (`RECOLOUR_ON_RELEASE = true`): at four times the desktop time, Lighthouse's factor for a mid-range phone, a recolour takes 0.7–0.8 s, far more than one frame. The headline still updates while the slider moves.
+- **Known cost:** with feature state a recolour blocks the main thread for about 0.2–0.3 s on desktop, an estimated 0.7–1.1 s on a mid-range phone, once per release or need toggle. Spreading the state writes over several frames would remove that pause; Phase 2 does not.
+
+### Switching, fetching and links
+
+- **Reach and the other full-map views turn each other off (2).** Turning reach on switches off the heatmap and the isochrone, route and draw tools; turning any of them on switches reach off (`lib/viewExclusivity.ts`). The heatmap and the tools still coexist with each other, as before.
+- **In a link, a tool or the heatmap beats `reach` (3).** The spec names only tools. The app never writes the heatmap and reach into one link, so a hand-made link with both resolves the same way (`effectiveReach` in `lib/shareCodec.ts`). An invalid `t` or `n` drops the `reach` entry, but an invalid `c` drops only `c`, and `n` is de-duplicated and put in display order (4).
+- **The payload is fetched the first time the switch goes on for a city, never in advance (5).** It stays cached until five minutes after you leave that city (TanStack Query's default `gcTime`; holding all eight parsed payloads would cost too much memory). A 404 is not retried, and it keeps that city's switch disabled with "Not built for this city yet".
+
+### Colours and 3D
+
+- **The three classes are three solid colours, and the flat fill fades as a whole layer (6).** Mapbox GL 3.20's `fill-extrusion-color` ignores a colour's alpha, so the columns could not share a translucent ramp with the flat fill. The final tokens in `theme.ts` are `REACH_CLASS.allMet = CYAN` (`ROLE.answer`), `oneMissing = darken(CYAN, 0.35)` and `twoPlusMissing = darken(CYAN, 0.65)`, with `REACH_FILL_OPACITY = 0.9` for the flat fill; the columns draw the same colours solid. The plan began the darkest class at `darken(CYAN, 0.72)`, which the contrast guard (`reachContrast.test.ts`) failed at 1.84:1 against its neighbour. The build then used `darken(CYAN, 0.45)` and `darken(CYAN, 0.82)` at opacity 0.8, but the final review found that darkest class near-invisible against the land (1.11:1 flat), and at 5 minutes 90–94% of London's and Berlin's blocks are in it, so the map looked empty where people live. The guard now also requires the darkest flat class to be at least 1.5:1 against the land. On `SURFACE.land` the neighbouring classes now measure 2.15:1 and 2.14:1 flat, and 2.25:1 and 2.31:1 solid; the darkest flat class measures 1.67:1 against the land, and the selection casing 7.91:1 against the flat all-met class. These replace the 2.1:1 and 2.7:1 of a three-class ramp in "Measured facts".
+- **Columns rise 0.1 m per estimated resident in every city (7)** (`REACH_EXTRUSION_M_PER_RESIDENT`). **New York's columns are the tallest, not Paris's** as "Map" below expected. Measured on production on 2026-11-06, the busiest blocks hold 8,920 estimated residents in New York (about 892 m tall), 7,705 in Sydney, 6,000 in Paris (about 600 m), 4,810 in Tokyo and 4,076 in London. Paris has the highest median block (2,103 residents, against 234 in Amsterdam, the lowest), but not the single busiest one.
+
+### Panel
+
+- **The per-need bars show all six needs at the chosen time, with the unchosen ones dimmed (9).**
+- **With two chosen needs the headline reads "of both chosen needs"**, not "of all two chosen needs".
+- **The 80% bar stays (19; owner, 2026-11-06).** The method note shows each offered limit's agreement beside what always answering "within" would score (each payload's `meta.completeness.checks.calibrationBaseline`), and says the 5-minute figure is the informative one.
+- **Percentages (20).** A share shows as a whole percent, except that one from 99.5% to just under 100% shows one decimal, rounded down, and one above 0 and below 0.5% shows "<1%". Only an exact 0 or 1 reads "0%" or "100%" (`percent` in `lib/reach/copy.ts`). Paris at 20 minutes, all six needs, reads 99.9%. When both ends of the range read the same, the range line says "no change across the pace range" instead of "range 92–92%" (26 single-need city and time combinations in the 2026-11-06 data).
+
+### Selection, the block card, lines and pins
+
+- **A selection never reloads the reach tiles (12).** The 2D outline is a gold line over a dark casing: two line layers on a one-block source of their own. In 3D the selected column turns `ROLE.you` through the feature state `selected`. Feature state needs feature ids, and the reach source gives each block its index in the payload as a numeric id, on a shallow copy of each feature so the cached payload is never changed. The build first used `promoteId: 'h'`, but Mapbox hashes a string id to a 32-bit one, so two blocks could collide and share their `missing` and `selected` state, and the card and the colour would disagree; there are no collisions in today's data, but the risk is about 3% per London-sized rebuild. Clicks still read each block's `h`, and an `h`-to-index lookup finds the selected block. Neither changes a filter or a data-driven paint property on the reach source, each of which makes Mapbox reload every tile of it.
+- **The card follows the payload (14).** Each row's minutes and ✓/✗ come from the payload's metres and `k`, the numbers the block's colour comes from, so they show before the card request has returned. The card endpoint supplies only each place's name, category and position. The payload is cached by the browser for a day while the card is read fresh, so after a data reload they can differ: when the card's metres or `k` differ from the payload's, it says "This block's data has changed since the map loaded. Reload to update." and no lines are drawn.
+- **Only chosen needs are marked (15).** ✓/✗, lines and pins apply to the chosen needs only, and unchosen rows on the card are dimmed and unmarked. As the spec says, lines and pins go only to needs within the limit.
+- **Category pins are DOM markers (16)** that render `CategoryIcon` through `react-dom/client`. They are built in `lib/mapPins.ts` with `createElement` rather than JSX, and their roots are unmounted on the next tick, outside React's commit: unmounting a root during a commit makes React 19.2 log a warning, and passive-effect cleanups run inside the commit.
+- **Card names (17).** Tram stops and metro entrances, which can be a block's nearest station, are labelled "Tram stop" and "Metro entrance" with their own icons. A place without a name shows as "Unnamed park", "Unnamed tram stop" and so on.
+- **The desktop block card shares the spotlight card's slot** (`MapCardSlot`), so the reduced-motion setting now also applies to the spotlight card.
+
+### Layer order
+
+- **District outlines draw above the blocks (18; owner, 2026-11-06).** The reach fill and columns sit beneath the district layers, so the outlines stay readable over the blocks: a deliberate exception to "context under answers", noted in `lib/layerOrder.ts`.
+
+### Headlines
+
+Measured on 2026-11-06 (20:28 UTC) from the deployed API, `GET /reach` for each city (payloads built that day), with the app's summary rule: the share of estimated residents whose block has all six needs within 15 minutes (`metres ≤ 15 × k`) at the published `k`, and at `kLow` and `kHigh` for the range, formatted with the percent rule above. Alphabetical, and not a ranking (see "Comparing cities" under "Decisions made during design"). The README carries the same table.
+
+| City | Coverage | k (kLow–kHigh) | Headline | Range | Shares at k, kLow, kHigh |
+|---|---|---|---|---|---|
+| Amsterdam | whole city | 69.5 (62–70.5) | 74% | 69–75% | 0.74093, 0.69139, 0.74543 |
+| Berlin | whole city | 62.5 (57–68) | 67% | 62–72% | 0.67420, 0.62378, 0.71744 |
+| London | all 33 boroughs | 66.5 (59.5–70) | 69% | 60–73% | 0.68819, 0.59834, 0.72900 |
+| Munich | whole city | 65 (61–69) | 81% | 78–85% | 0.81026, 0.77939, 0.84639 |
+| New York | the five boroughs | 69 (67–77) | 73% | 71–78% | 0.72942, 0.71269, 0.77663 |
+| Paris | the 20 arrondissements | 68.5 (65–73.5) | 99% | 99%–99.5% | 0.99425, 0.99111, 0.99564 |
+| Sydney | 33 inner suburbs | 69.5 (59.5–73.5) | 93% | 90–96% | 0.93051, 0.90433, 0.95719 |
+| Tokyo | the 23 wards | 65 (63.5–75) | 81% | 80–89% | 0.81312, 0.79662, 0.88569 |
+
+- **Paris's range reads "99%–99.5%"**, the panel's `rangeLine` form when an end isn't a whole percent: at `kHigh` its share is 99.564%, which the percent rule shows as 99.5% rather than rounding up to 100%. (The plan had listed "99–100%".) At 20 minutes Paris reads 99.9%.
+- Every city offers all four stops and passes; no block in any city has a need with no place (no 65535 distances).
+- Tokyo's figures match the welcome example's (81%, range 80–89%).
+
+### Where it breaks
+
+Calibration step 7 asked for the cells with the largest misses, two or three of them in the README with screenshots. The README lists the three held-out blocks with the most wrong checks in the 2026-11-06 production calibration, out of 24 each (six needs at four limits), graded at the fit half's `k` as the calibration grades them. "Within" means the estimate or Mapbox counts the stored nearest place as inside that limit; metres are straight-line, to a park's edge.
+
+| Block | k_fit | Wrong | Estimate within, Mapbox not | Mapbox within, estimate not | Link's `t` |
+|---|---|---|---|---|---|
+| Tokyo `892f5aadb8fffff` (35.67383, 139.71863) | 63.5 | 7 | school at 5 and 10 (276 m), metro entrance at 5 (303 m), park at 10 (370 m), supermarket at 10 (487 m) | doctor at 5 (332 m), pharmacy at 5 (333 m) | 5 |
+| Munich `891f8d4e977ffff` (48.08126, 11.49144) | 64.5 | 5 | park at 10 (439 m), supermarket at 10 (465 m), school at 10 (621 m) | doctor at 10 (751 m), metro entrance at 15 (998 m) | 10 |
+| Berlin `891f1d482b7ffff` (52.52519, 13.27961) | 57.5 | 5 | park at 10 and 15 (Schlosspark Charlottenburg, 379 m), school at 15 and 20 (857 m) | station at 15 (Westend, 863 m) | 15 |
+
+- **Where the lists come from.** The calibration prints each wrong check as need@limit. Tokyo's and Munich's lists are from the production run's output. Berlin's production output was not kept, so its list is from the local run of 2026-10-20 (`pk@10,15 sc@15,20 st@15`), which production reproduced block for block from the same inputs and the same cached isochrones. Which way each check went was reconstructed offline with the calibration's rules (the nearest place on the spheroid from the committed place files and the 2026-10-20 park files, a park counted from 0.5 ha and measured to its edge, and a place inside a limit when Mapbox's cached isochrone touches it). The reconstruction gives exactly the printed lists for all three blocks, and the metres are the production block cards' (`GET /reach/:cellId` on 2026-11-06), which equal each block's payload properties.
+- **At the published `k`, which the map uses** (Tokyo 65, Munich 65, Berlin 62.5, each a little faster than the fit half's), Tokyo and Munich keep the same misses and Berlin has 4: Westend station (863 m, 13.8 minutes) counts as within 15, as Mapbox says. The README says so.
+- **The share links** frame each block at zoom 15, flat, with all six needs, the block selected (`c`) and `t` at the limit with the most misses, and no tool. Each was encoded as the app's codec encodes and decoded back through `decodeState` to the same object. They open only once Phase 2 is merged and deployed, and need checking then.
+- **Screenshots** of the three blocks have not been taken: they are to come from the owner after the deploy. Until then, or if the owner declines, the links stand alone.
+
+### Live checks (plan Task 12)
+
+Run on 2026-11-06 in the built-in Chromium browser against the owner's dev servers (the backend reading production), at desktop and phone widths.
+
+- **Switching and views:**
+  - Every way of switching the layer passed: the switch itself; the heatmap and each tool turning reach off, and reach turning them off; a share link; the Tokyo example; a city change, which clears the block and loads the new city.
+  - The 2D fill and the 3D columns both work. The 3D buildings hide while reach is on and come back when it goes off.
+  - District outlines draw above the blocks.
+- **Panel:**
+  - The panel lays out in the spec's order.
+  - The slider works from the keyboard and announces "10 minutes".
+  - With a single need, the sentence reads "of a pharmacy" and the legend "Met / Not met"; the last toggle is disabled; the card dims the unchosen rows.
+- **Selection and card:**
+  - In 3D the selected block turns gold with its outline at its foot, and gets six lines and pins, which clear on deselect.
+  - A ✗ row flies the map to its place.
+  - On five blocks at 5, 10 and 15 minutes, the card's ✗ count equalled the block's class.
+  - 320 random cards matched the payloads exactly, on the local and the production API.
+- **Links:** a share-link round trip restored time, needs and block; an old link opened unchanged, with reach off.
+- **States:**
+  - Error with Retry, not built, not reliable and the stale card all show as designed, as do the phone's loading and error lines.
+  - Paris at 20 minutes reads "99.9%".
+  - At 375 × 560 the phone card stays clear of the search box.
+- **Console:** a clean run logged no errors and no warnings.
+- **Selection reloads no tiles:** five selections in Tokyo caused no reload of the reach source, and each settled in 66–100 ms.
+- **Recolouring on the real layer:**
+  - Tokyo's 6,252 blocks in 3D drew in 171 ms, with a longest main-thread task of 207 ms.
+  - London's 15,838 blocks in 2D drew in 292 ms, with a longest task of 450 ms. That is more than the measurement above, because the panel and the summary re-render in the same task.
+  - The pause comes once per slider release or need toggle.
+- **One bug found and fixed:**
+  - After a city change with a block selected, the card was requested once for the new city with the old city's block, giving a 404 and a console error.
+  - The card is now requested only for a block in the current city's payload, and a selected block missing from that payload is cleared.
+- **Not checked live:** the reduced-motion setting, which this browser cannot emulate.
+
 ## Phase 2 — Interface (`reach/interface`)
 
 ### First task: measure recolouring speed
