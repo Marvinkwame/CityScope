@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { NEED_IDS, REACH_MINUTES } from './model';
 import type { ReachProperties } from './model';
-import { isWithin, missingCounts, summarise, toColumns } from './summary';
+import { changedBlocks, isWithin, missingClasses, summarise, toColumns } from './summary';
 
 function block(h: string, r: number, sm: number, rest: number): { properties: ReachProperties } {
   return { properties: { h, r, sm, ph: rest, dr: rest, sc: rest, pk: rest, st: rest } };
@@ -39,8 +39,22 @@ describe('reach summary', () => {
     expect(summarise(toColumns([]), NEED_IDS, 15, K).share).toBe(0);
   });
 
-  it('missingCounts counts the chosen needs outside the limit, none-found included', () => {
-    expect(Array.from(missingCounts(toColumns(FIXTURE), NEED_IDS, 15, 62.5))).toEqual([0, 5, 6]);
+  it('missingClasses caps the count of chosen needs outside the limit at two, the last colour class', () => {
+    expect(Array.from(missingClasses(toColumns(FIXTURE), NEED_IDS, 15, 62.5))).toEqual([0, 2, 2]);
+  });
+
+  it('missingClasses counts a single missing need as one, none-found included', () => {
+    expect(Array.from(missingClasses(toColumns(FIXTURE), ['sm', 'ph'], 15, 62.5))).toEqual([0, 1, 2]);
+  });
+
+  it('changedBlocks lists every block when there is nothing to compare with', () => {
+    expect(changedBlocks(null, Uint8Array.from([0, 1, 2]))).toEqual([0, 1, 2]);
+    expect(changedBlocks(Uint8Array.from([0, 1]), Uint8Array.from([0, 1, 2]))).toEqual([0, 1, 2]);
+  });
+
+  it('changedBlocks lists only the blocks whose class changed', () => {
+    expect(changedBlocks(Uint8Array.from([0, 1, 2, 2]), Uint8Array.from([0, 2, 2, 1]))).toEqual([1, 3]);
+    expect(changedBlocks(Uint8Array.from([1, 1]), Uint8Array.from([1, 1]))).toEqual([]);
   });
 
   it('isWithin agrees with rounded-up minutes for every distance and limit', () => {

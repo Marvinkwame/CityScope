@@ -27,7 +27,7 @@ import {
 } from '../lib/reach/expressions';
 import { reachLayerVisibility } from '../lib/reach/layerVisibility';
 import { cellCentre, linkLines } from '../lib/reach/card';
-import { missingCounts } from '../lib/reach/summary';
+import { changedBlocks, missingClasses } from '../lib/reach/summary';
 import type { NeedId, ReachPayload } from '../lib/reach/model';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import { useDrawStore } from '../store/drawStore';
@@ -288,6 +288,8 @@ interface ReachColouredFor {
   needs: readonly NeedId[];
   minutes: number;
   k: number;
+  /** Each block's class as written to feature state; null on the expression path. */
+  classes: Uint8Array | null;
 }
 
 /**
@@ -858,13 +860,17 @@ function MapView() {
       return;
     }
 
+    let classes: Uint8Array | null = null;
     if (REACH_RECOLOUR === 'feature-state') {
-      // Feature state restyles without reloading tiles. The counts follow the
-      // payload's block order, and block i's feature id is i. A previous
-      // city's states on the same ids are overwritten here.
-      const missing = missingCounts(reachColumns, reachNeeds, reachMinutes, reachK);
-      for (let i = 0; i < missing.length; i++) {
-        map.setFeatureState({ source: REACH_SOURCE_ID, id: i }, { missing: missing[i] });
+      // Feature state restyles without reloading tiles, but Mapbox re-evaluates
+      // the paint of every block whose state is set, so only the blocks whose
+      // colour class changed are written. The classes follow the payload's
+      // block order, and block i's feature id is i. A new city's blocks are all
+      // written, which overwrites a previous city's states on the same ids.
+      classes = missingClasses(reachColumns, reachNeeds, reachMinutes, reachK);
+      const previous = last?.payload === reachPayload ? last.classes : null;
+      for (const i of changedBlocks(previous, classes)) {
+        map.setFeatureState({ source: REACH_SOURCE_ID, id: i }, { missing: classes[i] });
       }
     } else {
       // A data-driven paint change reloads every tile of the source. Mapbox
@@ -877,7 +883,7 @@ function MapView() {
         reachExtrusionColourExpression(missing),
       );
     }
-    reachColouredForRef.current = { payload: reachPayload, needs: reachNeeds, minutes: reachMinutes, k: reachK };
+    reachColouredForRef.current = { payload: reachPayload, needs: reachNeeds, minutes: reachMinutes, k: reachK, classes };
   }, [reachPayload, reachColumns, reachNeeds, reachMinutes, reachK, reachEnabled, mapReady]);
 
   // Outline the selected block on its own one-block source, and turn its column

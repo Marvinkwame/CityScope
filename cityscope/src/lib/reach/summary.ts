@@ -73,15 +73,33 @@ export function summarise(
   return { share: all / cols.total, low: allLow / cols.total, high: allHigh / cols.total, perNeed };
 }
 
-/** Each block's number of chosen needs outside the limit: the feature-state input. */
-export function missingCounts(cols: ReachColumns, needs: readonly NeedId[], minutes: number, k: number): Uint8Array {
+/**
+ * Each block's colour class, the feature-state input: the number of chosen
+ * needs outside the limit, capped at two (0 all met, 1 one missing, 2 two or
+ * more). Storing the class rather than the full count means a block's state
+ * changes only when its colour does.
+ */
+export function missingClasses(cols: ReachColumns, needs: readonly NeedId[], minutes: number, k: number): Uint8Array {
   const limit = minutes * k;
   const chosen = needs.map((id) => cols.metres[id]);
   const out = new Uint8Array(cols.residents.length);
   for (let i = 0; i < out.length; i++) {
     let missing = 0;
-    for (const m of chosen) if (m[i] > limit) missing++;
+    for (const m of chosen) if (m[i] > limit && ++missing === 2) break;
     out[i] = missing;
   }
   return out;
+}
+
+/**
+ * The blocks whose class differs between two recolours, so only those are
+ * written: Mapbox re-evaluates the paint of every block whose state is set,
+ * changed or not. With nothing to compare with (the first colouring, or a new
+ * city's blocks), every block.
+ */
+export function changedBlocks(previous: Uint8Array | null, next: Uint8Array): number[] {
+  const changed: number[] = [];
+  const compare = previous !== null && previous.length === next.length;
+  for (let i = 0; i < next.length; i++) if (!compare || previous[i] !== next[i]) changed.push(i);
+  return changed;
 }
