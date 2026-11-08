@@ -22,7 +22,10 @@ export function missingCountExpression(needs: readonly NeedId[], minutes: number
   return terms.length === 1 ? terms[0] : (['+', ...terms] as ExpressionSpecification);
 }
 
-/** The count read from feature state, so a recolour never touches the paint property. */
+/**
+ * The class read from feature state (the missing count capped at two, see
+ * `missingClasses`), so a recolour never touches the paint property.
+ */
 export const MISSING_FROM_STATE: ExpressionSpecification = ['coalesce', ['feature-state', 'missing'], 0];
 
 export function reachColourExpression(missing: ExpressionSpecification): ExpressionSpecification {

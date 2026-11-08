@@ -354,7 +354,23 @@ Measured on 2026-11-06 in the built-in Chromium browser (desktop, a 525 × 534 p
 - A new expression makes Mapbox reload every tile of the source in its workers, so the next frame still shows the old colours; feature state is updated in place, on the main thread.
 - **Approach: feature state** (`REACH_RECOLOUR = 'feature-state'`): 370 ms for the two layers together, against 818 ms.
 - **The map recolours when the slider is released** (`RECOLOUR_ON_RELEASE = true`): at four times the desktop time, Lighthouse's factor for a mid-range phone, a recolour takes 0.7–0.8 s, far more than one frame. The headline still updates while the slider moves.
-- **Known cost:** with feature state a recolour blocks the main thread for about 0.2–0.3 s on desktop, an estimated 0.7–1.1 s on a mid-range phone, once per release or need toggle. Spreading the state writes over several frames would remove that pause; Phase 2 does not.
+- **Known cost:** with feature state a recolour blocks the main thread for about 0.2–0.3 s on desktop, an estimated 0.7–1.1 s on a mid-range phone, once per release or need toggle.
+- **Reduced on 2026-11-07: only the blocks whose colour changed are written.**
+  - **Where the time went:** profiling London on the deployed production build split a 15 ↔ 10 minute change into two tasks. React, the summary and the state writes took 65–75 ms; Mapbox's paint update took 150–157 ms.
+  - **Why the paint update was slow:** it grows with the number of blocks whose state is set, because Mapbox re-evaluates each one's colour in every loaded tile. The app wrote all 15,838 blocks with their exact missing count.
+  - **The fix:** feature state now holds each block's colour class, the count capped at two (`missingClasses`), and only blocks whose class changed are written (`changedBlocks`).
+  - **Blocks written now:**
+
+    | Change | Blocks written (of 15,838) |
+    |---|---|
+    | 15 → 10 minutes | 6,682 (42%) |
+    | Turning off the station need | 3,004 (19%) |
+    | Turning off the supermarket need | 1,658 (10%) |
+    | Turning off the school need | 29 (0.2%) |
+
+  - **Effect:** on the development build, Mapbox's paint task for a time change fell from ~145 ms to ~70 ms. A small need toggle has no paint task at all.
+  - **Correctness:** checked block by block after a run of time and need changes, a city change, and a change made while reach was off.
+  - **What remains:** React's render of the panel and map (~65 ms on the production build). Spreading the writes over frames is no longer needed.
 
 ### Switching, fetching and links
 
