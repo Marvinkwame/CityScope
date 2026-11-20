@@ -28,6 +28,21 @@ export function toColumns(features: ReadonlyArray<{ properties: ReachProperties 
   return { ids, residents, total, metres };
 }
 
+const columnsByFeatures = new WeakMap<object, ReachColumns>();
+
+/**
+ * `toColumns` once per payload, however many components ask for it: every
+ * reader of the cached payload holds the same features array.
+ */
+export function columnsFor(features: ReadonlyArray<{ properties: ReachProperties }>): ReachColumns {
+  let cols = columnsByFeatures.get(features);
+  if (!cols) {
+    cols = toColumns(features);
+    columnsByFeatures.set(features, cols);
+  }
+  return cols;
+}
+
 /** True when the straight-line metres fit the limit at k metres per minute. */
 export function isWithin(metres: number, minutes: number, k: number): boolean {
   return metres <= minutes * k;
