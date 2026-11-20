@@ -55,6 +55,10 @@ export function summarise(
   const limitLow = minutes * k.kLow;
   const limitHigh = minutes * k.kHigh;
   const chosen = needs.map((id) => cols.metres[id]);
+  // Every need's column and running total sit in arrays: looking them up and
+  // adding to them by name for each block made this pass several times slower.
+  const every = NEED_IDS.map((id) => cols.metres[id]);
+  const withinNeed = new Float64Array(every.length);
 
   let all = 0;
   let allLow = 0;
@@ -66,10 +70,12 @@ export function summarise(
     if (worst <= limit) all += r;
     if (worst <= limitLow) allLow += r;
     if (worst <= limitHigh) allHigh += r;
-    for (const id of NEED_IDS) if (cols.metres[id][i] <= limit) perNeed[id] += r;
+    for (let n = 0; n < every.length; n++) if (every[n][i] <= limit) withinNeed[n] += r;
   }
 
-  for (const id of NEED_IDS) perNeed[id] /= cols.total;
+  NEED_IDS.forEach((id, n) => {
+    perNeed[id] = withinNeed[n] / cols.total;
+  });
   return { share: all / cols.total, low: allLow / cols.total, high: allHigh / cols.total, perNeed };
 }
 
