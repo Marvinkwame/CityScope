@@ -3,8 +3,8 @@
 import { NEED_IDS } from './model';
 import type { NeedId, ReachProperties } from './model';
 
+/** A city's blocks in payload order: index i is block i everywhere, the map's feature id included. */
 export interface ReachColumns {
-  ids: string[];
   residents: Float64Array;
   total: number;
   metres: Record<NeedId, Uint16Array>;
@@ -12,7 +12,6 @@ export interface ReachColumns {
 
 export function toColumns(features: ReadonlyArray<{ properties: ReachProperties }>): ReachColumns {
   const n = features.length;
-  const ids: string[] = new Array<string>(n);
   const residents = new Float64Array(n);
   const metres = {} as Record<NeedId, Uint16Array>;
   for (const id of NEED_IDS) metres[id] = new Uint16Array(n);
@@ -20,12 +19,11 @@ export function toColumns(features: ReadonlyArray<{ properties: ReachProperties 
   let total = 0;
   for (let i = 0; i < n; i++) {
     const p = features[i].properties;
-    ids[i] = p.h;
     residents[i] = p.r;
     total += p.r;
     for (const id of NEED_IDS) metres[id][i] = p[id];
   }
-  return { ids, residents, total, metres };
+  return { residents, total, metres };
 }
 
 const columnsByFeatures = new WeakMap<object, ReachColumns>();

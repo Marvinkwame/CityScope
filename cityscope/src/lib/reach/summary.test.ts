@@ -15,10 +15,10 @@ const FIXTURE = [A, B, C];
 const K = { k: 62.5, kLow: 50, kHigh: 70 };
 
 describe('reach summary', () => {
-  it('toColumns keeps ids, residents, the total and none-found distances', () => {
+  it('toColumns keeps residents, the total and none-found distances in payload order', () => {
     const cols = toColumns(FIXTURE);
     expect(cols.total).toBe(1000);
-    expect(cols.ids).toEqual([A.properties.h, B.properties.h, C.properties.h]);
+    expect(Array.from(cols.residents)).toEqual([100, 300, 600]);
     expect(Array.from(cols.metres.sm)).toEqual([500, 500, 65535]);
   });
 
