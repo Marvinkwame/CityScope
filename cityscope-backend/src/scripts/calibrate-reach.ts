@@ -60,6 +60,8 @@ import { isAreaGeometry } from '../lib/geometry.js';
 import type { ContourInput } from '../lib/geometry.js';
 import { readCachedIsochrone, writeCachedIsochrone } from '../lib/isochroneCache.js';
 import type { IsochroneRequest } from '../lib/isochroneCache.js';
+import { methodOfRows } from '../lib/reachMethod.js';
+import type { ReachMethod } from '../lib/reachMethod.js';
 import { weightedSample } from '../lib/sampling.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -214,11 +216,11 @@ async function fetchIsochrone(cell: Cell, request: IsochroneRequest, token: stri
 
 // The base rates go into `checks` under their own key, merged with `||`, so
 // the other keys there (London's GP check) survive a recalibration. $8 is the
-// base rates by band.
+// base rates by band, $9 the method the nearest places were built with.
 const UPSERT_CALIBRATION_SQL = `
   INSERT INTO reach_calibration
     (city_id, method, metres_per_minute, k_low, k_high, agreement, passing_stops, sample_size, checks)
-  VALUES ($1, 'estimate', $2, $3, $4, $5::jsonb, $6::int[], $7, jsonb_build_object('calibrationBaseline', $8::jsonb))
+  VALUES ($1, $9, $2, $3, $4, $5::jsonb, $6::int[], $7, jsonb_build_object('calibrationBaseline', $8::jsonb))
   ON CONFLICT (city_id) DO UPDATE SET
     method = EXCLUDED.method,
     metres_per_minute = EXCLUDED.metres_per_minute,
@@ -232,6 +234,8 @@ const UPSERT_CALIBRATION_SQL = `
 `;
 
 interface Calibration {
+  /** How the stored metres were measured. */
+  method: ReachMethod;
   /** The k fitted on the fit half alone: the one the held-out agreement is graded at. */
   kFit: number;
   /** The k that is published, fitted on every sampled cell. */
@@ -259,6 +263,7 @@ async function storeCalibration(client: PoolClient, cityId: string, result: Cali
       result.stops,
       result.sampleSize,
       JSON.stringify(result.baseline),
+      result.method,
     ]);
     // The published payload was built without this calibration.
     await client.query('DELETE FROM reach_payloads WHERE city_id = $1', [cityId]);
@@ -283,7 +288,11 @@ function printReport(
   const { kFit, k, kLow, kHigh, byBand, baseline, stops } = result;
 
   console.log('');
-  console.log(`${cityName}: walking estimate = straight-line metres / k`);
+  console.log(
+    result.method === 'network'
+      ? `${cityName}: walking time = street metres / k`
+      : `${cityName}: walking estimate = straight-line metres / k`,
+  );
   console.log(`k_fit = ${kFit} m/min (fitted on the ${result.sampleSize - heldOutCells.length} fit cells)`);
   console.log(
     `k = ${k} m/min, published (fitted on all ${result.sampleSize} cells; ` +
@@ -361,6 +370,12 @@ async function main(): Promise<void> {
     if (cells.length === 0) {
       throw new Error(`No reach cells for ${city.id}. Run reach:build -- ${city.id} first`);
     }
+
+    const methodRows = await client.query<{ method: string }>(
+      'SELECT DISTINCT method FROM reach_nearest WHERE city_id = $1',
+      [city.id],
+    );
+    const method = methodOfRows(methodRows.rows.map((row) => row.method));
 
     const chosen = weightedSample(
       cells.map((c) => ({ id: c.h3, weight: c.residents })),
@@ -459,6 +474,7 @@ async function main(): Promise<void> {
     }
 
     const result: Calibration = {
+      method,
       kFit,
       k,
       kLow,

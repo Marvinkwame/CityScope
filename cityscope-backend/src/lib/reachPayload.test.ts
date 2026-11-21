@@ -28,6 +28,7 @@ const NEAREST: NearestRow[] = [
 ];
 
 const CAL: CalibrationRow = {
+  method: 'estimate',
   metresPerMinute: 72.5,
   kLow: 66,
   kHigh: 79,
@@ -46,6 +47,7 @@ const INFO: ReachInfo = {
   perHundredThousand: { sm: 41.2, ph: 20.5, dr: 88, sc: 17.3, pk: 36.1, st: 52.9 },
   places: { fetchedAt: '2026-10-19T14:00:00.000Z', osmBase: '2026-10-19T13:58:01Z' },
   parks: { fetchedAt: '2026-10-20', osmBase: null },
+  streets: { fetchedAt: null, osmBase: null },
 };
 
 describe('buildReachPayload', () => {
@@ -140,8 +142,23 @@ describe('buildReachPayload', () => {
       osmBase: '2026-10-19T13:58:01Z',
       parksFetchedAt: '2026-10-20',
       parksOsmBase: null,
+      streetsFetchedAt: null,
+      streetsOsmBase: null,
       calibratedAt: '2026-10-20T09:10:00.000Z',
     });
+  });
+
+  it('follows the calibration method, with street dates only for a network build', () => {
+    const streets = { fetchedAt: '2026-11-20T08:00:00.000Z', osmBase: '2026-11-20T07:58:00Z' };
+    const network = buildReachPayload(CELLS, NEAREST, { ...CAL, method: 'network' }, { ...INFO, streets }).meta;
+    expect(network.method).toBe('network');
+    expect(network.sources.streetsFetchedAt).toBe('2026-11-20T08:00:00.000Z');
+    expect(network.sources.streetsOsmBase).toBe('2026-11-20T07:58:00Z');
+
+    const estimate = buildReachPayload(CELLS, NEAREST, CAL, INFO).meta;
+    expect(estimate.method).toBe('estimate');
+    expect(estimate.sources.streetsFetchedAt).toBeNull();
+    expect(estimate.sources.streetsOsmBase).toBeNull();
   });
 
   it('keeps fetch dates nobody recorded as null', () => {

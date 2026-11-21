@@ -17,6 +17,7 @@ import { cityPasses } from './calibration.js';
 import type { Band } from './calibration.js';
 import { NEEDS, NONE_FOUND_METRES } from './needs.js';
 import type { Need, NeedId } from './needs.js';
+import type { ReachMethod } from './reachMethod.js';
 import type { FetchRecord } from './sourceDates.js';
 
 export const POPULATION_SOURCE = 'GHSL GHS-POP R2023A, 2025 epoch (European Commission, JRC), CC BY 4.0';
@@ -46,6 +47,8 @@ export interface NearestRow {
 
 /** What the city's calibration says about the walking estimate. */
 export interface CalibrationRow {
+  /** How the metres were measured: the method the city's nearest places were built with. */
+  method: ReachMethod;
   /** k, in straight-line metres per walking minute, fitted on every sampled cell. */
   metresPerMinute: number;
   kLow: number;
@@ -73,6 +76,8 @@ export interface ReachInfo {
   places: FetchRecord;
   /** When the city's parks were fetched, from the record beside its parks file. */
   parks: FetchRecord;
+  /** When the street network was fetched; nulls for an estimate build. */
+  streets: FetchRecord;
 }
 
 /** A need as the payload describes it. A park need has no POI categories: its places are park shapes. */
@@ -95,6 +100,8 @@ export interface ReachSources {
   osmBase: string | null;
   parksFetchedAt: string | null;
   parksOsmBase: string | null;
+  streetsFetchedAt: string | null;
+  streetsOsmBase: string | null;
   calibratedAt: string;
 }
 
@@ -103,7 +110,7 @@ export interface ReachMeta {
   cityName: string;
   coverage: string;
   residents: number;
-  method: 'estimate';
+  method: ReachMethod;
   metresPerMinute: number;
   kLow: number;
   kHigh: number;
@@ -194,7 +201,7 @@ export function buildReachPayload(
       cityName: info.cityName,
       coverage: info.coverage,
       residents,
-      method: 'estimate',
+      method: cal.method,
       metresPerMinute: cal.metresPerMinute,
       kLow: cal.kLow,
       kHigh: cal.kHigh,
@@ -211,6 +218,8 @@ export function buildReachPayload(
         osmBase: info.places.osmBase,
         parksFetchedAt: info.parks.fetchedAt,
         parksOsmBase: info.parks.osmBase,
+        streetsFetchedAt: info.streets.fetchedAt,
+        streetsOsmBase: info.streets.osmBase,
         calibratedAt: cal.calibratedAt,
       },
       completeness: { perHundredThousand: info.perHundredThousand, checks: cal.checks },
