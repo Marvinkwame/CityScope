@@ -6,7 +6,7 @@ import pool from '../db.js';
 import { NEED_IDS } from '../lib/needs.js';
 import type { NeedId } from '../lib/needs.js';
 import { REACH_CACHE_CONTROL, acceptsBrotli, isFresh, isH3CellId, isMissingTable } from '../lib/reachHttp.js';
-import { shapeCellCard } from '../lib/reachPayload.js';
+import { parseWalk, shapeCellCard } from '../lib/reachPayload.js';
 import type { CardRow } from '../lib/reachPayload.js';
 
 export const reachRouter = Router({ mergeParams: true });
@@ -97,13 +97,15 @@ interface CardDbRow {
   category: string | null;
   lng: number | null;
   lat: number | null;
+  walk: string | null;
 }
 
 // One statement for the cell, its nearest places and the city's k. The cell is
 // the driving row, so a cell with no nearest places still comes back (as one
 // row with a null need) and an unknown cell comes back as no row at all.
-// A park has no single point, so it is placed at the point of the park closest
-// to the cell's centre: the nearest edge a walker would head for.
+// A park has no single point, so it is placed where its walk ends (the entry
+// the walker reaches) or, with no stored walk, at the point of the park
+// closest to the cell's centre.
 const CARD_SQL = `
   SELECT c.residents,
          cal.metres_per_minute AS k,
@@ -111,8 +113,9 @@ const CARD_SQL = `
          n.metres,
          CASE n.place_kind WHEN 'poi' THEN p.name ELSE pk.name END AS name,
          CASE n.place_kind WHEN 'poi' THEN p.category ELSE 'park' END AS category,
-         CASE n.place_kind WHEN 'poi' THEN p.lng ELSE ST_X(ST_ClosestPoint(pk.geom, c.centre)) END AS lng,
-         CASE n.place_kind WHEN 'poi' THEN p.lat ELSE ST_Y(ST_ClosestPoint(pk.geom, c.centre)) END AS lat
+         CASE n.place_kind WHEN 'poi' THEN p.lng ELSE CASE WHEN n.walk IS NOT NULL THEN ST_X(ST_EndPoint(n.walk)) ELSE ST_X(ST_ClosestPoint(pk.geom, c.centre)) END END AS lng,
+         CASE n.place_kind WHEN 'poi' THEN p.lat ELSE CASE WHEN n.walk IS NOT NULL THEN ST_Y(ST_EndPoint(n.walk)) ELSE ST_Y(ST_ClosestPoint(pk.geom, c.centre)) END END AS lat,
+         ST_AsGeoJSON(n.walk, 5) AS walk
   FROM reach_cells c
   LEFT JOIN reach_calibration cal ON cal.city_id = c.city_id
   LEFT JOIN reach_nearest n ON n.city_id = c.city_id AND n.h3 = c.h3
@@ -164,6 +167,7 @@ reachRouter.get('/:cellId', async (req: Request, res: Response) => {
           category: row.category,
           lng: row.lng,
           lat: row.lat,
+          walk: parseWalk(row.walk),
         });
       }
     }

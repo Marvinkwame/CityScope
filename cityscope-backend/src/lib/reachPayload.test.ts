@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { brotliCompressSync, brotliDecompressSync, constants } from 'node:zlib';
 import { describe, it, expect } from 'vitest';
 import { NONE_FOUND_METRES } from './needs';
-import { PLACES_SOURCE, POPULATION_SOURCE, buildReachPayload, encodePayload, shapeCellCard } from './reachPayload';
+import { PLACES_SOURCE, POPULATION_SOURCE, buildReachPayload, encodePayload, parseWalk, shapeCellCard } from './reachPayload';
 import type { CalibrationRow, CardRow, CellRow, NearestRow, ReachInfo } from './reachPayload';
 
 const RING: [number, number][] = [
@@ -243,9 +243,9 @@ describe('encodePayload', () => {
 
 describe('shapeCellCard', () => {
   const ROWS: CardRow[] = [
-    { need: 'st', metres: 700, name: 'Alexanderplatz', category: 'station', lng: 13.41, lat: 52.52 },
-    { need: 'sm', metres: 612, name: 'Corner Market', category: 'supermarket', lng: 13.4, lat: 52.51 },
-    { need: 'pk', metres: 90, name: null, category: 'park', lng: 13.399, lat: 52.512 },
+    { need: 'st', metres: 700, name: 'Alexanderplatz', category: 'station', lng: 13.41, lat: 52.52, walk: null },
+    { need: 'sm', metres: 612, name: 'Corner Market', category: 'supermarket', lng: 13.4, lat: 52.51, walk: [[13.39, 52.5], [13.4, 52.51]] },
+    { need: 'pk', metres: 90, name: null, category: 'park', lng: 13.399, lat: 52.512, walk: null },
   ];
 
   it('lists the needs in NEEDS order, whatever order the rows came in', () => {
@@ -270,6 +270,7 @@ describe('shapeCellCard', () => {
       lat: 52.51,
       metres: 612,
       minutes: 9,
+      walk: [[13.39, 52.5], [13.4, 52.51]],
     });
   });
 
@@ -278,14 +279,14 @@ describe('shapeCellCard', () => {
   // card rounds up: 15.19 minutes must not read as 15 on a block the map
   // shows as outside 15 minutes.
   it('rounds minutes up, so the card never contradicts the map', () => {
-    const rows: CardRow[] = [{ need: 'sm', metres: 1010, name: 'Edge Market', category: 'supermarket', lng: 0, lat: 0 }];
+    const rows: CardRow[] = [{ need: 'sm', metres: 1010, name: 'Edge Market', category: 'supermarket', lng: 0, lat: 0, walk: null }];
     const sm = shapeCellCard('891f1d48947ffff', 120, rows, 66.5).needs[0];
     expect(1010 / 66.5).toBeGreaterThan(15);
     expect(sm.minutes).toBe(16);
   });
 
   it('keeps an exact whole minute as it is', () => {
-    const rows: CardRow[] = [{ need: 'sm', metres: 0, name: 'Next Door', category: 'supermarket', lng: 0, lat: 0 }];
+    const rows: CardRow[] = [{ need: 'sm', metres: 0, name: 'Next Door', category: 'supermarket', lng: 0, lat: 0, walk: null }];
     expect(shapeCellCard('891f1d48947ffff', 120, rows, 66.5).needs[0].minutes).toBe(0);
     expect(shapeCellCard('891f1d48947ffff', 120, ROWS, 68).needs[0].minutes).toBe(9);
   });
@@ -307,6 +308,26 @@ describe('shapeCellCard', () => {
       lat: null,
       metres: null,
       minutes: null,
+      walk: null,
     });
+  });
+
+  it('passes each row walk through, and a null walk stays null', () => {
+    const card = shapeCellCard('891f1d48947ffff', 120, ROWS, 68);
+    expect(card.needs[0].walk).toEqual([[13.39, 52.5], [13.4, 52.51]]);
+    expect(card.needs[4].walk).toBeNull();
+  });
+});
+
+describe('parseWalk', () => {
+  it('reads a LineString as [lng, lat] pairs', () => {
+    expect(parseWalk('{"type":"LineString","coordinates":[[1,2],[3,4]]}')).toEqual([[1, 2], [3, 4]]);
+  });
+
+  it('is null for null, a Point or malformed text', () => {
+    expect(parseWalk(null)).toBeNull();
+    expect(parseWalk('{"type":"Point","coordinates":[1,2]}')).toBeNull();
+    expect(parseWalk('not json')).toBeNull();
+    expect(parseWalk('{"type":"LineString","coordinates":[[1,"a"]]}')).toBeNull();
   });
 });

@@ -249,6 +249,38 @@ export interface CardRow {
   category: string;
   lng: number;
   lat: number;
+  /** The street walk from the block centre to the place, as [lng, lat] pairs; null for an estimate build. */
+  walk: [number, number][] | null;
+}
+
+/**
+ * Reads a PostGIS ST_AsGeoJSON LineString as [lng, lat] pairs. Anything else
+ * (null, a Point, malformed text) is null: the card then has no walk to draw.
+ */
+export function parseWalk(geojson: string | null): [number, number][] | null {
+  if (geojson === null) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(geojson);
+  } catch {
+    return null;
+  }
+  if (typeof parsed !== 'object' || parsed === null) return null;
+  const { type, coordinates } = parsed as { type?: unknown; coordinates?: unknown };
+  if (type !== 'LineString' || !Array.isArray(coordinates)) return null;
+  const line: [number, number][] = [];
+  for (const point of coordinates) {
+    if (
+      !Array.isArray(point) ||
+      point.length < 2 ||
+      typeof point[0] !== 'number' ||
+      typeof point[1] !== 'number'
+    ) {
+      return null;
+    }
+    line.push([point[0], point[1]]);
+  }
+  return line;
 }
 
 /**
@@ -268,6 +300,7 @@ export interface CellCard {
     lat: number | null;
     metres: number | null;
     minutes: number | null;
+    walk: [number, number][] | null;
   }[];
 }
 
@@ -294,7 +327,7 @@ export function shapeCellCard(
     needs: NEEDS.map(({ id }) => {
       const row = byNeed.get(id);
       if (!row) {
-        return { need: id, name: null, category: null, lng: null, lat: null, metres: null, minutes: null };
+        return { need: id, name: null, category: null, lng: null, lat: null, metres: null, minutes: null, walk: null };
       }
       return {
         need: id,
@@ -304,6 +337,7 @@ export function shapeCellCard(
         lat: row.lat,
         metres: row.metres,
         minutes: Math.ceil(row.metres / metresPerMinute),
+        walk: row.walk,
       };
     }),
   };
