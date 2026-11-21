@@ -224,20 +224,21 @@ Schools have the longest detour in every city.
 
 ### Calibration
 
-Held-out agreement at k_fit (the fit half's pace), with Phase 1's straight-line figure at 5 minutes:
+Held-out agreement at k_fit (the fit half's pace). Each cell is the street figure with Phase 1's straight-line figure in brackets:
 
-| City | k (range) | k_fit | 5 min | 10 min | 15 min | 20 min | 5 min, straight line |
+| City | k (range) | k_fit | 5 min | 10 min | 15 min | 20 min |
 |---|---|---|---|---|---|---|---|
-| Amsterdam | 95.5 (90–98) | 95.5 | 95.6% | 98.3% | 97.8% | 99.4% | 93.3% |
-| Berlin | 92 (89–92.5) | 91.5 | 94.4% | 97.2% | 98.9% | 98.9% | 87.8% |
-| London | 90.5 (90–97) | 90.5 | 92.2% | 96.7% | 100% | 100% | 91.7% |
-| Munich | 90 (87.5–99) | 90 | 93.3% | 96.1% | 98.9% | 98.9% | 91.7% |
-| New York | 94 (91–102) | 102 | 95.6% | 97.8% | 96.7% | 98.9% | 90.6% |
-| Paris | 91 (90.5–101.5) | 91 | 95.6% | 97.8% | 99.4% | 100% | 91.1% |
-| Sydney | 91.5 (88–103.5) | 91.5 | 90.0% | 95.6% | 100% | 100% | 91.7% |
-| Tokyo | 90 (90–96) | 90.5 | 92.8% | 97.2% | 99.4% | 100% | 85.0% |
+| Amsterdam | 95.5 (90–98) | 95.5 | 95.6% (93.3) | 98.3% (95.6) | 97.8% (98.9) | 99.4% (98.9) |
+| Berlin | 92 (89–92.5) | 91.5 | 94.4% (87.8) | 97.2% (93.3) | 98.9% (94.4) | 98.9% (96.7) |
+| London | 90.5 (90–97) | 90.5 | 92.2% (91.7) | 96.7% (94.4) | 100% (97.2) | 100% (98.9) |
+| Munich | 90 (87.5–99) | 90 | 93.3% (91.7) | 96.1% (93.3) | 98.9% (97.8) | 98.9% (99.4) |
+| New York | 94 (91–102) | 102 | 95.6% (90.6) | 97.8% (97.2) | 96.7% (95.6) | 98.9% (99.4) |
+| Paris | 91 (90.5–101.5) | 91 | 95.6% (91.1) | 97.8% (99.4) | 99.4% (99.4) | 100% (100) |
+| Sydney | 91.5 (88–103.5) | 91.5 | 90.0% (91.7) | 95.6% (95.6) | 100% (99.4) | 100% (100) |
+| Tokyo | 90 (90–96) | 90.5 | 92.8% (85.0) | 97.2% (93.3) | 99.4% (97.8) | 100% (98.9) |
 
 - **Base rates** (always answering "within"), 5 / 10 / 15 / 20 minutes: Amsterdam 55.0 / 80.0 / 87.2 / 90.0%; Berlin 44.4 / 79.4 / 90.6 / 97.8%; London 49.4 / 83.9 / 94.4 / 99.4%; Munich 49.4 / 83.9 / 91.7 / 95.0%; New York 46.7 / 81.1 / 91.7 / 95.6%; Paris 77.8 / 97.2 / 99.4 / 100%; Sydney 60.6 / 91.1 / 98.3 / 99.4%; Tokyo 53.9 / 86.1 / 95.6 / 97.8%.
+- **Where agreement falls against Phase 1:** four places, each by 1–3 of 180 checks, all within chance: Amsterdam at 15 minutes (98.9% to 97.8%), Munich at 20 (99.4% to 98.9%), New York at 20 (99.4% to 98.9%) and Paris at 10 (99.4% to 97.8%). The base rate at them is 87–97%, so most places are within reach anyway.
 - **Success criterion 1:** every city passes at all four limits.
 - **Success criterion 2:** seven of eight beat their Phase 1 5-minute figure. **Sydney doesn't** (90.0% vs 91.7%): 18 of 180 checks wrong by street against 15 by straight line. Investigated with a read-only reconstruction that reproduces both figures exactly: 12 checks are wrong only by street, 9 only by straight line and 6 both (McNemar on the 21 discordant checks, p ≈ 0.66: within chance). Every street-only miss is "street says outside, Mapbox inside": places 185–418 m away in a straight line and 463–605 m by street (detours 1.29–2.74), just over the 457.5 m limit. The joins are small (sampled blocks' median 18 m, max 55 m); leaving out the block's join gives 90.6%, both joins 91.1%, so they explain about half. The rest is the isochrone's own margin: Mapbox's area reaches a little past the streets it covers, which matters most at 5 minutes, and one pace can't fit that at every limit. **The owner chose street distances for Sydney too** (2026-11-21), overriding the criterion's default of keeping the estimate.
 - **The pace is 90–95.5 m of street a minute in every city** (about 5.4–5.7 km/h), above the 72–90 m this design expected from people's walking speeds. Eight cities agreeing this closely says the pace is mostly Mapbox's (with the isochrone's margin), not the cities'.
