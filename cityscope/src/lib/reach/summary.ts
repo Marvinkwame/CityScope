@@ -3,8 +3,8 @@
 import { NEED_IDS } from './model';
 import type { NeedId, ReachProperties } from './model';
 
+/** A city's blocks in payload order: index i is block i everywhere, the map's feature id included. */
 export interface ReachColumns {
-  ids: string[];
   residents: Float64Array;
   total: number;
   metres: Record<NeedId, Uint16Array>;
@@ -12,7 +12,6 @@ export interface ReachColumns {
 
 export function toColumns(features: ReadonlyArray<{ properties: ReachProperties }>): ReachColumns {
   const n = features.length;
-  const ids: string[] = new Array<string>(n);
   const residents = new Float64Array(n);
   const metres = {} as Record<NeedId, Uint16Array>;
   for (const id of NEED_IDS) metres[id] = new Uint16Array(n);
@@ -20,12 +19,26 @@ export function toColumns(features: ReadonlyArray<{ properties: ReachProperties 
   let total = 0;
   for (let i = 0; i < n; i++) {
     const p = features[i].properties;
-    ids[i] = p.h;
     residents[i] = p.r;
     total += p.r;
     for (const id of NEED_IDS) metres[id][i] = p[id];
   }
-  return { ids, residents, total, metres };
+  return { residents, total, metres };
+}
+
+const columnsByFeatures = new WeakMap<object, ReachColumns>();
+
+/**
+ * `toColumns` once per payload, however many components ask for it: every
+ * reader of the cached payload holds the same features array.
+ */
+export function columnsFor(features: ReadonlyArray<{ properties: ReachProperties }>): ReachColumns {
+  let cols = columnsByFeatures.get(features);
+  if (!cols) {
+    cols = toColumns(features);
+    columnsByFeatures.set(features, cols);
+  }
+  return cols;
 }
 
 /** True when the straight-line metres fit the limit at k metres per minute. */
@@ -55,6 +68,10 @@ export function summarise(
   const limitLow = minutes * k.kLow;
   const limitHigh = minutes * k.kHigh;
   const chosen = needs.map((id) => cols.metres[id]);
+  // Every need's column and running total sit in arrays: looking them up and
+  // adding to them by name for each block made this pass several times slower.
+  const every = NEED_IDS.map((id) => cols.metres[id]);
+  const withinNeed = new Float64Array(every.length);
 
   let all = 0;
   let allLow = 0;
@@ -66,10 +83,12 @@ export function summarise(
     if (worst <= limit) all += r;
     if (worst <= limitLow) allLow += r;
     if (worst <= limitHigh) allHigh += r;
-    for (const id of NEED_IDS) if (cols.metres[id][i] <= limit) perNeed[id] += r;
+    for (let n = 0; n < every.length; n++) if (every[n][i] <= limit) withinNeed[n] += r;
   }
 
-  for (const id of NEED_IDS) perNeed[id] /= cols.total;
+  NEED_IDS.forEach((id, n) => {
+    perNeed[id] = withinNeed[n] / cols.total;
+  });
   return { share: all / cols.total, low: allLow / cols.total, high: allHigh / cols.total, perNeed };
 }
 
