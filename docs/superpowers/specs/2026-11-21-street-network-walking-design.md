@@ -1,7 +1,7 @@
 # Everyday Reach by Street — Design
 
 **Date:** 2026-11-21
-**Status:** Approach, scope and switch-over chosen by the owner in conversation; this written design awaits the owner's review
+**Status:** Approved by the owner on 2026-11-21, built on `reach/street-network` and measured (see Measured results)
 **Branch:** `reach/street-network`, off `main`
 **Builds on:** `docs/superpowers/specs/2026-10-17-everyday-reach-design.md` (the reach spec). Read its Phase 1 and Phase 2 amendments first: this design changes how distances are measured and nothing else about the layer.
 
