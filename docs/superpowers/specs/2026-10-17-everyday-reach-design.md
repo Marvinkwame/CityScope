@@ -21,7 +21,7 @@ The owner is job-hunting for mapping, property, logistics and urban-tech roles. 
 
 ## Non-goals
 
-- **Street-network walking distances** (multi-source Dijkstra). Planned as a later replacement; the storage is shaped so it can drop in without touching the API or the map.
+- **Street-network walking distances** (multi-source Dijkstra). Planned as a later replacement; the storage is shaped so it can drop in without touching the API or the map. *Built on 2026-11-21:* see [the street design](2026-11-21-street-network-walking-design.md) and its [measured results](2026-11-21-street-network-walking-design.md#measured-results), which compare every city before and after.
 - Bus stops (a stop says nothing about how often a bus comes), opening hours, cycling.
 - **Ranking the cities against each other.** Their district sets cover very different areas (below).
 - Tokyo outside the 23 wards. Sydney beyond the 33 inner suburbs the database holds.
