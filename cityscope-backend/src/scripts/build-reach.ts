@@ -4,14 +4,19 @@
 //    cells (resolution 9).
 // 2. Adds up GHSL residents into those cells and keeps the populated ones.
 // 3. Writes the cells to reach_cells, then, for each of the six needs, finds
-//    the nearest place to every cell centre inside PostGIS (reach_nearest).
+//    the nearest place to every cell centre (reach_nearest).
 //
-// Usage: tsx src/scripts/build-reach.ts <cityId> [--ghsl <dir>] [--dry-run]
+// Usage: tsx src/scripts/build-reach.ts <cityId> [--method network|estimate] [--ghsl <dir>] [--dry-run]
+//
+// --method network (the default) measures each walk along the city's street
+// network (data/streets-<city>.json, from fetch:streets) and stores the walk's
+// line. --method estimate is the earlier straight-line search inside PostGIS.
 //
 // --dry-run stops after the resident counts and writes nothing: the session is
 // made read-only and announceTarget() is not called. A real run announces its
 // target, then replaces the city's reach rows in one transaction.
 
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cellToBoundary, cellToLatLng } from 'h3-js';
@@ -22,49 +27,27 @@ import pool from '../db.js';
 import { announceTarget, describeDatabase } from '../lib/dbTarget.js';
 import { isAreaGeometry } from '../lib/geometry.js';
 import type { AreaGeometry } from '../lib/geometry.js';
+import { parseBuildArgs } from '../lib/buildReachArgs.js';
 import { readGhslWindow } from '../lib/ghsl.js';
+import { joinBlocks, nearestByStreet, PARK_ENTRY_SPACING_METRES } from '../lib/networkNearest.js';
+import type { BlockInput, NeedStats, NetworkRow, PlaceInput } from '../lib/networkNearest.js';
+import { NodeIndex } from '../lib/nodeIndex.js';
 import { NEEDS, NONE_FOUND_METRES, PARK_MIN_AREA_M2 } from '../lib/needs.js';
 import type { Need } from '../lib/needs.js';
 import { placeCountQuery } from '../lib/needPlaces.js';
 import { addPixelsToCells, cellsForOutline, keptCells, tilesForBox } from '../lib/population.js';
 import type { Box } from '../lib/population.js';
+import { buildStreetGraph } from '../lib/streetGraph.js';
+import type { StreetGraph } from '../lib/streetGraph.js';
+import { parseStreetsFile } from '../lib/streets.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_GHSL_DIR = path.resolve(__dirname, '../../data/ghsl');
 
 const CELL_BATCH_SIZE = 500;
 
-interface Options {
-  cityId: string;
-  ghslDir: string;
-  dryRun: boolean;
-}
-
-function parseArgs(argv: readonly string[]): Options | null {
-  let cityId: string | null = null;
-  let ghslDir = DEFAULT_GHSL_DIR;
-  let dryRun = false;
-
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
-    if (arg === '--dry-run') {
-      dryRun = true;
-    } else if (arg === '--ghsl') {
-      const value = argv[++i];
-      if (value === undefined) return null;
-      ghslDir = path.resolve(value);
-    } else if (arg.startsWith('--') || cityId !== null) {
-      return null;
-    } else {
-      cityId = arg;
-    }
-  }
-
-  return cityId === null ? null : { cityId, ghslDir, dryRun };
-}
-
 function usage(): never {
-  console.error('Usage: tsx src/scripts/build-reach.ts <cityId> [--ghsl <dir>] [--dry-run]');
+  console.error('Usage: tsx src/scripts/build-reach.ts <cityId> [--method network|estimate] [--ghsl <dir>] [--dry-run]');
   console.error('Available cities:', CITY_CONFIGS.map((c) => c.id).join(', '));
   process.exit(1);
 }
@@ -214,7 +197,163 @@ function seconds(since: number): string {
   return `${((performance.now() - since) / 1000).toFixed(1)} s`;
 }
 
-async function writeCity(client: PoolClient, cityId: string, kept: ReadonlyMap<string, number>): Promise<void> {
+const WALK_BATCH_SIZE = 1000;
+
+const INSERT_WALKS = `
+  INSERT INTO reach_nearest (city_id, h3, need, place_kind, place_id, metres, method, walk)
+  SELECT $1, x.h3, $2, $3, x.place_id, x.metres, 'network', ST_SetSRID(ST_GeomFromGeoJSON(x.walk), 4326)
+  FROM unnest($4::text[], $5::int[], $6::int[], $7::text[]) AS x(h3, place_id, metres, walk)
+`;
+
+// One point per PARK_ENTRY_SPACING_METRES along each park's edge: a park is
+// entered from its boundary. $2 is the minimum area, $3 the spacing.
+const PARK_ENTRIES_SQL = `
+  SELECT k.id, ST_X(d.geom) AS lng, ST_Y(d.geom) AS lat
+  FROM parks k
+  CROSS JOIN LATERAL ST_DumpPoints(ST_Segmentize(ST_Boundary(k.geom)::geography, $3)::geometry) d
+  WHERE k.city_id = $1 AND k.area_m2 >= $2
+  ORDER BY k.id, d.path
+`;
+
+interface Network {
+  graph: StreetGraph;
+  index: NodeIndex;
+}
+
+interface NetworkNeed {
+  need: Need;
+  kind: 'poi' | 'park';
+  rows: NetworkRow[];
+  stats: NeedStats;
+}
+
+const count = (n: number): string => n.toLocaleString('en-GB');
+
+/** Reads the city's street file and builds the graph and index, before any transaction. */
+async function loadNetwork(cityId: string): Promise<Network> {
+  const startedAt = performance.now();
+  const file = path.resolve(__dirname, `../../data/streets-${cityId}.json`);
+  let text: string;
+  try {
+    text = await readFile(file, 'utf8');
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+      console.error(`No street network for ${cityId}. Run npm run fetch:streets -- ${cityId} first`);
+      process.exit(1);
+    }
+    throw err;
+  }
+  const graph = buildStreetGraph(parseStreetsFile(text));
+  const index = new NodeIndex(graph);
+  const share = ((graph.nodeCount / graph.fileNodeCount) * 100).toFixed(1);
+  console.log(
+    `Street graph: ${count(graph.nodeCount)} of ${count(graph.fileNodeCount)} nodes kept ` +
+      `(${share}%, largest connected part) (${seconds(startedAt)})`,
+  );
+  return { graph, index };
+}
+
+function percentile(sorted: readonly number[], p: number): number {
+  return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))];
+}
+
+async function readPlaces(client: PoolClient, cityId: string, need: Need): Promise<PlaceInput[]> {
+  const { rows } =
+    need.source === 'parks'
+      ? await client.query<{ id: number; lng: number; lat: number }>(PARK_ENTRIES_SQL, [
+          cityId,
+          PARK_MIN_AREA_M2,
+          PARK_ENTRY_SPACING_METRES,
+        ])
+      : await client.query<{ id: number; lng: number; lat: number }>(
+          'SELECT id, lng, lat FROM pois WHERE city_id = $1 AND category = ANY($2::text[]) ORDER BY id',
+          [cityId, [...need.categories]],
+        );
+  return rows.map((r) => ({ placeId: r.id, lng: r.lng, lat: r.lat }));
+}
+
+/** Joins the blocks to the network and finds each need's nearest place by street. Writes nothing. */
+async function measureNetwork(
+  client: PoolClient,
+  cityId: string,
+  blocks: readonly BlockInput[],
+  network: Network,
+): Promise<NetworkNeed[]> {
+  const { joins, far } = joinBlocks(network.index, blocks);
+  const joinMetres = joins.map((j) => j.metres).sort((a, b) => a - b);
+  console.log(
+    `Block joins to the network: median ${percentile(joinMetres, 0.5).toFixed(0)} m, ` +
+      `95th percentile ${percentile(joinMetres, 0.95).toFixed(0)} m, ` +
+      `maximum ${joinMetres[joinMetres.length - 1].toFixed(0)} m`,
+  );
+  if (far.length === 0) console.log('  No block is more than 150 m from the network');
+  for (const f of far) console.log(`  Far from the network: ${f.h3} (${f.metres.toFixed(0)} m)`);
+
+  const results: NetworkNeed[] = [];
+  for (const need of NEEDS) {
+    const startedAt = performance.now();
+    const places = await readPlaces(client, cityId, need);
+    if (places.length === 0) {
+      console.log(
+        `  ${need.id} ${need.label}: no places in the city's data, skipped; ` +
+          `all ${count(blocks.length)} blocks read as ${NONE_FOUND_METRES} m`,
+      );
+      continue;
+    }
+    const kind = need.source === 'parks' ? 'park' : 'poi';
+    const { rows, stats } = nearestByStreet(network.graph, network.index, joins, places, kind);
+    const detour =
+      stats.medianDetour === null ? 'no detour measured' : `median detour ${stats.medianDetour.toFixed(2)}×`;
+    const warning = rows.length === 0 ? ' WARNING: places exist but no block reaches any of them' : '';
+    console.log(
+      `  ${need.id} ${need.label}: ${count(rows.length)} rows from ${count(places.length)} ` +
+        `${kind === 'park' ? 'park entry points' : 'places'}, ${count(stats.unreached)} blocks unreached, ` +
+        `${detour} (${seconds(startedAt)})${warning}`,
+    );
+    results.push({ need, kind, rows, stats });
+  }
+  return results;
+}
+
+async function insertWalks(client: PoolClient, cityId: string, found: NetworkNeed): Promise<void> {
+  for (let i = 0; i < found.rows.length; i += WALK_BATCH_SIZE) {
+    const batch = found.rows.slice(i, i + WALK_BATCH_SIZE);
+    await client.query(INSERT_WALKS, [
+      cityId,
+      found.need.id,
+      found.kind,
+      batch.map((r) => r.h3),
+      batch.map((r) => r.placeId),
+      batch.map((r) => r.metres),
+      batch.map((r) => JSON.stringify({ type: 'LineString', coordinates: r.walk })),
+    ]);
+  }
+}
+
+async function reportWalkStorage(client: PoolClient, cityId: string): Promise<void> {
+  const { rows } = await client.query<{ bytes: string | null }>(
+    'SELECT sum(pg_column_size(walk))::bigint AS bytes FROM reach_nearest WHERE city_id = $1',
+    [cityId],
+  );
+  console.log(`Walk storage: ${(Number(rows[0]?.bytes ?? 0) / (1024 * 1024)).toFixed(1)} MB`);
+}
+
+async function writeNetworkNeeds(client: PoolClient, cityId: string, network: Network): Promise<void> {
+  const { rows } = await client.query<{ h3: string; lng: number; lat: number }>(
+    'SELECT h3, ST_X(centre) AS lng, ST_Y(centre) AS lat FROM reach_cells WHERE city_id = $1 ORDER BY h3',
+    [cityId],
+  );
+  const found = await measureNetwork(client, cityId, rows, network);
+  for (const f of found) await insertWalks(client, cityId, f);
+  await reportWalkStorage(client, cityId);
+}
+
+async function writeCity(
+  client: PoolClient,
+  cityId: string,
+  kept: ReadonlyMap<string, number>,
+  network: Network | null,
+): Promise<void> {
   const cells = [...kept];
   const startedAt = performance.now();
 
@@ -247,30 +386,34 @@ async function writeCity(client: PoolClient, cityId: string, kept: ReadonlyMap<s
     }
     console.log(`Wrote ${cells.length.toLocaleString('en-GB')} cells (${seconds(insertStartedAt)})`);
 
-    for (const need of NEEDS) {
-      const needStartedAt = performance.now();
+    if (network !== null) {
+      await writeNetworkNeeds(client, cityId, network);
+    } else {
+      for (const need of NEEDS) {
+        const needStartedAt = performance.now();
 
-      // With no place for the need anywhere in the city, the search below
-      // would walk the whole index for every cell and find nothing. Count
-      // first, and skip it: its cells read as the none-found distance.
-      const counted = placeCountQuery(need, cityId);
-      const { rows: countRows } = await client.query<{ places: number }>(counted.text, counted.values);
-      if ((countRows[0]?.places ?? 0) === 0) {
+        // With no place for the need anywhere in the city, the search below
+        // would walk the whole index for every cell and find nothing. Count
+        // first, and skip it: its cells read as the none-found distance.
+        const counted = placeCountQuery(need, cityId);
+        const { rows: countRows } = await client.query<{ places: number }>(counted.text, counted.values);
+        if ((countRows[0]?.places ?? 0) === 0) {
+          console.log(
+            `  ${need.id} ${need.label}: no places in the city's data, skipped; ` +
+              `all ${cells.length.toLocaleString('en-GB')} cells read as ${NONE_FOUND_METRES} m`,
+          );
+          continue;
+        }
+
+        const { sql, thirdParam } = nearestStatement(need);
+        const result = await client.query(sql, [cityId, need.id, thirdParam]);
+        const rows = result.rowCount ?? 0;
+        const none = cells.length - rows;
         console.log(
-          `  ${need.id} ${need.label}: no places in the city's data, skipped; ` +
-            `all ${cells.length.toLocaleString('en-GB')} cells read as ${NONE_FOUND_METRES} m`,
+          `  ${need.id} ${need.label}: ${rows.toLocaleString('en-GB')} rows (${seconds(needStartedAt)})` +
+            (none > 0 ? `, ${none.toLocaleString('en-GB')} cells with no place, read as ${NONE_FOUND_METRES} m` : ''),
         );
-        continue;
       }
-
-      const { sql, thirdParam } = nearestStatement(need);
-      const result = await client.query(sql, [cityId, need.id, thirdParam]);
-      const rows = result.rowCount ?? 0;
-      const none = cells.length - rows;
-      console.log(
-        `  ${need.id} ${need.label}: ${rows.toLocaleString('en-GB')} rows (${seconds(needStartedAt)})` +
-          (none > 0 ? `, ${none.toLocaleString('en-GB')} cells with no place, read as ${NONE_FOUND_METRES} m` : ''),
-      );
     }
 
     await client.query('COMMIT');
@@ -284,7 +427,7 @@ async function writeCity(client: PoolClient, cityId: string, kept: ReadonlyMap<s
 }
 
 async function main(): Promise<void> {
-  const options = parseArgs(process.argv.slice(2));
+  const options = parseBuildArgs(process.argv.slice(2), DEFAULT_GHSL_DIR);
   if (options === null) usage();
 
   const city = CITY_CONFIGS.find((c) => c.id === options.cityId);
@@ -300,6 +443,9 @@ async function main(): Promise<void> {
   } else {
     announceTarget();
   }
+
+  // The graph is built before any connection or transaction is opened.
+  const network = options.method === 'network' ? await loadNetwork(city.id) : null;
 
   const client = await pool.connect();
   try {
@@ -323,9 +469,18 @@ async function main(): Promise<void> {
     if (residents.kept.size === 0) {
       throw new Error(`No residents found for ${city.id}; nothing to build`);
     }
-    if (options.dryRun) return;
+    if (options.dryRun) {
+      if (network !== null) {
+        const blocks = [...residents.kept.keys()].map((h3) => {
+          const [lat, lng] = cellToLatLng(h3);
+          return { h3, lng, lat };
+        });
+        await measureNetwork(client, city.id, blocks, network);
+      }
+      return;
+    }
 
-    await writeCity(client, city.id, residents.kept);
+    await writeCity(client, city.id, residents.kept, network);
   } finally {
     if (options.dryRun) {
       // Undo the session setting on a connection a pooler may hand to others.
