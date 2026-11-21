@@ -26,7 +26,7 @@ import {
   reachHeightExpression,
 } from '../lib/reach/expressions';
 import { reachLayerVisibility } from '../lib/reach/layerVisibility';
-import { cellCentre, linkLines } from '../lib/reach/card';
+import { cellCentre, linkLines, pinPositions } from '../lib/reach/card';
 import { changedBlocks, missingClasses } from '../lib/reach/summary';
 import type { NeedId, ReachPayload } from '../lib/reach/model';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
@@ -978,10 +978,9 @@ function MapView() {
     const map = mapRef.current;
     if (!map || !mapReady || !linksVisible || !reachLinks) return;
 
-    const pins = reachLinks.features.map((f) => {
-      const { element, dispose } = createCategoryPin(String(f.properties?.category));
-      const [lng, lat] = f.geometry.coordinates[1];
-      const marker = new mapboxgl.Marker({ element }).setLngLat([lng, lat]).addTo(map);
+    const pins = pinPositions(reachLinks).map(({ category, lngLat }) => {
+      const { element, dispose } = createCategoryPin(category);
+      const marker = new mapboxgl.Marker({ element }).setLngLat(lngLat).addTo(map);
       return { marker, dispose };
     });
     reachPinsRef.current = pins;

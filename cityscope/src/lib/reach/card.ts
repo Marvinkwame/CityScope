@@ -127,3 +127,17 @@ export function linkLines(
   }
   return { type: 'FeatureCollection', features };
 }
+
+/**
+ * Where a link line's pin sits: the line's last point, which is the place
+ * itself, or a park's entry point. Not the second point, which on a street walk
+ * is the block's join node.
+ */
+export function pinPositions(
+  links: GeoJSON.FeatureCollection<GeoJSON.LineString>,
+): { category: string; lngLat: [number, number] }[] {
+  return links.features.map((f) => {
+    const end = f.geometry.coordinates[f.geometry.coordinates.length - 1];
+    return { category: String(f.properties?.category), lngLat: [end[0], end[1]] };
+  });
+}

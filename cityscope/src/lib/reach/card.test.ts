@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cardIsStale, cardRequestable, cardRows, cellCentre, healKey, linkLines, shouldHeal } from './card';
+import { cardIsStale, cardRequestable, cardRows, cellCentre, healKey, linkLines, pinPositions, shouldHeal } from './card';
 import { missingCount } from './expressions';
 import { NEED_IDS, NONE_FOUND_METRES, REACH_MINUTES } from './model';
 import type { CellCard, NeedId, ReachPayload, ReachProperties } from './model';
@@ -191,5 +191,20 @@ describe('healKey and shouldHeal', () => {
     expect(shouldHeal(new Set([k]), k, true)).toBe(false);
     expect(shouldHeal(new Set(), k, false)).toBe(false);
     expect(shouldHeal(new Set(), k, true)).toBe(true);
+  });
+});
+
+describe('pinPositions', () => {
+  it('puts a two-point straight line pin on its second point', () => {
+    const pins = pinPositions(linkLines(CARD, PROPS, 68.5, 5, ['st'], [13.4, 52.5]));
+    expect(pins).toEqual([{ category: 'tram_stop', lngLat: [13.4038, 52.5206] }]);
+  });
+
+  it('puts a multi-point walk pin on its last point, not its second', () => {
+    const walk: [number, number][] = [[13.4, 52.5], [13.401, 52.5003], [13.402, 52.5007], [13.4038, 52.5206]];
+    const card = withWalk(CARD, 'st', walk);
+    const pins = pinPositions(linkLines(card, PROPS, 68.5, 5, ['st'], [13.4, 52.5]));
+    expect(pins).toEqual([{ category: 'tram_stop', lngLat: [13.4038, 52.5206] }]);
+    expect(pins[0].lngLat).not.toEqual(walk[1]);
   });
 });
