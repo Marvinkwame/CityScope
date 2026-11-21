@@ -578,7 +578,7 @@ it('rangeExplanation names the pace by street for a street build', () => {
 - [ ] **Step 4: Prime a browser.** In the built-in browser, open Berlin and London on the live site, so the self-healing case can be checked after the switch.
 - [ ] **Step 5: At a quiet hour, city by city.** One go-ahead per city covers `reach:build`, `reach:calibrate`, `reach:check-gp` (London) and `reach:publish`, run back to back with `DOTENV_CONFIG_PATH=.env.production-direct CITYSCOPE_DB_TARGET=production`, from the same street files as the local run.
   - Read the printed host before each.
-  - Record each city's gap, from the start of the build to the end of the publish.
+  - Record each city's gap, from the build's COMMIT (the build's delete and rebuild are one transaction, so visitors keep the old payload until then) to the end of the publish.
 - [ ] **Step 6: Verify.**
   - **Payloads:** each city's production payload matches the local one block for block, differing only in `builtAt` and `sources.calibratedAt`.
   - **API checks:** rerun the Phase 1 API checks: Brotli, ETag, `304`, plain JSON, and a card with walks.
