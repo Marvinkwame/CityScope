@@ -51,6 +51,11 @@ export function parksRecordName(cityId: string): string {
   return `parks-${cityId}.source.json`;
 }
 
+/** The record beside `streets-<city>.json`, in data/. */
+export function streetsRecordName(cityId: string): string {
+  return `streets-${cityId}.source.json`;
+}
+
 /** Writes a record file. */
 export function writeFetchRecord(filePath: string, fetchedAt: string, osmBase: string | null): void {
   writeFileSync(filePath, fetchRecordJson(fetchedAt, osmBase));

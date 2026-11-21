@@ -14,6 +14,7 @@
     "seed:all": "tsx src/scripts/seed-all.ts",
     "fetch:pois": "tsx src/scripts/fetch-pois.ts",
     "fetch:parks": "tsx src/scripts/fetch-parks.ts",
+    "fetch:streets": "tsx src/scripts/fetch-streets.ts",
     "migrate": "tsx src/scripts/migrate.ts",
     "reach:build": "tsx src/scripts/build-reach.ts",
     "reach:calibrate": "tsx src/scripts/calibrate-reach.ts",
