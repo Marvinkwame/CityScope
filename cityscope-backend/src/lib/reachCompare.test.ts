@@ -76,4 +76,16 @@ describe('compareReach', () => {
     expect(result.blocks).toEqual({ matched: 1, onlyBefore: 2, onlyAfter: 1 });
     expect(result.colourChanged[5]).toBe(1);
   });
+
+  it('gives no rates, not a throw, for an older payload without completeness, a baseline or agreement', () => {
+    const bare = payload(100, before.features);
+    delete (bare.meta as unknown as Record<string, unknown>).completeness;
+    delete (bare.meta as unknown as Record<string, unknown>).agreement;
+    const noBaseline = payload(100, before.features);
+    (noBaseline.meta.completeness as { checks: Record<string, unknown> }).checks = {};
+    const result = compareReach(bare, noBaseline);
+    expect(result.baseRates).toEqual({ before: {}, after: {} });
+    expect(result.agreement.before).toEqual({});
+    expect(result.agreement.after[15]).toBe(0.7);
+  });
 });

@@ -34,9 +34,30 @@ function isPayload(value: unknown): value is ReachPayload {
 }
 
 function parsePayload(text: string, what: string): ReachPayload {
-  const parsed: unknown = JSON.parse(text);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch (err) {
+    throw new Error(`${what} is not valid JSON (${err instanceof Error ? err.message : err})`);
+  }
   if (!isPayload(parsed)) throw new Error(`${what} is not a reach payload`);
   return parsed;
+}
+
+function readBefore(cityId: string): ReachPayload {
+  const file = path.join(BEFORE_DIR, `${cityId}.json`);
+  let text: string;
+  try {
+    text = readFileSync(file, 'utf8');
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+      throw new Error(
+        `No "before" payload at ${file}. Save the production GET /api/cities/${cityId}/reach response there first`,
+      );
+    }
+    throw new Error(`Could not read ${file}: ${err instanceof Error ? err.message : err}`);
+  }
+  return parsePayload(text, file);
 }
 
 async function readAfter(cityId: string): Promise<ReachPayload> {
@@ -44,6 +65,11 @@ async function readAfter(cityId: string): Promise<ReachPayload> {
   try {
     await client.query('BEGIN READ ONLY');
     try {
+      // On this connection, inside this transaction: anything but "on" means a write could slip through.
+      const { rows: mode } = await client.query<{ transaction_read_only: string }>('SHOW transaction_read_only');
+      if (mode[0]?.transaction_read_only !== 'on') {
+        throw new Error('The transaction is not read-only (SHOW transaction_read_only did not return on); aborting');
+      }
       const { rows } = await client.query<{ body: Buffer }>('SELECT body FROM reach_payloads WHERE city_id = $1', [
         cityId,
       ]);
@@ -58,10 +84,9 @@ async function readAfter(cityId: string): Promise<ReachPayload> {
   }
 }
 
-const pct = (share: number): string => `${(share * 100).toFixed(1)}%`;
+const pct = (share: number | undefined): string => (share === undefined ? 'n/a' : `${(share * 100).toFixed(1)}%`);
 const pctRange = (h: { k: number; low: number; high: number }): string =>
   `${pct(h.k)} (${pct(h.low)} to ${pct(h.high)})`;
-const baseRate = (rate: number | undefined): string => (rate === undefined ? 'n/a' : pct(rate));
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -74,8 +99,7 @@ async function main(): Promise<void> {
 
   console.error(`Reading from ${describeDatabase(process.env.DATABASE_URL)}`);
   try {
-    const beforePath = path.join(BEFORE_DIR, `${city.id}.json`);
-    const before = parsePayload(readFileSync(beforePath, 'utf8'), beforePath);
+    const before = readBefore(city.id);
     const after = await readAfter(city.id);
     const c = compareReach(before, after);
 
@@ -86,7 +110,7 @@ async function main(): Promise<void> {
     console.log(
       `| ${city.name} | ${pctRange(c.headline.before)} | ${pctRange(c.headline.after)} | ` +
         `${pct(c.agreement.before[15])} | ${pct(c.agreement.after[15])} | ` +
-        `${baseRate(c.baseRates.before[15])} | ${baseRate(c.baseRates.after[15])} | ` +
+        `${pct(c.baseRates.before[15])} | ${pct(c.baseRates.after[15])} | ` +
         `${pct(c.colourChanged[5])} / ${pct(c.colourChanged[10])} / ${pct(c.colourChanged[15])} | ` +
         `${c.blocks.matched} (${c.blocks.onlyBefore} / ${c.blocks.onlyAfter}) |`,
     );

@@ -20,12 +20,12 @@ function isWithin(metres: number, minutes: number, k: number): boolean {
   return metres !== NONE_FOUND_METRES && metres <= minutes * k;
 }
 
-function missing(feature: ReachFeature, minutes: number, k: number): number {
-  return NEED_IDS.filter((id) => !isWithin(feature.properties[id], minutes, k)).length;
+function missing(properties: ReachFeature['properties'], minutes: number, k: number): number {
+  return NEED_IDS.filter((id) => !isWithin(properties[id], minutes, k)).length;
 }
 
 function colourClass(feature: ReachFeature, minutes: number, k: number): number {
-  return Math.min(missing(feature, minutes, k), MAX_CLASS);
+  return Math.min(missing(feature.properties, minutes, k), MAX_CLASS);
 }
 
 /** Share of residents with all six needs within `minutes` at metres-per-minute k. */
@@ -34,13 +34,14 @@ export function shareWithin(payload: ReachPayload, minutes: number, k: number): 
   let inside = 0;
   for (const { properties } of payload.features) {
     residents += properties.r;
-    if (missing({ properties } as ReachFeature, minutes, k) === 0) inside += properties.r;
+    if (missing(properties, minutes, k) === 0) inside += properties.r;
   }
   return residents === 0 ? 0 : inside / residents;
 }
 
 export interface ReachComparison {
-  agreement: { before: Record<Band, number>; after: Record<Band, number> };
+  /** A band is absent when an older payload did not record it. */
+  agreement: { before: Partial<Record<Band, number>>; after: Partial<Record<Band, number>> };
   /** meta.completeness.checks.calibrationBaseline[band].insideShare */
   baseRates: { before: Partial<Record<Band, number>>; after: Partial<Record<Band, number>> };
   /** 15 minutes, all six needs, at k, kLow and kHigh. */
@@ -54,8 +55,10 @@ export interface ReachComparison {
 }
 
 function readBaseRates(payload: ReachPayload): Partial<Record<Band, number>> {
-  const checks = payload.meta.completeness.checks;
-  const baseline = checks['calibrationBaseline'];
+  // An older payload may have no completeness block or no baseline: no rates then.
+  const checks: unknown = (payload.meta as { completeness?: { checks?: unknown } }).completeness?.checks;
+  if (typeof checks !== 'object' || checks === null) return {};
+  const baseline = (checks as Record<string, unknown>)['calibrationBaseline'];
   const rates: Partial<Record<Band, number>> = {};
   if (typeof baseline !== 'object' || baseline === null) return rates;
   const byBand = baseline as Record<string, unknown>;
@@ -66,6 +69,17 @@ function readBaseRates(payload: ReachPayload): Partial<Record<Band, number>> {
     if (typeof share === 'number') rates[band] = share;
   }
   return rates;
+}
+
+function readAgreement(payload: ReachPayload): Partial<Record<Band, number>> {
+  const stored: unknown = (payload.meta as { agreement?: unknown }).agreement;
+  const out: Partial<Record<Band, number>> = {};
+  if (typeof stored !== 'object' || stored === null) return out;
+  for (const band of BANDS) {
+    const share = (stored as Record<string, unknown>)[String(band)];
+    if (typeof share === 'number') out[band] = share;
+  }
+  return out;
 }
 
 function headline(payload: ReachPayload): { k: number; low: number; high: number } {
@@ -100,7 +114,7 @@ export function compareReach(before: ReachPayload, after: ReachPayload): ReachCo
   for (const minutes of COLOUR_STOPS) changed[minutes] = residents === 0 ? 0 : changed[minutes] / residents;
 
   return {
-    agreement: { before: before.meta.agreement, after: after.meta.agreement },
+    agreement: { before: readAgreement(before), after: readAgreement(after) },
     baseRates: { before: readBaseRates(before), after: readBaseRates(after) },
     headline: { before: headline(before), after: headline(after) },
     colourChanged: changed,
