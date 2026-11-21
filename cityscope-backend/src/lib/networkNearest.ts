@@ -39,10 +39,29 @@ export interface NetworkRow {
   walk: [number, number][];
   straightMetres: number;
 }
+/** How far joins sit from the network, in metres; null when there are none. */
+export interface JoinStats {
+  median: number;
+  p95: number;
+  max: number;
+}
 export interface NeedStats {
   rows: number;
   unreached: number;
   medianDetour: number | null;
+  /** The places' joins; for a park, its entry points used as sources. */
+  placeJoins: JoinStats | null;
+}
+
+/** The median, 95th percentile (read by index) and maximum of join distances, or null for none. */
+export function joinStats(metres: readonly number[]): JoinStats | null {
+  if (metres.length === 0) return null;
+  const sorted = [...metres].sort((a, b) => a - b);
+  return {
+    median: median(sorted) as number,
+    p95: sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))],
+    max: sorted[sorted.length - 1],
+  };
 }
 
 /** Joins each block to its nearest street node, and lists the blocks more than 150 m from the network. */
@@ -118,6 +137,11 @@ export function nearestByStreet(
   }
   return {
     rows,
-    stats: { rows: rows.length, unreached: joins.length - rows.length, medianDetour: median(detours) },
+    stats: {
+      rows: rows.length,
+      unreached: joins.length - rows.length,
+      medianDetour: median(detours),
+      placeJoins: joinStats(sources.map((src) => src.cost)),
+    },
   };
 }

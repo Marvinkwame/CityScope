@@ -29,8 +29,8 @@ import { isAreaGeometry } from '../lib/geometry.js';
 import type { AreaGeometry } from '../lib/geometry.js';
 import { parseBuildArgs } from '../lib/buildReachArgs.js';
 import { readGhslWindow } from '../lib/ghsl.js';
-import { joinBlocks, nearestByStreet, PARK_ENTRY_SPACING_METRES } from '../lib/networkNearest.js';
-import type { BlockInput, NeedStats, NetworkRow, PlaceInput } from '../lib/networkNearest.js';
+import { joinBlocks, joinStats, nearestByStreet, PARK_ENTRY_SPACING_METRES } from '../lib/networkNearest.js';
+import type { BlockInput, JoinStats, NeedStats, NetworkRow, PlaceInput } from '../lib/networkNearest.js';
 import { NodeIndex } from '../lib/nodeIndex.js';
 import { NEEDS, NONE_FOUND_METRES, PARK_MIN_AREA_M2 } from '../lib/needs.js';
 import type { Need } from '../lib/needs.js';
@@ -253,10 +253,6 @@ async function loadNetwork(cityId: string): Promise<Network> {
   return { graph, index };
 }
 
-function percentile(sorted: readonly number[], p: number): number {
-  return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))];
-}
-
 async function readPlaces(client: PoolClient, cityId: string, need: Need): Promise<PlaceInput[]> {
   const { rows } =
     need.source === 'parks'
@@ -272,6 +268,11 @@ async function readPlaces(client: PoolClient, cityId: string, need: Need): Promi
   return rows.map((r) => ({ placeId: r.id, lng: r.lng, lat: r.lat }));
 }
 
+function describeJoins(stats: JoinStats | null): string {
+  if (stats === null) return 'none';
+  return `median ${stats.median.toFixed(0)} m, 95th percentile ${stats.p95.toFixed(0)} m, maximum ${stats.max.toFixed(0)} m`;
+}
+
 /** Joins the blocks to the network and finds each need's nearest place by street. Writes nothing. */
 async function measureNetwork(
   client: PoolClient,
@@ -280,12 +281,7 @@ async function measureNetwork(
   network: Network,
 ): Promise<NetworkNeed[]> {
   const { joins, far } = joinBlocks(network.index, blocks);
-  const joinMetres = joins.map((j) => j.metres).sort((a, b) => a - b);
-  console.log(
-    `Block joins to the network: median ${percentile(joinMetres, 0.5).toFixed(0)} m, ` +
-      `95th percentile ${percentile(joinMetres, 0.95).toFixed(0)} m, ` +
-      `maximum ${joinMetres[joinMetres.length - 1].toFixed(0)} m`,
-  );
+  console.log(`Block joins to the network: ${describeJoins(joinStats(joins.map((j) => j.metres)))}`);
   if (far.length === 0) console.log('  No block is more than 150 m from the network');
   for (const f of far) console.log(`  Far from the network: ${f.h3} (${f.metres.toFixed(0)} m)`);
 
@@ -310,6 +306,7 @@ async function measureNetwork(
         `${kind === 'park' ? 'park entry points' : 'places'}, ${count(stats.unreached)} blocks unreached, ` +
         `${detour} (${seconds(startedAt)})${warning}`,
     );
+    console.log(`    ${kind === 'park' ? 'Entry point' : 'Place'} joins: ${describeJoins(stats.placeJoins)}`);
     results.push({ need, kind, rows, stats });
   }
   return results;

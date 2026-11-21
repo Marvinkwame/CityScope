@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { StreetsFile } from './streets';
 import { buildStreetGraph, haversineMetres } from './streetGraph';
 import { NodeIndex } from './nodeIndex';
-import { FAR_FROM_NETWORK_METRES, joinBlocks, nearestByStreet } from './networkNearest';
+import { FAR_FROM_NETWORK_METRES, joinBlocks, joinStats, nearestByStreet } from './networkNearest';
 import type { PlaceInput } from './networkNearest';
 
 // About 1 m of latitude, and of longitude at latitude 0.
@@ -115,7 +115,7 @@ describe('nearestByStreet on the river graph', () => {
     const { joins } = joinBlocks(index, [blockAt, { h3: 'c', lng: 0, lat: 100 * M }]);
     const { rows, stats } = nearestByStreet(graph, index, joins, [], 'poi');
     expect(rows).toEqual([]);
-    expect(stats).toEqual({ rows: 0, unreached: 2, medianDetour: null });
+    expect(stats).toEqual({ rows: 0, unreached: 2, medianDetour: null, placeJoins: null });
   });
 
   it('caps metres at 65534', () => {
@@ -215,5 +215,32 @@ describe('joinBlocks', () => {
     expect(joins[0].node).toBe(0);
     expect(far.map((f) => f.h3)).toEqual(['far']);
     expect(far[0].metres).toBeGreaterThan(FAR_FROM_NETWORK_METRES);
+  });
+});
+
+describe('join stats', () => {
+  it('gives the median, 95th percentile and maximum of the places joins', () => {
+    const { graph, index } = river();
+    const joins = joinBlocks(index, [{ h3: 'b', lng: 0, lat: 0 }]).joins;
+    // Joins of 10, 20 and 30 m, to the west street's nodes 0, 4 and 1.
+    const places: PlaceInput[] = [10, 20, 30].map((d, i) => ({ placeId: i + 1, lng: -d * M, lat: [0, 400, 1000][i] * M }));
+    const { stats } = nearestByStreet(graph, index, joins, places, 'poi');
+    expect(stats.placeJoins!.median).toBeCloseTo(20, 0);
+    expect(stats.placeJoins!.p95).toBeCloseTo(30, 0);
+    expect(stats.placeJoins!.max).toBeCloseTo(30, 0);
+  });
+
+  it('counts only the entry points a park uses as sources', () => {
+    const { graph, index } = river();
+    const joins = joinBlocks(index, [{ h3: 'b', lng: 0, lat: 0 }]).joins;
+    const near: PlaceInput = { placeId: 1, lng: -20 * M, lat: 400 * M };
+    const far: PlaceInput = { placeId: 1, lng: -90 * M, lat: 1000 * M };
+    const { stats } = nearestByStreet(graph, index, joins, [near, far], 'park');
+    expect(stats.placeJoins!.max).toBeCloseTo(20, 0);
+  });
+
+  it('is null, not an error, for no values', () => {
+    expect(joinStats([])).toBeNull();
+    expect(joinStats([7])).toEqual({ median: 7, p95: 7, max: 7 });
   });
 });
