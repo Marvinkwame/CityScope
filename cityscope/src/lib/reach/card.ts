@@ -79,6 +79,16 @@ export function cardIsStale(card: CellCard, props: ReachProperties, k: number): 
   return REACH_NEEDS.some(({ id }) => (cardNeed(card, id)?.metres ?? NONE_FOUND_METRES) !== props[id]);
 }
 
+/** One heal per city build and block: the payload's build time stands for its version. */
+export function healKey(payload: ReachPayload, cell: string): string {
+  return `${payload.meta.city}|${payload.meta.builtAt}|${cell}`;
+}
+
+/** Heal a stale card only if this key has not been tried yet. */
+export function shouldHeal(attempted: ReadonlySet<string>, key: string, stale: boolean): boolean {
+  return stale && !attempted.has(key);
+}
+
 /** The mean of a ring's distinct corners (a closed ring repeats its first point, which is dropped). */
 export function cellCentre(ring: ReadonlyArray<[number, number]>): [number, number] {
   const first = ring[0];

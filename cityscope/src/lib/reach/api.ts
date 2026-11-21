@@ -16,15 +16,24 @@ export class ReachCellNotFoundError extends Error {
   }
 }
 
-export async function fetchReach(apiBase: string, cityId: string): Promise<ReachPayload> {
-  const res = await fetch(`${apiBase}/api/cities/${cityId}/reach`);
+export async function fetchReach(
+  apiBase: string,
+  cityId: string,
+  cache: RequestCache = 'default',
+): Promise<ReachPayload> {
+  const res = await fetch(`${apiBase}/api/cities/${cityId}/reach`, { cache });
   if (res.status === 404) throw new ReachNotBuiltError();
   if (!res.ok) throw new Error(`Failed to fetch reach: ${res.status}`);
   return res.json() as Promise<ReachPayload>;
 }
 
-export async function fetchReachCard(apiBase: string, cityId: string, cell: string): Promise<CellCard> {
-  const res = await fetch(`${apiBase}/api/cities/${cityId}/reach/${cell}`);
+export async function fetchReachCard(
+  apiBase: string,
+  cityId: string,
+  cell: string,
+  cache: RequestCache = 'default',
+): Promise<CellCard> {
+  const res = await fetch(`${apiBase}/api/cities/${cityId}/reach/${cell}`, { cache });
   if (res.status === 404) throw new ReachCellNotFoundError();
   if (!res.ok) throw new Error(`Failed to fetch reach card: ${res.status}`);
   return res.json() as Promise<CellCard>;

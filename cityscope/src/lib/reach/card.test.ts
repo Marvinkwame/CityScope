@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cardIsStale, cardRequestable, cardRows, cellCentre, linkLines } from './card';
+import { cardIsStale, cardRequestable, cardRows, cellCentre, healKey, linkLines, shouldHeal } from './card';
 import { missingCount } from './expressions';
 import { NEED_IDS, NONE_FOUND_METRES, REACH_MINUTES } from './model';
 import type { CellCard, NeedId, ReachPayload, ReachProperties } from './model';
@@ -174,5 +174,22 @@ describe('cardRequestable', () => {
   });
   it('is true when the block is in the payload', () => {
     expect(cardRequestable(true, PROPS.h, PAYLOAD)).toBe(true);
+  });
+});
+
+describe('healKey and shouldHeal', () => {
+  const at = (builtAt: string) =>
+    ({ meta: { city: 'berlin', builtAt } }) as unknown as ReachPayload;
+
+  it('healKey changes when the payload is rebuilt', () => {
+    expect(healKey(at('a'), 'c1')).toBe('berlin|a|c1');
+    expect(healKey(at('a'), 'c1')).not.toBe(healKey(at('b'), 'c1'));
+  });
+
+  it('heals a stale card once per key', () => {
+    const k = 'berlin|a|c1';
+    expect(shouldHeal(new Set([k]), k, true)).toBe(false);
+    expect(shouldHeal(new Set(), k, false)).toBe(false);
+    expect(shouldHeal(new Set(), k, true)).toBe(true);
   });
 });
