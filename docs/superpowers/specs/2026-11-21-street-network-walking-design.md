@@ -227,7 +227,7 @@ Schools have the longest detour in every city.
 Held-out agreement at k_fit (the fit half's pace). Each cell is the street figure with Phase 1's straight-line figure in brackets:
 
 | City | k (range) | k_fit | 5 min | 10 min | 15 min | 20 min |
-|---|---|---|---|---|---|---|---|
+|---|---|---|---|---|---|---|
 | Amsterdam | 95.5 (90–98) | 95.5 | 95.6% (93.3) | 98.3% (95.6) | 97.8% (98.9) | 99.4% (98.9) |
 | Berlin | 92 (89–92.5) | 91.5 | 94.4% (87.8) | 97.2% (93.3) | 98.9% (94.4) | 98.9% (96.7) |
 | London | 90.5 (90–97) | 90.5 | 92.2% (91.7) | 96.7% (94.4) | 100% (97.2) | 100% (98.9) |
