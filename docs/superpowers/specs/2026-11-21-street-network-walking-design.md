@@ -184,3 +184,110 @@ The difference between them is where the shortest paths are worked out.
 - The walk line's style on the map (today's link-line style is the starting point) and the exact new wording, within "Frontend" above.
 - How the "before" payloads and the comparison figures are produced (a script is fine; its outputs are not committed if they hold large data).
 - Whether `fetch:streets` and the graph code share helpers with the parks fetch.
+
+## Measured results (2026-11-21, local stand-in)
+
+All eight cities were fetched, built by street, calibrated and published on the local PostgreSQL 18.1 / PostGIS 3.6.2 stand-in (localhost:55432), seeded from the committed place files and the 2026-10-20 park files like Phase 1. Every write printed `localhost:55432`; every calibration read its 60 isochrones from the cache and made **no Mapbox requests**. "Before" is each city's production payload of 2026-11-06 (straight line), saved with a read-only GET. Production is not yet switched (plan Task 13).
+
+### The networks and the build
+
+| City | Ways | Nodes | File | Graph kept | Block joins: median / p95 / max | Blocks > 150 m (residents) | Build |
+|---|---|---|---|---|---|---|---|
+| Amsterdam | 122,762 | 478,049 | 14.7 MB | 96.9% | 27 / 224 / 695 m | 228 (3.46%) | 12.7 s |
+| Berlin | 526,536 | 1,586,508 | 53.1 MB | 98.7% | 23 / 114 / 759 m | 241 (0.47%) | 48.6 s |
+| London | 672,095 | 2,736,475 | 87.9 MB | 97.7% | 23 / 118 / 958 m | 460 (0.12%) | 60.3 s |
+| Munich | 217,295 | 727,171 | 23.5 MB | 98.6% | 20 / 97 / 378 m | 38 (0.38%) | 19.2 s |
+| New York | 573,174 | 1,927,249 | 66.4 MB | 96.4% | 25 / 87 / 1,283 m | 78 (0.19%) | 104.4 s |
+| Paris | 236,557 | 819,771 | 25.8 MB | 97.6% | 18 / 65 / 201 m | 2 (0.01%) | 34.2 s |
+| Sydney | 191,975 | 783,692 | 26.4 MB | 97.4% | 18 / 86 / 455 m | 1 (0.02%) | 25.8 s |
+| Tokyo | 435,689 | 1,544,322 | 52.6 MB | 98.7% | 17 / 74 / 827 m | 139 (0.31%) | 34.3 s |
+
+- **Fetching**, in 0.1° tiles with 5 s pauses, took about 2 hours for the last six cities back to back (Amsterdam 02:46 to London's save at 04:48); Sydney and Berlin were fetched separately earlier.
+- **No block is unreached** for any need in any city.
+- **The park need dominates each build** (Berlin 33 s of 48.6 s, New York 87 s of 104 s): `NodeIndex.nearest` for 27,000–177,000 entry points a city. Fine offline, but it lengthens each production gap; a finer grid or a squared-distance prefilter would cut it.
+- **Amsterdam's far blocks** are mostly the Westpoort port: 112 of its 228, holding 27,566 of the 30,775 residents in far blocks, where GHSL's modelled grid puts residents on industrial land with no public streets (its most populated, 2,049 residents at 52.41554, 4.81218, is 311 m from the nearest walkable node). The street file has nodes in every 0.1° tile, so it isn't a fetch gap.
+
+**Median detour** (street metres ÷ straight-line metres, per need):
+
+| City | Supermarket | Pharmacy | Doctor | School | Park | Station |
+|---|---|---|---|---|---|---|
+| Amsterdam | 1.38 | 1.36 | 1.36 | 1.46 | 1.35 | 1.34 |
+| Berlin | 1.39 | 1.32 | 1.34 | 1.45 | 1.32 | 1.30 |
+| London | 1.38 | 1.35 | 1.39 | 1.55 | 1.35 | 1.35 |
+| Munich | 1.39 | 1.34 | 1.36 | 1.44 | 1.34 | 1.32 |
+| New York | 1.38 | 1.34 | 1.34 | 1.48 | 1.30 | 1.28 |
+| Paris | 1.38 | 1.38 | 1.38 | 1.48 | 1.31 | 1.35 |
+| Sydney | 1.41 | 1.39 | 1.44 | 1.47 | 1.34 | 1.32 |
+| Tokyo | 1.41 | 1.38 | 1.37 | 1.50 | 1.29 | 1.31 |
+
+Schools have the longest detour in every city.
+
+### Calibration
+
+Held-out agreement at k_fit (the fit half's pace), with Phase 1's straight-line figure at 5 minutes:
+
+| City | k (range) | k_fit | 5 min | 10 min | 15 min | 20 min | 5 min, straight line |
+|---|---|---|---|---|---|---|---|
+| Amsterdam | 95.5 (90–98) | 95.5 | 95.6% | 98.3% | 97.8% | 99.4% | 93.3% |
+| Berlin | 92 (89–92.5) | 91.5 | 94.4% | 97.2% | 98.9% | 98.9% | 87.8% |
+| London | 90.5 (90–97) | 90.5 | 92.2% | 96.7% | 100% | 100% | 91.7% |
+| Munich | 90 (87.5–99) | 90 | 93.3% | 96.1% | 98.9% | 98.9% | 91.7% |
+| New York | 94 (91–102) | 102 | 95.6% | 97.8% | 96.7% | 98.9% | 90.6% |
+| Paris | 91 (90.5–101.5) | 91 | 95.6% | 97.8% | 99.4% | 100% | 91.1% |
+| Sydney | 91.5 (88–103.5) | 91.5 | 90.0% | 95.6% | 100% | 100% | 91.7% |
+| Tokyo | 90 (90–96) | 90.5 | 92.8% | 97.2% | 99.4% | 100% | 85.0% |
+
+- **Base rates** (always answering "within"), 5 / 10 / 15 / 20 minutes: Amsterdam 55.0 / 80.0 / 87.2 / 90.0%; Berlin 44.4 / 79.4 / 90.6 / 97.8%; London 49.4 / 83.9 / 94.4 / 99.4%; Munich 49.4 / 83.9 / 91.7 / 95.0%; New York 46.7 / 81.1 / 91.7 / 95.6%; Paris 77.8 / 97.2 / 99.4 / 100%; Sydney 60.6 / 91.1 / 98.3 / 99.4%; Tokyo 53.9 / 86.1 / 95.6 / 97.8%.
+- **Success criterion 1:** every city passes at all four limits.
+- **Success criterion 2:** seven of eight beat their Phase 1 5-minute figure. **Sydney doesn't** (90.0% vs 91.7%): 18 of 180 checks wrong by street against 15 by straight line. Investigated with a read-only reconstruction that reproduces both figures exactly: 12 checks are wrong only by street, 9 only by straight line and 6 both (McNemar on the 21 discordant checks, p ≈ 0.66: within chance). Every street-only miss is "street says outside, Mapbox inside": places 185–418 m away in a straight line and 463–605 m by street (detours 1.29–2.74), just over the 457.5 m limit. The joins are small (sampled blocks' median 18 m, max 55 m); leaving out the block's join gives 90.6%, both joins 91.1%, so they explain about half. The rest is the isochrone's own margin: Mapbox's area reaches a little past the streets it covers, which matters most at 5 minutes, and one pace can't fit that at every limit. **The owner chose street distances for Sydney too** (2026-11-21), overriding the criterion's default of keeping the estimate.
+- **The pace is 90–95.5 m of street a minute in every city** (about 5.4–5.7 km/h), above the 72–90 m this design expected from people's walking speeds. Eight cities agreeing this closely says the pace is mostly Mapbox's (with the isochrone's margin), not the cities'.
+- **New York's fit half paced 102**, against 94 on all 60 blocks; its range (91–102) is the widest after Paris's and Sydney's.
+
+### Joining a block to one node or several
+
+Some walks start badly: a block whose nearest node is on a path that meets the streets only far away walks that path first. Starting each walk from the best node within R metres of the block's centre instead (nearest node always included, the join counted) would shorten many walks: in Paris 31% of POI block-needs by more than 10% and 50 m, and 10% by more than 25% and 100 m; in Berlin 20% and 5%. Scored against Mapbox on the calibration sample, it agrees **less**: on the held-out half at 5 minutes, every R scores below the nearest node except London's 150 m:
+
+| City | Held-out 5 min: nearest | R 50 m | R 100 m | R 150 m |
+|---|---|---|---|---|
+| Paris | 95.6% | 94.4% | 92.8% | 90.6% |
+| Berlin | 94.4% | 92.8% | 93.3% | 92.2% |
+| London | 92.2% | 87.8% | 90.0% | 93.3% |
+
+Graded both ways (each half fitted and graded on the other, 360 checks a limit), "nearest" is ahead of every R at 5 minutes in all three cities and at 10 and 15 minutes in Paris and Berlin. The build keeps the single nearest node: picking the best start flatters every block more than it rescues the few cut off.
+
+### Before and after
+
+| City | Headline, 15 min (range) before | after | Residents whose block changes colour at 5 / 10 / 15 min | Compressed payload before → after |
+|---|---|---|---|---|
+| Amsterdam | 74.1% (69.1–74.5) | 74.8% (72.1–75.5) | 11.9 / 8.7 / 5.3% | 82,481 → 83,315 B (+1.0%) |
+| Berlin | 67.4% (62.4–71.7) | 72.1% (70.1–72.4) | 11.6 / 13.5 / 11.8% | 291,604 → 294,290 B (+0.9%) |
+| London | 68.8% (59.8–72.9) | 68.7% (68.3–74.1) | 7.0 / 16.9 / 11.2% | 583,023 → 591,243 B (+1.4%) |
+| Munich | 81.0% (77.9–84.6) | 83.8% (82.6–88.4) | 12.7 / 13.5 / 8.4% | 97,535 → 98,430 B (+0.9%) |
+| New York | 72.9% (71.3–77.7) | 75.5% (73.8–79.1) | 11.4 / 12.0 / 7.6% | 238,794 → 242,182 B (+1.4%) |
+| Paris | 99.4% (99.1–99.6) | 99.7% (99.7–99.8) | 24.2 / 3.2 / 0.5% | 40,123 → 39,896 B (−0.6%) |
+| Sydney | 93.1% (90.4–95.7) | 94.6% (94.5–96.9) | 23.2 / 12.4 / 4.0% | 8,387 → 8,401 B (+0.2%) |
+| Tokyo | 81.3% (79.7–88.6) | 85.6% (85.6–88.4) | 10.5 / 15.5 / 7.5% | 228,475 → 228,928 B (+0.2%) |
+
+- Every block matched between before and after in every city (none only in one).
+- **Payload (criterion 4):** the same properties per block; every city within 2% compressed. "Before" is Brotli quality 11 of the saved JSON, as `reach:publish` compresses.
+- **Storage (criterion 5):** the walks take 78 MB (`pg_column_size`): Amsterdam 6.6, Berlin 14, London 33, Munich 4.8, New York 9.4, Paris 1.5, Sydney 0.3, Tokyo 9.1 MB; about 300 B a walk over 254,550 walks, inside the 120 MB budget. Locally `reach_nearest` is 113 MB with its indexes. Neon's change history will also hold the rewritten rows for a while.
+- **Block cards** (Berlin, ten blocks, a throwaway API on the local database): 1,522–3,947 B, typically 2.0–2.3 KB, and 9,443 B for the block with the most walk points (`891f1d59e6bffff`); production's straight-line cards are 793–829 B. The card route doesn't compress.
+
+### Where it breaks
+
+- **The three Phase 2 blocks, by street** (the straight-line lists reproduced exactly by the same reconstruction): Tokyo `892f5aadb8fffff` 7 wrong → 0; Munich `891f8d4e977ffff` 5 → 1 (the doctor at 928 m, which Mapbox reached within 10); Berlin `891f1d482b7ffff` 5 → 2 (the Westend pharmacy at 856 m counted within 10, and a school at 1,796 m within 20; Mapbox reached neither in time). By street, Berlin's nearest park is Klausenerplatz (1,482 m), not Schlosspark Charlottenburg.
+- **The new worst held-out blocks** have 3 of 24 wrong: Amsterdam `89196952e07ffff`; London `89194e68a03ffff`; Munich `891f8d46bdbffff`; New York `892a1061dabffff`, `892a1076083ffff`; Paris `891fb46296fffff`, `891fb46708fffff`; Sydney `89be0e343abffff`, `89be0e35d87ffff`, `89be0e35dbbffff`.
+- **The README tells two:** Paris `891fb46296fffff`, whose nearest node is on a pedestrian area by the Seine mapped as an outline (`highway=pedestrian`, `area=yes`, way 790342887), so every walk follows the outline about 400 m before meeting a street; and Paris `891fb46708fffff`, whose nearest park by street is Jardin Atlantique over Gare Montparnasse, reached along a footway mapped at its level (`layer=2`, `level=2`, way 1159681278), which Mapbox's walks never reached. Share links at `t` 10, encoded with the app's codec and decoded back to the same state.
+- **New York `892a1076083ffff`** is a grading artefact: its three misses are at the fit half's 102 m a minute, and at the published 94 all three come out right.
+- **Two outliers outside the sample show the single-node join at its worst**, both thinly populated: Berlin `891f1d4b3bbffff` (236 residents, in Spandau between the Spree and the railway), whose walks run 2.7–3.8 km, and `891f18b4ec7ffff` (81 residents, beside the Müggelsee forest), 2.7–4.1 km.
+
+### Not yet run
+
+- **Plan Task 11 steps 5 and 6, the browser checks** (the walks drawn at Berlin's block, and a card cached before the switch healing itself): they need the owner's backend on the local database.
+- **Plan Task 13, the production run.**
+
+### Follow-ups found while measuring
+
+- **Pedestrian areas** (`highway=pedestrian` with `area=yes`: squares, quays, station forecourts) are walked round their outline, never across. Connecting each such area's nodes to each other would fix the Seine block and similar squares.
+- **The park need's node lookups** dominate the build time (above).
+- **Not counting the block's join** (Mapbox starts its walks on a road) helps a little at 5 minutes in Sydney (90.0 → 90.6%); not tried elsewhere.
