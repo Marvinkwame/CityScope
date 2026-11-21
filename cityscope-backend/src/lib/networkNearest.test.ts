@@ -175,30 +175,32 @@ describe('nearestByStreet on the river graph', () => {
 });
 
 describe('parks', () => {
-  it('joins an entry point 20 m from a node and ignores one that is farther', () => {
+  // The block sits on node 0, so its own join is 0 m.
+  const block = { h3: 'b', lng: 0, lat: 0 };
+
+  it('ignores an entry point joined beyond 30 m even when it would win', () => {
     const { graph, index } = river();
-    const joins = joinBlocks(index, [{ h3: 'b', lng: 0, lat: 0 }]).joins;
-    // Entry A is 20 m west of the street at y = 100 (joins, 100 m up); entry B is on the street at y = 900.
-    const near: PlaceInput = { placeId: 1, lng: -20 * M, lat: 0 };
-    const farther: PlaceInput = { placeId: 1, lng: 0, lat: 900 * M };
-    const { rows } = nearestByStreet(graph, index, joins, [farther, near], 'park');
-    expect(rows[0].metres).toBe(20);
-    expect(rows[0].walk[rows[0].walk.length - 1]).toEqual([r5(near.lng), r5(near.lat)]);
+    const joins = joinBlocks(index, [block]).joins;
+    // Entry A joins node 0 at 40 m (too far), and would give a 40 m walk.
+    // Entry B joins node 4 at 25 m (within 30 m): 400 m up the street, then 25 m.
+    const a: PlaceInput = { placeId: 1, lng: -40 * M, lat: 0 };
+    const b: PlaceInput = { placeId: 1, lng: -25 * M, lat: 400 * M };
+    const { rows } = nearestByStreet(graph, index, joins, [a, b], 'park');
+    expect(rows).toHaveLength(1);
+    expect(rows[0].metres).toBe(425);
+    expect(rows[0].walk[rows[0].walk.length - 1]).toEqual([r5(b.lng), r5(b.lat)]);
   });
 
-  it('uses the closest entry point when every one is over 30 m from a node', () => {
+  it('uses the entry point with the smallest join when all are over 30 m, not the first in order', () => {
     const { graph, index } = river();
-    const joins = joinBlocks(index, [{ h3: 'b', lng: 0, lat: 0 }]).joins;
-    const a: PlaceInput = { placeId: 1, lng: -60 * M, lat: 200 * M };
-    const b: PlaceInput = { placeId: 1, lng: -40 * M, lat: 700 * M };
+    const joins = joinBlocks(index, [block]).joins;
+    // A (first in order) joins node 0 at 60 m. B joins node 4 at 35 m, the smallest join, so it is the
+    // park's one source: 400 m up the street, then 35 m.
+    const a: PlaceInput = { placeId: 1, lng: -60 * M, lat: 0 };
+    const b: PlaceInput = { placeId: 1, lng: -35 * M, lat: 400 * M };
     const { rows } = nearestByStreet(graph, index, joins, [a, b], 'park');
-    // Entry b's node join (40 m to node 1 is farther than to...) is the smaller one: 40 m versus a's 60 m or more.
-    const joinA = index.nearest(a.lng, a.lat).metres;
-    const joinB = index.nearest(b.lng, b.lat).metres;
-    expect(joinA).toBeGreaterThan(30);
-    expect(joinB).toBeGreaterThan(30);
-    const best = joinB < joinA ? b : a;
-    expect(rows[0].walk[rows[0].walk.length - 1]).toEqual([r5(best.lng), r5(best.lat)]);
+    expect(rows[0].metres).toBe(435);
+    expect(rows[0].walk[rows[0].walk.length - 1]).toEqual([r5(b.lng), r5(b.lat)]);
   });
 });
 
