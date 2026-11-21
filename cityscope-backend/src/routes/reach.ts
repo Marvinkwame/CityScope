@@ -5,7 +5,7 @@ import { brotliDecompress } from 'node:zlib';
 import pool from '../db.js';
 import { NEED_IDS } from '../lib/needs.js';
 import type { NeedId } from '../lib/needs.js';
-import { REACH_CACHE_CONTROL, acceptsBrotli, isFresh, isH3CellId, isMissingTable } from '../lib/reachHttp.js';
+import { REACH_CACHE_CONTROL, acceptsBrotli, isFresh, isH3CellId, isMissingColumn, isMissingTable } from '../lib/reachHttp.js';
 import { parseWalk, shapeCellCard } from '../lib/reachPayload.js';
 import type { CardRow } from '../lib/reachPayload.js';
 
@@ -106,16 +106,21 @@ interface CardDbRow {
 // A park has no single point, so it is placed where its walk ends (the entry
 // the walker reaches) or, with no stored walk, at the point of the park
 // closest to the cell's centre.
-const CARD_SQL = `
+function cardSql(withWalk: boolean): string {
+  const parkPoint = (fn: 'ST_X' | 'ST_Y', endFn: 'ST_X' | 'ST_Y'): string =>
+    withWalk
+      ? `CASE WHEN n.walk IS NOT NULL THEN ${endFn}(ST_EndPoint(n.walk)) ELSE ${fn}(ST_ClosestPoint(pk.geom, c.centre)) END`
+      : `${fn}(ST_ClosestPoint(pk.geom, c.centre))`;
+  return `
   SELECT c.residents,
          cal.metres_per_minute AS k,
          n.need,
          n.metres,
          CASE n.place_kind WHEN 'poi' THEN p.name ELSE pk.name END AS name,
          CASE n.place_kind WHEN 'poi' THEN p.category ELSE 'park' END AS category,
-         CASE n.place_kind WHEN 'poi' THEN p.lng ELSE CASE WHEN n.walk IS NOT NULL THEN ST_X(ST_EndPoint(n.walk)) ELSE ST_X(ST_ClosestPoint(pk.geom, c.centre)) END END AS lng,
-         CASE n.place_kind WHEN 'poi' THEN p.lat ELSE CASE WHEN n.walk IS NOT NULL THEN ST_Y(ST_EndPoint(n.walk)) ELSE ST_Y(ST_ClosestPoint(pk.geom, c.centre)) END END AS lat,
-         ST_AsGeoJSON(n.walk, 5) AS walk
+         CASE n.place_kind WHEN 'poi' THEN p.lng ELSE ${parkPoint('ST_X', 'ST_X')} END AS lng,
+         CASE n.place_kind WHEN 'poi' THEN p.lat ELSE ${parkPoint('ST_Y', 'ST_Y')} END AS lat,
+         ${withWalk ? 'ST_AsGeoJSON(n.walk, 5)' : 'NULL::text'} AS walk
   FROM reach_cells c
   LEFT JOIN reach_calibration cal ON cal.city_id = c.city_id
   LEFT JOIN reach_nearest n ON n.city_id = c.city_id AND n.h3 = c.h3
@@ -123,6 +128,11 @@ const CARD_SQL = `
   LEFT JOIN parks pk ON n.place_kind = 'park' AND pk.id = n.place_id AND pk.city_id = n.city_id
   WHERE c.city_id = $1 AND c.h3 = $2
 `;
+}
+
+const CARD_SQL = cardSql(true);
+// Before migration 005 reach_nearest has no walk column: the same card, with no walks.
+const CARD_SQL_WITHOUT_WALK = cardSql(false);
 
 /** The nearest place for each need around one block, for the card the map opens. */
 reachRouter.get('/:cellId', async (req: Request, res: Response) => {
@@ -135,7 +145,14 @@ reachRouter.get('/:cellId', async (req: Request, res: Response) => {
       return;
     }
 
-    const result = await pool.query<CardDbRow>(CARD_SQL, [cityId, cellId]);
+    let result;
+    try {
+      result = await pool.query<CardDbRow>(CARD_SQL, [cityId, cellId]);
+    } catch (err) {
+      // No walk column yet (migration 005 not applied): answer without walks, as an estimate build would.
+      if (!isMissingColumn(err)) throw err;
+      result = await pool.query<CardDbRow>(CARD_SQL_WITHOUT_WALK, [cityId, cellId]);
+    }
     if (result.rows.length === 0) {
       res.status(404).json({ error: 'No such cell in this city' });
       return;
