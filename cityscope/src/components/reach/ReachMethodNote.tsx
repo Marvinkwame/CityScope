@@ -1,7 +1,15 @@
 import type { ReactNode } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import { agreementLine, formatDate, gpCheckLine, upToOneDecimal } from '../../lib/reach/copy';
+import {
+  agreementLine,
+  distanceLimitSentence,
+  formatDate,
+  gpCheckLine,
+  methodSentence,
+  streetsSourceSentence,
+  upToOneDecimal,
+} from '../../lib/reach/copy';
 import { REACH_NEEDS } from '../../lib/reach/model';
 import type { ReachMeta } from '../../lib/reach/model';
 import { BODY, MONO } from '../../theme';
@@ -29,25 +37,12 @@ function ReachMethodNote({ meta }: { meta: ReachMeta }) {
   const { perHundredThousand, checks } = meta.completeness;
   const { londonGpShare, londonGpPractices } = checks;
   const fetched = meta.sources.placesFetchedAt;
-  const streetsFetched = meta.sources.streetsFetchedAt;
-  const byStreet = meta.method === 'network';
+  const streetsSource = streetsSourceSentence(meta.method, meta.sources.streetsFetchedAt);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1.5 }}>
       <Part title="Method">
-        {byStreet ? (
-          <Text>
-            Each block&apos;s walk to a need follows streets and footpaths from the block&apos;s centre to the nearest
-            place by street, at {k} metres a minute. That pace was fitted against Mapbox walking times on{' '}
-            {meta.sampleSize} blocks.
-          </Text>
-        ) : (
-          <Text>
-            Each block&apos;s walk to a need is the straight-line distance from the block&apos;s centre to the nearest
-            place, divided by {k} straight-line metres a minute. That pace was fitted against Mapbox walking times on{' '}
-            {meta.sampleSize} blocks.
-          </Text>
-        )}
+        <Text>{methodSentence(meta.method, k, meta.sampleSize)}</Text>
       </Part>
 
       <Part title="Agreement with Mapbox">
@@ -83,9 +78,7 @@ function ReachMethodNote({ meta }: { meta: ReachMeta }) {
           Places: {meta.sources.places}
           {fetched ? `, fetched ${formatDate(fetched)}` : ''}.
         </Text>
-        {byStreet && streetsFetched && (
-          <Text>Streets: © OpenStreetMap contributors, fetched {formatDate(streetsFetched)}.</Text>
-        )}
+        {streetsSource && <Text>{streetsSource}</Text>}
         <Text>Estimated residents: {meta.sources.population}.</Text>
         <Text>Walking pace calibrated {formatDate(meta.sources.calibratedAt)}.</Text>
       </Part>
@@ -112,11 +105,7 @@ function ReachMethodNote({ meta }: { meta: ReachMeta }) {
       <Part title="Limits">
         <Text>Residents are GHSL estimates, not a census.</Text>
         <Text>Buses are not counted.</Text>
-        <Text>
-          {byStreet
-            ? "Distances are measured along streets and paths from each block's centre."
-            : "Distances are measured in a straight line from each block's centre."}
-        </Text>
+        <Text>{distanceLimitSentence(meta.method)}</Text>
       </Part>
     </Box>
   );

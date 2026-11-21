@@ -125,3 +125,25 @@ export function formatDate(iso: string): string {
   // An invalid date would make format() throw, and nothing above would catch it.
   return Number.isNaN(date.getTime()) ? iso : DAY.format(date);
 }
+
+/** The method note's sentence on how a walk is measured, for the payload's method. */
+export function methodSentence(method: ReachMethod, k: string, sampleSize: number): string {
+  const how =
+    method === 'network'
+      ? `Each block's walk to a need follows streets and footpaths from the block's centre to the nearest place by street, at ${k} metres a minute.`
+      : `Each block's walk to a need is the straight-line distance from the block's centre to the nearest place, divided by ${k} straight-line metres a minute.`;
+  return `${how} That pace was fitted against Mapbox walking times on ${sampleSize} blocks.`;
+}
+
+/** The method note's streets line, only for a street build that records when its streets were fetched. */
+export function streetsSourceSentence(method: ReachMethod, streetsFetchedAt: string | null | undefined): string | null {
+  if (method !== 'network' || !streetsFetchedAt) return null;
+  return `Streets: © OpenStreetMap contributors, fetched ${formatDate(streetsFetchedAt)}.`;
+}
+
+/** The method note's limit on how distances are measured. */
+export function distanceLimitSentence(method: ReachMethod): string {
+  return method === 'network'
+    ? "Distances are measured along streets and paths from each block's centre."
+    : "Distances are measured in a straight line from each block's centre.";
+}
