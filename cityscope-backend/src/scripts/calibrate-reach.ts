@@ -1,7 +1,8 @@
 // Calibrates one city's walking estimate against Mapbox walking isochrones.
 //
-// Everyday reach estimates a walk as straight-line metres / k. This script
-// fits k for the city, and says how far the estimate can be trusted:
+// Everyday reach estimates a walk as metres / k, on the metres the city was
+// built with (along the streets, or in a straight line). This script fits k for
+// the city, and says how far the estimate can be trusted:
 //
 // 1. Samples 60 of the city's populated cells, weighted by residents, with a
 //    fixed seed.

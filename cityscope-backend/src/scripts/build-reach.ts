@@ -12,8 +12,9 @@
 // network (data/streets-<city>.json, from fetch:streets) and stores the walk's
 // line. --method estimate is the earlier straight-line search inside PostGIS.
 //
-// --dry-run stops after the resident counts and writes nothing: the session is
-// made read-only and announceTarget() is not called. A real run announces its
+// --dry-run writes nothing: the session is made read-only and announceTarget()
+// is not called. It counts the residents and, with the network method, also
+// loads the street graph and runs the searches, printing their statistics. A real run announces its
 // target, then replaces the city's reach rows in one transaction.
 
 import { readFile } from 'node:fs/promises';

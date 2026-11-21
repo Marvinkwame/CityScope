@@ -3,8 +3,9 @@
  *
  * Each city is published ahead of time as a single GeoJSON FeatureCollection
  * with a `meta` member, Brotli-compressed and stored with a strong ETag. A
- * feature is one populated H3 cell, carrying its residents and the straight-line
- * metres to its nearest place for each need. The browser turns metres into
+ * feature is one populated H3 cell, carrying its residents and the metres to
+ * its nearest place for each need (along the streets or in a straight line,
+ * as `meta.method` says). The browser turns metres into
  * minutes as `metres / k`, with k taken from `meta`.
  *
  * Feature properties are flat on purpose: Mapbox GL stringifies a nested value
@@ -38,7 +39,7 @@ export interface CellRow {
   ring: [number, number][];
 }
 
-/** The straight-line metres from a cell to its nearest place for one need. */
+/** The metres from a cell to its nearest place for one need, by the city's method. */
 export interface NearestRow {
   h3: string;
   need: NeedId;
@@ -49,7 +50,7 @@ export interface NearestRow {
 export interface CalibrationRow {
   /** How the metres were measured: the method the city's nearest places were built with. */
   method: ReachMethod;
-  /** k, in straight-line metres per walking minute, fitted on every sampled cell. */
+  /** k, in metres per walking minute on the payload's metres (street or straight line), fitted on every sampled cell. */
   metresPerMinute: number;
   kLow: number;
   kHigh: number;
@@ -306,8 +307,8 @@ export interface CellCard {
 
 /**
  * Lays one cell's nearest places out as a card, in NEEDS order whatever order
- * the rows arrive in. Minutes are the same estimate the map uses: straight-line
- * metres divided by k, rounded up to a whole minute. The map counts a place as
+ * the rows arrive in. Minutes are the same estimate the map uses: the payload's
+ * metres (street or straight line) divided by k, rounded up to a whole minute. The map counts a place as
  * within a limit of T minutes when metres / k <= T, and for a whole number T
  * that holds exactly when the rounded-up minutes are at most T, so the card
  * never shows 15 minutes for a place the map puts outside 15.
