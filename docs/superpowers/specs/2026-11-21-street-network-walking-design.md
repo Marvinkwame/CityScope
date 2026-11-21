@@ -185,9 +185,9 @@ The difference between them is where the shortest paths are worked out.
 - How the "before" payloads and the comparison figures are produced (a script is fine; its outputs are not committed if they hold large data).
 - Whether `fetch:streets` and the graph code share helpers with the parks fetch.
 
-## Measured results (2026-11-21, local stand-in)
+## Measured results
 
-All eight cities were fetched, built by street, calibrated and published on the local PostgreSQL 18.1 / PostGIS 3.6.2 stand-in (localhost:55432), seeded from the committed place files and the 2026-10-20 park files like Phase 1. Every write printed `localhost:55432`; every calibration read its 60 isochrones from the cache and made **no Mapbox requests**. "Before" is each city's production payload of 2026-11-06 (straight line), saved with a read-only GET. Production is not yet switched (plan Task 13).
+On 2026-11-21, all eight cities were fetched, built by street, calibrated and published on the local PostgreSQL 18.1 / PostGIS 3.6.2 stand-in (localhost:55432), seeded from the committed place files and the 2026-10-20 park files like Phase 1. Every write printed `localhost:55432`; every calibration read its 60 isochrones from the cache and made **no Mapbox requests**. "Before" is each city's production payload of 2026-11-06 (straight line), saved with a read-only GET. Production is not yet switched (plan Task 13).
 
 ### The networks and the build
 
