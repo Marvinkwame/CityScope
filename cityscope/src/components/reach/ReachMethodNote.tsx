@@ -29,15 +29,25 @@ function ReachMethodNote({ meta }: { meta: ReachMeta }) {
   const { perHundredThousand, checks } = meta.completeness;
   const { londonGpShare, londonGpPractices } = checks;
   const fetched = meta.sources.placesFetchedAt;
+  const streetsFetched = meta.sources.streetsFetchedAt;
+  const byStreet = meta.method === 'network';
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1.5 }}>
       <Part title="Method">
-        <Text>
-          Each block&apos;s walk to a need is the straight-line distance from the block&apos;s centre to the nearest
-          place, divided by {k} straight-line metres a minute. That pace was fitted against Mapbox walking times on{' '}
-          {meta.sampleSize} blocks.
-        </Text>
+        {byStreet ? (
+          <Text>
+            Each block&apos;s walk to a need follows streets and footpaths from the block&apos;s centre to the nearest
+            place by street, at {k} metres a minute. That pace was fitted against Mapbox walking times on{' '}
+            {meta.sampleSize} blocks.
+          </Text>
+        ) : (
+          <Text>
+            Each block&apos;s walk to a need is the straight-line distance from the block&apos;s centre to the nearest
+            place, divided by {k} straight-line metres a minute. That pace was fitted against Mapbox walking times on{' '}
+            {meta.sampleSize} blocks.
+          </Text>
+        )}
       </Part>
 
       <Part title="Agreement with Mapbox">
@@ -73,6 +83,9 @@ function ReachMethodNote({ meta }: { meta: ReachMeta }) {
           Places: {meta.sources.places}
           {fetched ? `, fetched ${formatDate(fetched)}` : ''}.
         </Text>
+        {byStreet && streetsFetched && (
+          <Text>Streets: © OpenStreetMap contributors, fetched {formatDate(streetsFetched)}.</Text>
+        )}
         <Text>Estimated residents: {meta.sources.population}.</Text>
         <Text>Walking pace calibrated {formatDate(meta.sources.calibratedAt)}.</Text>
       </Part>
@@ -99,7 +112,11 @@ function ReachMethodNote({ meta }: { meta: ReachMeta }) {
       <Part title="Limits">
         <Text>Residents are GHSL estimates, not a census.</Text>
         <Text>Buses are not counted.</Text>
-        <Text>Distances are measured in a straight line from each block&apos;s centre.</Text>
+        <Text>
+          {byStreet
+            ? "Distances are measured along streets and paths from each block's centre."
+            : "Distances are measured in a straight line from each block's centre."}
+        </Text>
       </Part>
     </Box>
   );

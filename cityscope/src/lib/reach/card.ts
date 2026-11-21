@@ -110,7 +110,7 @@ export function linkLines(
       if (!found || found.lng === null || found.lat === null || found.category === null) continue;
       features.push({
         type: 'Feature',
-        geometry: { type: 'LineString', coordinates: [centre, [found.lng, found.lat]] },
+        geometry: { type: 'LineString', coordinates: found.walk && found.walk.length >= 2 ? found.walk : [centre, [found.lng, found.lat]] },
         properties: { need: id, category: found.category },
       });
     }

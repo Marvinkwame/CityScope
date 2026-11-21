@@ -4,7 +4,7 @@ import { formatCount } from '../../components/results/format';
 import type { BarRowView } from '../../components/results/bars';
 import type { ReachAvailability } from './api';
 import { NEED_IDS, REACH_NEEDS } from './model';
-import type { NeedId, ReachMeta } from './model';
+import type { NeedId, ReachMeta, ReachMethod } from './model';
 
 /**
  * A share (0..1) as a percentage. Only exactly 0 and 1 read "0%" and "100%":
@@ -70,10 +70,11 @@ export function rangeLine(low: number, high: number): string {
 }
 
 /** The one line under the range that says where it comes from. */
-export function rangeExplanation(kLow: number, kHigh: number): string {
+export function rangeExplanation(kLow: number, kHigh: number, method: ReachMethod): string {
+  const unit = method === 'network' ? 'metres a minute along streets' : 'straight-line metres a minute';
   return (
     `How far the figure moves if walking pace is anywhere from ${upToOneDecimal(kLow)} to ` +
-    `${upToOneDecimal(kHigh)} straight-line metres a minute: the calibration's uncertainty.`
+    `${upToOneDecimal(kHigh)} ${unit}: the calibration's uncertainty.`
   );
 }
 

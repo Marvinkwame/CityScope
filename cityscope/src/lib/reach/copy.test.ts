@@ -67,10 +67,17 @@ describe('rangeLine', () => {
 
 describe('rangeExplanation', () => {
   it('names the pace range behind the figure', () => {
-    expect(rangeExplanation(57, 68)).toBe(
+    expect(rangeExplanation(57, 68, 'estimate')).toBe(
       "How far the figure moves if walking pace is anywhere from 57 to 68 straight-line metres a minute: the calibration's uncertainty.",
     );
-    expect(rangeExplanation(59.5, 70)).toContain('from 59.5 to 70 straight-line');
+    expect(rangeExplanation(59.5, 70, 'estimate')).toContain('from 59.5 to 70 straight-line');
+  });
+
+  it('names the pace by street for a street build', () => {
+    expect(rangeExplanation(62.5, 70, 'network')).toBe(
+      "How far the figure moves if walking pace is anywhere from 62.5 to 70 metres a minute along streets: the calibration's uncertainty.",
+    );
+    expect(rangeExplanation(62.5, 70, 'estimate')).toContain('straight-line metres a minute');
   });
 });
 

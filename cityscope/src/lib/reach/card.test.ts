@@ -32,6 +32,28 @@ const CARD: CellCard = {
   ],
 };
 
+function withWalk(card: CellCard, need: NeedId, walk: [number, number][] | null): CellCard {
+  return { ...card, needs: card.needs.map((n) => (n.need === need ? { ...n, walk } : n)) };
+}
+
+describe('linkLines walks', () => {
+  it('draws the walk along the streets when the card has one', () => {
+    const walk: [number, number][] = [[13.4, 52.5], [13.401, 52.5003], [13.402, 52.5007]];
+    const card = withWalk(CARD, 'st', walk);
+    const line = linkLines(card, PROPS, 68.5, 5, NEED_IDS, [13.4, 52.5]).features.find((f) => f.properties!.need === 'st')!;
+    expect(line.geometry.coordinates).toEqual(walk);
+  });
+
+  it('draws the straight line for a card with no walk, including one cached before walks existed', () => {
+    // The CARD fixture predates walks: its needs have no `walk` key at all.
+    const line = linkLines(CARD, PROPS, 68.5, 5, NEED_IDS, [13.4, 52.5]).features[0];
+    expect(line.geometry.coordinates[0]).toEqual([13.4, 52.5]);
+    expect(line.geometry.coordinates).toHaveLength(2);
+    const nullWalk = linkLines(withWalk(CARD, 'pk', null), PROPS, 68.5, 5, NEED_IDS, [13.4, 52.5]).features[0];
+    expect(nullWalk.geometry.coordinates).toHaveLength(2);
+  });
+});
+
 describe('cardRows', () => {
   it('marks chosen needs within or outside the limit from the payload, and leaves unchosen ones unmarked', () => {
     expect(cardRows(CARD, PROPS, 68.5, 15, ['sm', 'ph', 'dr', 'pk']).map((r) => [r.need, r.within])).toEqual([
