@@ -282,9 +282,18 @@ Graded both ways (each half fitted and graded on the other, 360 checks a limit),
 - **New York `892a1076083ffff`** is a grading artefact: its three misses are at the fit half's 102 m a minute, and at the published 94 all three come out right.
 - **Two outliers outside the sample show the single-node join at its worst**, both thinly populated: Berlin `891f1d4b3bbffff` (236 residents, in Spandau between the Spree and the railway), whose walks run 2.7–3.8 km, and `891f18b4ec7ffff` (81 residents, beside the Müggelsee forest), 2.7–4.1 km.
 
+### Browser checks (2026-11-22)
+
+Run in the built-in Chromium browser against the owner's dev servers, the backend reading the local stand-in, after the final review's fix wave (which moved the pins to the walk's end).
+
+- **The self-heal (criterion 3).** The browser first loaded Berlin's straight-line payload of 2026-11-06 while the backend still read production, then the backend was switched to the street build. The browser pane closed in between, and the reopened page took the straight-line payload from the browser's HTTP cache (`max-age` one day), which is the case a returning visitor meets after the switch. Clicking `891f1d482b7ffff` made one card request; its metres didn't match the cached payload, so the page made exactly one `cache: 'reload'` pair (payload and card) and no more requests. The panel then read the street build (pace 89–92.5 m a minute "along streets") and the card its street figures (Aldi ~3 min, Westend station ~12, Klausenerplatz ~17 as the nearest park), with no reload.
+- **Walks and pins.** At 15 minutes, four walks and four pins for the four needs within reach; at 20 minutes, six. Projected from the map's centre and zoom, every pin sits within 1 px of its walk's last point, and the walk's second point is 59 px from any pin. The park's walk ends 0.15 m from Klausenerplatz's edge.
+- **Wording.** The method note reads "follows streets and footpaths … at 92 metres a minute", the sources list "Streets: © OpenStreetMap contributors, fetched 21 Nov 2026", and the limits read "Distances are measured along streets and paths from each block's centre."
+- **The three Phase 2 blocks by eye.** Berlin as above. Tokyo `892f5aadb8fffff` at 5 minutes: pharmacy and doctor ✓ at ~5 min, supermarket, school, park and station ✗, two pins. Munich `891f8d4e977ffff` at 10 minutes: school and park ✓ at ~10 min, the walks bending along Forstenried's streets, two pins.
+- **No console errors** on any page.
+
 ### Not yet run
 
-- **Plan Task 11 steps 5 and 6, the browser checks** (the walks drawn at Berlin's block, and a card cached before the switch healing itself): they need the owner's backend on the local database.
 - **Plan Task 13, the production run.**
 
 ### Follow-ups found while measuring
