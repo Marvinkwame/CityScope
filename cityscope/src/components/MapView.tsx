@@ -27,7 +27,7 @@ import {
 } from '../lib/reach/expressions';
 import { reachLayerVisibility } from '../lib/reach/layerVisibility';
 import { cellCentre, linkLines, pinPositions } from '../lib/reach/card';
-import { changedBlocks, missingClasses } from '../lib/reach/summary';
+import { changedBlocks, columnsFor, missingClasses } from '../lib/reach/summary';
 import type { NeedId, ReachPayload } from '../lib/reach/model';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import { useDrawStore } from '../store/drawStore';
@@ -39,7 +39,6 @@ import { useDistricts } from '../hooks/useDistricts';
 import { usePois } from '../hooks/usePois';
 import { useIsochrone } from '../hooks/useIsochrone';
 import { useReachPayload } from '../hooks/useReachPayload';
-import { useReachSummary } from '../hooks/useReachSummary';
 import { useReachCard } from '../hooks/useReachCard';
 import {
   ROAD_LAYER_FILTER,
@@ -440,9 +439,9 @@ function MapView() {
   const reachSelectedCell = useReachStore((s) => s.selectedCell);
   const { data: reachPayload, availability: reachAvailability } = useReachPayload();
   const reachReady = reachAvailability === 'ready';
-  const reachSummary = useReachSummary();
-  const reachColumns = reachSummary?.columns;
-  const reachK = reachSummary?.meta.metresPerMinute;
+  // The columns the colours come from, shared with the panel; the map never needs the headline.
+  const reachColumns = useMemo(() => (reachPayload ? columnsFor(reachPayload.features) : undefined), [reachPayload]);
+  const reachK = reachPayload?.meta.metresPerMinute;
   const { data: reachCard } = useReachCard();
   // Once per payload: the source's data with numeric ids, and each block's id by H3 id.
   const reachSource = useMemo(() => (reachPayload ? reachSourceData(reachPayload) : null), [reachPayload]);

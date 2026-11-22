@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { NEED_IDS, REACH_MINUTES } from './model';
 import type { ReachProperties } from './model';
-import { changedBlocks, isWithin, missingClasses, summarise, toColumns } from './summary';
+import { changedBlocks, columnsFor, isWithin, missingClasses, summarise, toColumns } from './summary';
 
 function block(h: string, r: number, sm: number, rest: number): { properties: ReachProperties } {
   return { properties: { h, r, sm, ph: rest, dr: rest, sc: rest, pk: rest, st: rest } };
@@ -15,11 +15,19 @@ const FIXTURE = [A, B, C];
 const K = { k: 62.5, kLow: 50, kHigh: 70 };
 
 describe('reach summary', () => {
-  it('toColumns keeps ids, residents, the total and none-found distances', () => {
+  it('toColumns keeps residents, the total and none-found distances in payload order', () => {
     const cols = toColumns(FIXTURE);
     expect(cols.total).toBe(1000);
-    expect(cols.ids).toEqual([A.properties.h, B.properties.h, C.properties.h]);
+    expect(Array.from(cols.residents)).toEqual([100, 300, 600]);
     expect(Array.from(cols.metres.sm)).toEqual([500, 500, 65535]);
+  });
+
+  it('columnsFor builds the columns once per features array', () => {
+    const features = [A, B];
+    const cols = columnsFor(features);
+    expect(columnsFor(features)).toBe(cols);
+    expect(cols.total).toBe(400);
+    expect(columnsFor([A, B])).not.toBe(cols);
   });
 
   it('summarise counts residents with every chosen need within the limit', () => {

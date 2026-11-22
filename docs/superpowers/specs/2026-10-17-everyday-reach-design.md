@@ -371,6 +371,11 @@ Measured on 2026-11-06 in the built-in Chromium browser (desktop, a 525 × 534 p
   - **Effect:** on the development build, Mapbox's paint task for a time change fell from ~145 ms to ~70 ms. A small need toggle has no paint task at all.
   - **Correctness:** checked block by block after a run of time and need changes, a city change, and a change made while reach was off.
   - **What remains:** React's render of the panel and map (~65 ms on the production build). Spreading the writes over frames is no longer needed.
+- **Reduced again on 2026-11-20: the headline pass runs once per change, and faster.**
+  - **Twice for nothing:** MapView called `useReachSummary` only for the block columns and `k`, so every change ran the headline pass for the map as well as the panel, and each built its own columns. The columns are now built once per payload and shared (`columnsFor`), and the map no longer runs the headline pass.
+  - **Slower than its arithmetic:** the pass looked up each need's column and added to its total by name, for every block. With those in arrays, London's pass fell from 13.7 ms to 2.7 ms (median in Chrome over the real payload; 14.6 to 3.5 ms in Node), with identical results for five sets of needs (all six, one, two, three and none) at every time stop.
+  - **Effect:** on desktop a time or need change ran the pass twice (~27 ms) and now runs it once (~3 ms). The React task on the production build, ~65 ms before, has not been re-measured.
+  - **Correctness:** checked live in Tokyo (15 minutes, all six needs) and London (10 minutes, station off): every block's class, the headline and all six per-need bars matched values computed from the payload.
 
 ### Switching, fetching and links
 
