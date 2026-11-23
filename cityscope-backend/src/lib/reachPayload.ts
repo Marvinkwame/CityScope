@@ -3,8 +3,9 @@
  *
  * Each city is published ahead of time as a single GeoJSON FeatureCollection
  * with a `meta` member, Brotli-compressed and stored with a strong ETag. A
- * feature is one populated H3 cell, carrying its residents and the straight-line
- * metres to its nearest place for each need. The browser turns metres into
+ * feature is one populated H3 cell, carrying its residents and the metres to
+ * its nearest place for each need (along the streets or in a straight line,
+ * as `meta.method` says). The browser turns metres into
  * minutes as `metres / k`, with k taken from `meta`.
  *
  * Feature properties are flat on purpose: Mapbox GL stringifies a nested value
@@ -17,6 +18,7 @@ import { cityPasses } from './calibration.js';
 import type { Band } from './calibration.js';
 import { NEEDS, NONE_FOUND_METRES } from './needs.js';
 import type { Need, NeedId } from './needs.js';
+import type { ReachMethod } from './reachMethod.js';
 import type { FetchRecord } from './sourceDates.js';
 
 export const POPULATION_SOURCE = 'GHSL GHS-POP R2023A, 2025 epoch (European Commission, JRC), CC BY 4.0';
@@ -37,7 +39,7 @@ export interface CellRow {
   ring: [number, number][];
 }
 
-/** The straight-line metres from a cell to its nearest place for one need. */
+/** The metres from a cell to its nearest place for one need, by the city's method. */
 export interface NearestRow {
   h3: string;
   need: NeedId;
@@ -46,7 +48,9 @@ export interface NearestRow {
 
 /** What the city's calibration says about the walking estimate. */
 export interface CalibrationRow {
-  /** k, in straight-line metres per walking minute, fitted on every sampled cell. */
+  /** How the metres were measured: the method the city's nearest places were built with. */
+  method: ReachMethod;
+  /** k, in metres per walking minute on the payload's metres (street or straight line), fitted on every sampled cell. */
   metresPerMinute: number;
   kLow: number;
   kHigh: number;
@@ -73,6 +77,8 @@ export interface ReachInfo {
   places: FetchRecord;
   /** When the city's parks were fetched, from the record beside its parks file. */
   parks: FetchRecord;
+  /** When the street network was fetched; nulls for an estimate build. */
+  streets: FetchRecord;
 }
 
 /** A need as the payload describes it. A park need has no POI categories: its places are park shapes. */
@@ -95,6 +101,8 @@ export interface ReachSources {
   osmBase: string | null;
   parksFetchedAt: string | null;
   parksOsmBase: string | null;
+  streetsFetchedAt: string | null;
+  streetsOsmBase: string | null;
   calibratedAt: string;
 }
 
@@ -103,7 +111,7 @@ export interface ReachMeta {
   cityName: string;
   coverage: string;
   residents: number;
-  method: 'estimate';
+  method: ReachMethod;
   metresPerMinute: number;
   kLow: number;
   kHigh: number;
@@ -194,7 +202,7 @@ export function buildReachPayload(
       cityName: info.cityName,
       coverage: info.coverage,
       residents,
-      method: 'estimate',
+      method: cal.method,
       metresPerMinute: cal.metresPerMinute,
       kLow: cal.kLow,
       kHigh: cal.kHigh,
@@ -211,6 +219,8 @@ export function buildReachPayload(
         osmBase: info.places.osmBase,
         parksFetchedAt: info.parks.fetchedAt,
         parksOsmBase: info.parks.osmBase,
+        streetsFetchedAt: info.streets.fetchedAt,
+        streetsOsmBase: info.streets.osmBase,
         calibratedAt: cal.calibratedAt,
       },
       completeness: { perHundredThousand: info.perHundredThousand, checks: cal.checks },
@@ -240,6 +250,38 @@ export interface CardRow {
   category: string;
   lng: number;
   lat: number;
+  /** The street walk from the block centre to the place, as [lng, lat] pairs; null for an estimate build. */
+  walk: [number, number][] | null;
+}
+
+/**
+ * Reads a PostGIS ST_AsGeoJSON LineString as [lng, lat] pairs. Anything else
+ * (null, a Point, malformed text) is null: the card then has no walk to draw.
+ */
+export function parseWalk(geojson: string | null): [number, number][] | null {
+  if (geojson === null) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(geojson);
+  } catch {
+    return null;
+  }
+  if (typeof parsed !== 'object' || parsed === null) return null;
+  const { type, coordinates } = parsed as { type?: unknown; coordinates?: unknown };
+  if (type !== 'LineString' || !Array.isArray(coordinates)) return null;
+  const line: [number, number][] = [];
+  for (const point of coordinates) {
+    if (
+      !Array.isArray(point) ||
+      point.length < 2 ||
+      typeof point[0] !== 'number' ||
+      typeof point[1] !== 'number'
+    ) {
+      return null;
+    }
+    line.push([point[0], point[1]]);
+  }
+  return line;
 }
 
 /**
@@ -259,13 +301,14 @@ export interface CellCard {
     lat: number | null;
     metres: number | null;
     minutes: number | null;
+    walk: [number, number][] | null;
   }[];
 }
 
 /**
  * Lays one cell's nearest places out as a card, in NEEDS order whatever order
- * the rows arrive in. Minutes are the same estimate the map uses: straight-line
- * metres divided by k, rounded up to a whole minute. The map counts a place as
+ * the rows arrive in. Minutes are the same estimate the map uses: the payload's
+ * metres (street or straight line) divided by k, rounded up to a whole minute. The map counts a place as
  * within a limit of T minutes when metres / k <= T, and for a whole number T
  * that holds exactly when the rounded-up minutes are at most T, so the card
  * never shows 15 minutes for a place the map puts outside 15.
@@ -285,7 +328,7 @@ export function shapeCellCard(
     needs: NEEDS.map(({ id }) => {
       const row = byNeed.get(id);
       if (!row) {
-        return { need: id, name: null, category: null, lng: null, lat: null, metres: null, minutes: null };
+        return { need: id, name: null, category: null, lng: null, lat: null, metres: null, minutes: null, walk: null };
       }
       return {
         need: id,
@@ -295,6 +338,7 @@ export function shapeCellCard(
         lat: row.lat,
         metres: row.metres,
         minutes: Math.ceil(row.metres / metresPerMinute),
+        walk: row.walk,
       };
     }),
   };

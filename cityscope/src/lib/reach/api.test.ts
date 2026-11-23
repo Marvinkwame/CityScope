@@ -53,7 +53,23 @@ describe('reach api', () => {
   it('asks for the block under its city', async () => {
     const fn = stubFetch(200, { cell: '891f1d48947ffff' });
     await fetchReachCard(B, 'berlin', '891f1d48947ffff');
-    expect(fn).toHaveBeenCalledWith(`${B}/api/cities/berlin/reach/891f1d48947ffff`);
+    expect(fn).toHaveBeenCalledWith(`${B}/api/cities/berlin/reach/891f1d48947ffff`, { cache: 'default' });
+  });
+
+  it('fetchReach passes the cache mode, default when none is given', async () => {
+    const fn = stubFetch(200, PASSING);
+    await fetchReach(B, 'berlin', 'reload');
+    expect(fn).toHaveBeenLastCalledWith(`${B}/api/cities/berlin/reach`, { cache: 'reload' });
+    await fetchReach(B, 'berlin');
+    expect(fn).toHaveBeenLastCalledWith(`${B}/api/cities/berlin/reach`, { cache: 'default' });
+  });
+
+  it('fetchReachCard passes the cache mode, default when none is given', async () => {
+    const fn = stubFetch(200, {});
+    await fetchReachCard(B, 'berlin', 'x', 'reload');
+    expect(fn).toHaveBeenLastCalledWith(`${B}/api/cities/berlin/reach/x`, { cache: 'reload' });
+    await fetchReachCard(B, 'berlin', 'x');
+    expect(fn).toHaveBeenLastCalledWith(`${B}/api/cities/berlin/reach/x`, { cache: 'default' });
   });
 
   it('never retries a not-found answer', () => {

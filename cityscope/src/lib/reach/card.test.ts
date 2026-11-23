@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cardIsStale, cardRequestable, cardRows, cellCentre, linkLines } from './card';
+import { cardIsStale, cardRequestable, cardRows, cellCentre, healKey, linkLines, pinPositions, shouldHeal } from './card';
 import { missingCount } from './expressions';
 import { NEED_IDS, NONE_FOUND_METRES, REACH_MINUTES } from './model';
 import type { CellCard, NeedId, ReachPayload, ReachProperties } from './model';
@@ -31,6 +31,28 @@ const CARD: CellCard = {
     { need: 'st', name: 'Spandauer Straße/Marienkirche', category: 'tram_stop', lng: 13.4038, lat: 52.5206, metres: 40, minutes: 1 },
   ],
 };
+
+function withWalk(card: CellCard, need: NeedId, walk: [number, number][] | null): CellCard {
+  return { ...card, needs: card.needs.map((n) => (n.need === need ? { ...n, walk } : n)) };
+}
+
+describe('linkLines walks', () => {
+  it('draws the walk along the streets when the card has one', () => {
+    const walk: [number, number][] = [[13.4, 52.5], [13.401, 52.5003], [13.402, 52.5007]];
+    const card = withWalk(CARD, 'st', walk);
+    const line = linkLines(card, PROPS, 68.5, 5, NEED_IDS, [13.4, 52.5]).features.find((f) => f.properties!.need === 'st')!;
+    expect(line.geometry.coordinates).toEqual(walk);
+  });
+
+  it('draws the straight line for a card with no walk, including one cached before walks existed', () => {
+    // The CARD fixture predates walks: its needs have no `walk` key at all.
+    const line = linkLines(CARD, PROPS, 68.5, 5, NEED_IDS, [13.4, 52.5]).features[0];
+    expect(line.geometry.coordinates[0]).toEqual([13.4, 52.5]);
+    expect(line.geometry.coordinates).toHaveLength(2);
+    const nullWalk = linkLines(withWalk(CARD, 'pk', null), PROPS, 68.5, 5, NEED_IDS, [13.4, 52.5]).features[0];
+    expect(nullWalk.geometry.coordinates).toHaveLength(2);
+  });
+});
 
 describe('cardRows', () => {
   it('marks chosen needs within or outside the limit from the payload, and leaves unchosen ones unmarked', () => {
@@ -152,5 +174,37 @@ describe('cardRequestable', () => {
   });
   it('is true when the block is in the payload', () => {
     expect(cardRequestable(true, PROPS.h, PAYLOAD)).toBe(true);
+  });
+});
+
+describe('healKey and shouldHeal', () => {
+  const at = (builtAt: string) =>
+    ({ meta: { city: 'berlin', builtAt } }) as unknown as ReachPayload;
+
+  it('healKey changes when the payload is rebuilt', () => {
+    expect(healKey(at('a'), 'c1')).toBe('berlin|a|c1');
+    expect(healKey(at('a'), 'c1')).not.toBe(healKey(at('b'), 'c1'));
+  });
+
+  it('heals a stale card once per key', () => {
+    const k = 'berlin|a|c1';
+    expect(shouldHeal(new Set([k]), k, true)).toBe(false);
+    expect(shouldHeal(new Set(), k, false)).toBe(false);
+    expect(shouldHeal(new Set(), k, true)).toBe(true);
+  });
+});
+
+describe('pinPositions', () => {
+  it('puts a two-point straight line pin on its second point', () => {
+    const pins = pinPositions(linkLines(CARD, PROPS, 68.5, 5, ['st'], [13.4, 52.5]));
+    expect(pins).toEqual([{ category: 'tram_stop', lngLat: [13.4038, 52.5206] }]);
+  });
+
+  it('puts a multi-point walk pin on its last point, not its second', () => {
+    const walk: [number, number][] = [[13.4, 52.5], [13.401, 52.5003], [13.402, 52.5007], [13.4038, 52.5206]];
+    const card = withWalk(CARD, 'st', walk);
+    const pins = pinPositions(linkLines(card, PROPS, 68.5, 5, ['st'], [13.4, 52.5]));
+    expect(pins).toEqual([{ category: 'tram_stop', lngLat: [13.4038, 52.5206] }]);
+    expect(pins[0].lngLat).not.toEqual(walk[1]);
   });
 });

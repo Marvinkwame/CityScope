@@ -29,16 +29,17 @@ import { announceTarget } from '../lib/dbTarget.js';
 import { isPolygonGeometry } from '../lib/geometry.js';
 import { NEEDS, NEED_IDS, PARK_MIN_AREA_M2, completenessCategories } from '../lib/needs.js';
 import type { NeedId } from '../lib/needs.js';
+import { isReachMethod } from '../lib/reachMethod.js';
 import { buildReachPayload, encodePayload } from '../lib/reachPayload.js';
 import type { CalibrationRow, CellRow, NearestRow, ReachInfo } from '../lib/reachPayload.js';
-import { parksRecordName, placesRecordName, readFetchRecord } from '../lib/sourceDates.js';
+import { parksRecordName, placesRecordName, readFetchRecord, streetsRecordName } from '../lib/sourceDates.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// The places file and its record sit beside this script; the parks file and
-// its record in cityscope-backend/data/.
+// The places file and its record sit beside this script; the parks and street
+// files and their records in cityscope-backend/data/.
 const PLACES_DIR = __dirname;
-const PARKS_DIR = path.resolve(__dirname, '../../data');
+const DATA_DIR = path.resolve(__dirname, '../../data');
 
 function usage(): never {
   console.error('Usage: tsx src/scripts/publish-reach.ts <cityId>');
@@ -105,13 +106,16 @@ async function readCalibration(
   if (!row) {
     throw new Error(`No calibration for ${cityId}. Run reach:calibrate -- ${cityId} first`);
   }
-  if (row.method !== 'estimate') {
-    throw new Error(`The stored calibration for ${cityId} uses method "${row.method}"; only "estimate" can be published`);
+  if (!isReachMethod(row.method)) {
+    throw new Error(
+      `The stored calibration for ${cityId} uses method "${row.method}"; only "estimate" or "network" can be published`,
+    );
   }
   const checks = typeof row.checks === 'object' && row.checks !== null && !Array.isArray(row.checks) ? row.checks : {};
 
   return {
     calibration: {
+      method: row.method,
       metresPerMinute: row.metres_per_minute,
       kLow: row.k_low,
       kHigh: row.k_high,
@@ -293,7 +297,11 @@ async function publish(client: PoolClient, city: CityConfig): Promise<Published>
     builtAt,
     perHundredThousand: await readPerHundredThousand(client, city, residents),
     places: readFetchRecord(path.join(PLACES_DIR, placesRecordName(city.id))),
-    parks: readFetchRecord(path.join(PARKS_DIR, parksRecordName(city.id))),
+    parks: readFetchRecord(path.join(DATA_DIR, parksRecordName(city.id))),
+    streets:
+      calibration.method === 'network'
+        ? readFetchRecord(path.join(DATA_DIR, streetsRecordName(city.id)))
+        : { fetchedAt: null, osmBase: null },
   };
 
   const payload = buildReachPayload(cells, nearest, calibration, info);
@@ -319,6 +327,7 @@ function printReport(city: CityConfig, result: Published): void {
   console.log(
     `${city.name} (${city.reach.coverage}): ${count(result.cells)} cells, ${count(result.residents)} residents`,
   );
+  console.log(`Method: ${calibration.method}`);
   console.log(
     `k = ${calibration.metresPerMinute} m/min (range ${calibration.kLow}-${calibration.kHigh}); ` +
       `the 15-minute band ${cityPasses(calibration.stops) ? 'passes' : 'does not pass'}`,
@@ -326,10 +335,13 @@ function printReport(city: CityConfig, result: Published): void {
   console.log(
     'Places per 100,000 residents: ' + NEEDS.map((need) => `${need.id} ${perHundredThousand[need.id]}`).join(', '),
   );
-  const { places, parks } = result.info;
+  const { places, parks, streets } = result.info;
   console.log(
     `Sources: places fetched ${places.fetchedAt ?? 'unknown'} (OSM as of ${places.osmBase ?? 'unknown'}), ` +
       `parks fetched ${parks.fetchedAt ?? 'unknown'} (OSM as of ${parks.osmBase ?? 'unknown'}), ` +
+      (calibration.method === 'network'
+        ? `streets fetched ${streets.fetchedAt ?? 'unknown'} (OSM as of ${streets.osmBase ?? 'unknown'}), `
+        : '') +
       `calibrated ${calibration.calibratedAt}`,
   );
   console.log(`Raw: ${count(result.rawBytes)} bytes`);

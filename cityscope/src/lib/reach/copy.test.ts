@@ -1,15 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import {
   agreementLine,
+  distanceLimitSentence,
   coverageLine,
   formatDate,
   formatResidents,
   gpCheckLine,
   headlineSentence,
+  methodSentence,
   needBarRows,
   percent,
   rangeExplanation,
   rangeLine,
+  streetsSourceSentence,
   switchCaption,
   upToOneDecimal,
 } from './copy';
@@ -67,10 +70,17 @@ describe('rangeLine', () => {
 
 describe('rangeExplanation', () => {
   it('names the pace range behind the figure', () => {
-    expect(rangeExplanation(57, 68)).toBe(
+    expect(rangeExplanation(57, 68, 'estimate')).toBe(
       "How far the figure moves if walking pace is anywhere from 57 to 68 straight-line metres a minute: the calibration's uncertainty.",
     );
-    expect(rangeExplanation(59.5, 70)).toContain('from 59.5 to 70 straight-line');
+    expect(rangeExplanation(59.5, 70, 'estimate')).toContain('from 59.5 to 70 straight-line');
+  });
+
+  it('names the pace by street for a street build', () => {
+    expect(rangeExplanation(62.5, 70, 'network')).toBe(
+      "How far the figure moves if walking pace is anywhere from 62.5 to 70 metres a minute along streets: the calibration's uncertainty.",
+    );
+    expect(rangeExplanation(62.5, 70, 'estimate')).toContain('straight-line metres a minute');
   });
 });
 
@@ -127,5 +137,33 @@ describe('formatDate', () => {
   it('returns a timestamp it cannot read unchanged rather than throwing', () => {
     expect(formatDate('not a date')).toBe('not a date');
     expect(formatDate('')).toBe('');
+  });
+});
+
+describe('method note sentences', () => {
+  it('describes a street walk and its pace', () => {
+    expect(methodSentence('network', '92', 60)).toBe(
+      "Each block's walk to a need follows streets and footpaths from the block's centre to the nearest place by street, at 92 metres a minute. That pace was fitted against Mapbox walking times on 60 blocks.",
+    );
+  });
+
+  it('describes a straight-line estimate and its pace', () => {
+    expect(methodSentence('estimate', '68.5', 60)).toBe(
+      "Each block's walk to a need is the straight-line distance from the block's centre to the nearest place, divided by 68.5 straight-line metres a minute. That pace was fitted against Mapbox walking times on 60 blocks.",
+    );
+  });
+
+  it('names the streets source only for a street build with a fetch date', () => {
+    expect(streetsSourceSentence('network', '2026-11-20T10:00:00.000Z')).toBe(
+      'Streets: © OpenStreetMap contributors, fetched 20 Nov 2026.',
+    );
+    expect(streetsSourceSentence('network', null)).toBeNull();
+    expect(streetsSourceSentence('network', undefined)).toBeNull();
+    expect(streetsSourceSentence('estimate', '2026-11-20T10:00:00.000Z')).toBeNull();
+  });
+
+  it('says how distances are measured for each method', () => {
+    expect(distanceLimitSentence('network')).toBe("Distances are measured along streets and paths from each block's centre.");
+    expect(distanceLimitSentence('estimate')).toBe("Distances are measured in a straight line from each block's centre.");
   });
 });

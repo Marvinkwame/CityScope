@@ -153,7 +153,7 @@ function ReachPanel() {
           {rangeLine(summary.low, summary.high)}
         </Typography>
         <Typography sx={{ fontSize: '0.66rem', lineHeight: 1.45, color: 'rgba(255,255,255,0.45)', mt: 0.25 }}>
-          {rangeExplanation(m.kLow, m.kHigh)}
+          {rangeExplanation(m.kLow, m.kHigh, m.method)}
         </Typography>
       </Box>
 

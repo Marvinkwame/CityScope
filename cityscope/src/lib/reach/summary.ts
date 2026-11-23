@@ -41,7 +41,7 @@ export function columnsFor(features: ReadonlyArray<{ properties: ReachProperties
   return cols;
 }
 
-/** True when the straight-line metres fit the limit at k metres per minute. */
+/** True when the payload's metres (street or straight line) fit the limit at k metres per minute. */
 export function isWithin(metres: number, minutes: number, k: number): boolean {
   return metres <= minutes * k;
 }

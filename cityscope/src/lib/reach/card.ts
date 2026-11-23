@@ -79,6 +79,16 @@ export function cardIsStale(card: CellCard, props: ReachProperties, k: number): 
   return REACH_NEEDS.some(({ id }) => (cardNeed(card, id)?.metres ?? NONE_FOUND_METRES) !== props[id]);
 }
 
+/** One heal per city build and block: the payload's build time stands for its version. */
+export function healKey(payload: ReachPayload, cell: string): string {
+  return `${payload.meta.city}|${payload.meta.builtAt}|${cell}`;
+}
+
+/** Heal a stale card only if this key has not been tried yet. */
+export function shouldHeal(attempted: ReadonlySet<string>, key: string, stale: boolean): boolean {
+  return stale && !attempted.has(key);
+}
+
 /** The mean of a ring's distinct corners (a closed ring repeats its first point, which is dropped). */
 export function cellCentre(ring: ReadonlyArray<[number, number]>): [number, number] {
   const first = ring[0];
@@ -110,10 +120,24 @@ export function linkLines(
       if (!found || found.lng === null || found.lat === null || found.category === null) continue;
       features.push({
         type: 'Feature',
-        geometry: { type: 'LineString', coordinates: [centre, [found.lng, found.lat]] },
+        geometry: { type: 'LineString', coordinates: found.walk && found.walk.length >= 2 ? found.walk : [centre, [found.lng, found.lat]] },
         properties: { need: id, category: found.category },
       });
     }
   }
   return { type: 'FeatureCollection', features };
+}
+
+/**
+ * Where a link line's pin sits: the line's last point, which is the place
+ * itself, or a park's entry point. Not the second point, which on a street walk
+ * is the block's join node.
+ */
+export function pinPositions(
+  links: GeoJSON.FeatureCollection<GeoJSON.LineString>,
+): { category: string; lngLat: [number, number] }[] {
+  return links.features.map((f) => {
+    const end = f.geometry.coordinates[f.geometry.coordinates.length - 1];
+    return { category: String(f.properties?.category), lngLat: [end[0], end[1]] };
+  });
 }

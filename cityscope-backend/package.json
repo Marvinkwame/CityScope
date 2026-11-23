@@ -14,10 +14,12 @@
     "seed:all": "tsx src/scripts/seed-all.ts",
     "fetch:pois": "tsx src/scripts/fetch-pois.ts",
     "fetch:parks": "tsx src/scripts/fetch-parks.ts",
+    "fetch:streets": "tsx src/scripts/fetch-streets.ts",
     "migrate": "tsx src/scripts/migrate.ts",
     "reach:build": "tsx src/scripts/build-reach.ts",
     "reach:calibrate": "tsx src/scripts/calibrate-reach.ts",
     "reach:publish": "tsx src/scripts/publish-reach.ts",
+    "reach:compare": "tsx src/scripts/compare-reach.ts",
     "reach:check-gp": "tsx src/scripts/check-gp-coverage.ts",
     "test": "vitest run",
     "test:watch": "vitest"

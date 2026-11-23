@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { REACH_CACHE_CONTROL, acceptsBrotli, isFresh, isH3CellId, isMissingTable } from './reachHttp';
+import { REACH_CACHE_CONTROL, acceptsBrotli, isFresh, isH3CellId, isMissingColumn, isMissingTable } from './reachHttp';
 
 describe('REACH_CACHE_CONTROL', () => {
   it('is public and lasts a day', () => {
@@ -49,6 +49,22 @@ describe('isH3CellId', () => {
     expect(isH3CellId('891f1d48947fff')).toBe(false); // too short
     expect(isH3CellId('891f1d48947ffffa')).toBe(false); // too long
     expect(isH3CellId('../etc/passwd')).toBe(false);
+  });
+});
+
+describe('isMissingColumn', () => {
+  it("is true for Postgres's undefined-column error, as before migration 005", () => {
+    const err = Object.assign(new Error('column n.walk does not exist'), { code: '42703' });
+    expect(isMissingColumn(err)).toBe(true);
+  });
+
+  it('is false for the undefined-table error and for any other error or value', () => {
+    expect(isMissingColumn(Object.assign(new Error('no table'), { code: '42P01' }))).toBe(false);
+    expect(isMissingColumn(new Error('connection refused'))).toBe(false);
+    expect(isMissingColumn({ code: 42703 })).toBe(false);
+    expect(isMissingColumn('42703')).toBe(false);
+    expect(isMissingColumn(null)).toBe(false);
+    expect(isMissingColumn(undefined)).toBe(false);
   });
 });
 

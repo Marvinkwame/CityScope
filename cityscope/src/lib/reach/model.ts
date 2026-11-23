@@ -65,12 +65,15 @@ export interface ReachChecks {
   londonGpPractices?: number;
 }
 
+/** How the walks were measured: straight lines at a fitted pace, or along the street network. */
+export type ReachMethod = 'estimate' | 'network';
+
 export interface ReachMeta {
   city: string;
   cityName: string;
   coverage: string;
   residents: number;
-  method: 'estimate';
+  method: ReachMethod;
   metresPerMinute: number;
   kLow: number;
   kHigh: number;
@@ -87,6 +90,8 @@ export interface ReachMeta {
     osmBase: string | null;
     parksFetchedAt: string | null;
     parksOsmBase: string | null;
+    streetsFetchedAt?: string | null;
+    streetsOsmBase?: string | null;
     calibratedAt: string;
   };
   completeness: {
@@ -109,6 +114,8 @@ export interface CellCardNeed {
   lat: number | null;
   metres: number | null;
   minutes: number | null;
+  /** Points from the block's centre to the place; absent on a card cached before walks existed. */
+  walk?: [number, number][] | null;
 }
 
 export interface CellCard {

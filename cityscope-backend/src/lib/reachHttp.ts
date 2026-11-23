@@ -59,6 +59,14 @@ export function isMissingTable(err: unknown): boolean {
   return typeof err === 'object' && err !== null && (err as { code?: unknown }).code === '42P01';
 }
 
+/**
+ * True for Postgres's undefined-column error (SQLSTATE 42703): a database
+ * where migration 005, which adds the walk column, has not been applied yet.
+ */
+export function isMissingColumn(err: unknown): boolean {
+  return typeof err === 'object' && err !== null && (err as { code?: unknown }).code === '42703';
+}
+
 /** An H3 index at resolution 9, in lower case: 15 hex digits starting `89`. */
 export function isH3CellId(value: string): boolean {
   return /^89[0-9a-f]{13}$/.test(value);
