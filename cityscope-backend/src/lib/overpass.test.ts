@@ -51,7 +51,7 @@ describe('overpassFetch', () => {
 
     const init = fetchImpl.mock.calls[0]?.[1];
     const headers = new Headers(init?.headers);
-    expect(headers.get('User-Agent')).toBe('CityScope/1.0 (educational geospatial portfolio)');
+    expect(headers.get('User-Agent')).toBe('CityScope/1.0 (educational geospatial project)');
     expect(headers.get('Content-Type')).toBe('application/x-www-form-urlencoded');
     expect(headers.get('Accept')).toBe('application/json');
   });

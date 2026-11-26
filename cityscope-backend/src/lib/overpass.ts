@@ -18,7 +18,7 @@
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
 
 /** Overpass answers 406 to a request that does not say who is asking. */
-const USER_AGENT = 'CityScope/1.0 (educational geospatial portfolio)';
+const USER_AGENT = 'CityScope/1.0 (educational geospatial project)';
 
 const RETRYABLE_STATUSES: ReadonlySet<number> = new Set([429, 502, 503, 504]);
 

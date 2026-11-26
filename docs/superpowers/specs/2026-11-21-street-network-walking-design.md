@@ -9,7 +9,7 @@
 
 Everyday reach estimates each walk as the straight-line distance from a block to the nearest place, divided by a per-city "straight-line metres a minute" fitted against Mapbox walking isochrones. Straight lines ignore rivers, railways, motorways and walled parks, so a block beside a barrier is credited with places it can't easily walk to, and the single fitted pace is too slow on an open street grid and too fast beside a river. The reach spec planned street-network distances as the later replacement and shaped the storage for it.
 
-The owner is job-hunting for mapping, property, logistics and urban-tech roles. This change should:
+CityScope grows out of an interest in mapping, property, logistics and urban technology. This change should:
 
 - make the numbers more trustworthy, where today's are weakest: at 5 minutes, held-out agreement with Mapbox is 85.0–93.3%, so about one check in ten disagrees;
 - give an interview story: a shortest-path search over each city's real street network, checked against an independent source, with a measured before and after;
