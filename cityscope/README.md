@@ -1,6 +1,6 @@
 # CityScope — Frontend
 
-React 19 + Mapbox GL JS 3 geospatial application. Draw isochrones, plan routes, search places, and explore POI density across multiple cities.
+React 19 + Mapbox GL JS 3 geospatial application. See how close every block of a city lives to six everyday needs, draw isochrones, plan routes, search places, and explore POI density across multiple cities.
 
 🔗 **[Live Demo](https://city-scope-seven.vercel.app)** &nbsp;·&nbsp; [Backend](../cityscope-backend/)
 
@@ -8,6 +8,7 @@ React 19 + Mapbox GL JS 3 geospatial application. Draw isochrones, plan routes, 
 
 ## Features
 
+- **Everyday reach** — every populated H3 block coloured by how many of six everyday needs (supermarket, pharmacy, doctor, school, park, station) lie within 5–20 minutes' walk along the streets; the headline and its range are recalculated in the browser in one pass over typed arrays; click a block for its nearest places with each walk drawn along the streets; 3D columns by residents; a card from an older build refetches itself once
 - **Isochrone analysis** — reachability polygons (5–30 min) with a server-side PostGIS join per band, a band switcher, and fly-to on place click
 - **District statistics** — click a district for POI count, area, density against the city average, and its top categories
 - **Draw & analyse** — draw any polygon and get the same statistics for it, computed in PostGIS
@@ -59,6 +60,8 @@ src/
 │   ├── PulseDot.tsx               # The cyan "working" dot (honours reduced motion)
 │   ├── DistrictStatsView.tsx      # District detail — stat row, density badge and category bars
 │   ├── DrawControls.tsx           # Draw Area toggle, area stats and bars, Clear area
+│   ├── reach/                     # Everyday reach: panel, headline, time control, legend,
+│   │                              #   method note, block card and its rows
 │   └── results/                   # Shared result parts: StatRow, SectionLabel, CategoryBars,
 │                                  #   ComparisonBadge, PlaceList, CategoryIcon, plus their pure, tested helpers
 ├── hooks/
@@ -73,7 +76,10 @@ src/
 │   ├── useAreaAnalysis.ts         # Statistics for a drawn polygon, computed in PostGIS
 │   ├── useCities.ts               # City list from backend
 │   ├── useShareSync.ts            # Restores the view from the URL hash, keeps the hash current
-│   └── useServerStatus.ts         # Waking / error / ready, with a retry
+│   ├── useServerStatus.ts         # Waking / error / ready, with a retry
+│   ├── useReachPayload.ts         # A city's Everyday reach payload, held for the session
+│   ├── useReachCard.ts            # One block's card, refetched once when it disagrees with the payload
+│   └── useReachSummary.ts         # The headline, range and per-need shares for the chosen limit
 ├── store/
 │   ├── mapStore.ts                # Mapbox map instance (for imperative access)
 │   ├── cityStore.ts               # Active city
@@ -84,6 +90,7 @@ src/
 │   ├── geoSearchStore.ts          # Geocoding result (for map pin)
 │   ├── heatmapStore.ts            # Heatmap click origin
 │   ├── featureStore.ts            # Clicked map feature
+│   ├── reachStore.ts              # Everyday reach — on / off, minutes, chosen needs, selected block
 │   └── uiStore.ts                 # Sidebar open / closed; welcome card open / closed
 ├── lib/
 │   ├── mapPins.ts                 # DOM elements for the map pins, one shape per kind
@@ -95,7 +102,9 @@ src/
 │   ├── examples.ts                # The welcome card's examples, as share states
 │   ├── welcomeMemory.ts           # Show or dismiss rules for the card; storage-safe
 │   ├── serverStatus.ts            # Cold-start status from the city list and the map
-│   └── isochronePayload.ts        # Mapbox isochrone response -> backend contract
+│   ├── isochronePayload.ts        # Mapbox isochrone response -> backend contract
+│   └── reach/                     # Everyday reach logic, all pure and tested: the payload model and
+│                                  #   API, the one-pass summary, colour expressions, card lines and pins, copy
 ├── constants/
 │   ├── layerConfig.ts             # Layer IDs, Mapbox filter functions, layer toggle metadata
 │   └── drawStyles.ts              # mapbox-gl-draw styles, recoloured to the "you" role
@@ -103,6 +112,7 @@ src/
 ├── main.tsx
 ├── theme.ts                       # Design tokens and the three colour roles, plus the MUI dark theme
 ├── theme.test.ts                  # Heatmap ramp and colour role invariants
+├── reachContrast.test.ts          # Contrast between the reach classes, the selection and the walks
 └── colourGuard.test.ts            # Fails `npm test` on any colour literal outside theme.ts
 ```
 
