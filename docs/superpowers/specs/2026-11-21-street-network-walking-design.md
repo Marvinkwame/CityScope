@@ -187,7 +187,7 @@ The difference between them is where the shortest paths are worked out.
 
 ## Measured results
 
-On 2026-11-21, all eight cities were fetched, built by street, calibrated and published on the local PostgreSQL 18.1 / PostGIS 3.6.2 stand-in (localhost:55432), seeded from the committed place files and the 2026-10-20 park files like Phase 1. Every write printed `localhost:55432`; every calibration read its 60 isochrones from the cache and made **no Mapbox requests**. "Before" is each city's production payload of 2026-11-06 (straight line), saved with a read-only GET. Production is not yet switched (plan Task 13).
+On 2026-11-21, all eight cities were fetched, built by street, calibrated and published on the local PostgreSQL 18.1 / PostGIS 3.6.2 stand-in (localhost:55432), seeded from the committed place files and the 2026-10-20 park files like Phase 1. Every write printed `localhost:55432`; every calibration read its 60 isochrones from the cache and made **no Mapbox requests**. "Before" is each city's production payload of 2026-11-06 (straight line), saved with a read-only GET. Production was switched on 2026-11-24 and 2026-11-26, matching these builds block for block (see "The production run" below).
 
 ### The networks and the build
 
@@ -292,9 +292,32 @@ Run in the built-in Chromium browser against the owner's dev servers, the backen
 - **The three Phase 2 blocks by eye.** Berlin as above. Tokyo `892f5aadb8fffff` at 5 minutes: pharmacy and doctor ✓ at ~5 min, supermarket, school, park and station ✗, two pins. Munich `891f8d4e977ffff` at 10 minutes: school and park ✓ at ~10 min, the walks bending along Forstenried's streets, two pins.
 - **No console errors** on any page.
 
-### Not yet run
+### The production run (plan Task 13, 2026-11-23 to 2026-11-26)
 
-- **Plan Task 13, the production run.**
+Each stage ran with the owner's go-ahead, writing through `.env.production-direct` (Neon's direct, non-pooler host, printed before every write).
+
+1. **Rollback point:** the owner made the Neon branch `pre-street-2026-11-23` from production, with 1.07 GB of storage free.
+2. **Migration 005** (2026-11-23, run by the owner), before the merge. A read-only check found `walk` as `LINESTRING` in SRID 4326, the check constraint validated, all 254,550 rows still `estimate`, and the database at 171 MB. The live card answered as before.
+3. **The merge and deploys:** PR 22 was merged (with a merge of main for the cleanup PR 21). Render then served cards with a `walk` field and Vercel a bundle with the street wording. The live site still read the straight-line build correctly.
+4. **Sydney first** (2026-11-24, 22:51 UTC), as a trial. A browser on the live site loaded Sydney's straight-line payload before the switch. After it, clicking a block made one card request, then exactly one `cache: 'reload'` pair; the panel read the street build with no reload and no console errors.
+5. **The other seven** (2026-11-26, 00:33–00:44 UTC), back to back, a runner stopping at the first failure or mismatch.
+
+| City | Gap (build commit → publish) | Blocks identical to the local build |
+|---|---|---|
+| Sydney | 18 s | 200 / 200 |
+| Paris | 19 s | 1,089 / 1,089 |
+| Amsterdam | 20 s | 2,216 / 2,216 |
+| Munich | 21 s | 2,607 / 2,607 |
+| Tokyo | 24 s | 6,252 / 6,252 |
+| New York | 25 s | 6,354 / 6,354 |
+| Berlin | 26 s | 7,869 / 7,869 |
+| London | 51 s (with the GP check) | 15,838 / 15,838 |
+
+- **Matching the local build:** every payload equals the local run's block for block, its metadata differing only in `builtAt` and `sources.calibratedAt`.
+- **Calibration** made 0 Mapbox requests, and reproduced every city's pace and agreement.
+- **London's GP check** reproduced 807 of 1,142 practices (70.7%).
+- **The deployed API passed 99 of 99 checks.** Each city's payload has the street method, the right block count, Brotli and a `304` on its ETag. A mid-city block's card has six walks ending at their places, with metres and pace equal to the payload's. A malformed cell gets `400`, and an unknown cell or city `404`.
+- **The database grew from 171 MB to 272 MB** (walks 78 MB): every one of the 254,550 rows is a `network` row with a walk.
 
 ### Follow-ups found while measuring
 
