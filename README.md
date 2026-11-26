@@ -1,6 +1,6 @@
 # CityScope
 
-**A full-stack geospatial analytics platform for exploring urban density and reachability** — draw custom areas, run walk-time isochrones, click districts for on-the-fly statistics, and share any view via a link. Powered by real OpenStreetMap data, **PostGIS** spatial queries, and Mapbox GL JS.
+**A full-stack geospatial analytics platform for exploring urban density and reachability** — see how close every block of eight cities lives to six everyday needs, walked along the real streets, then draw custom areas, run walk-time isochrones, click districts for on-the-fly statistics, and share any view via a link. Powered by real OpenStreetMap data, **PostGIS** spatial queries, and Mapbox GL JS.
 
 🔗 **[Live Demo](https://city-scope-seven.vercel.app)** &nbsp;·&nbsp; [Frontend](cityscope/) &nbsp;·&nbsp; [Backend](cityscope-backend/)
 
@@ -12,7 +12,7 @@
 
 ## What it does
 
-Real OpenStreetMap POI data (about 242,000 places across **8 cities**, 232,620 of them in the 17 categories the app displays), analysed five different ways:
+Real OpenStreetMap POI data (about 242,000 places across **8 cities**, 232,620 of them in the 17 categories the app displays), analysed in several ways:
 
 | Feature | Description |
 |---------|-------------|
@@ -56,7 +56,7 @@ Responsive down to a mobile bottom-sheet layout.
 
 **Imperative store reads in event handlers.** Map click handlers use `useStore.getState()` instead of hook subscriptions to avoid stale closures inside Mapbox's event system — a common GL JS + React gotcha.
 
-**TanStack Query for all async data.** Isochrones, routes, geocoding, districts, POIs, district stats, and area analysis are all queries with `queryKey` caching, `enabled` guards, and `staleTime`.
+**TanStack Query for all async data.** Isochrones, routes, geocoding, districts, POIs, district stats, area analysis, and Everyday reach's city payloads and block cards are all queries with `queryKey` caching, `enabled` guards, and `staleTime`.
 
 **Design tokens, enforced by a test.** Every colour plays one of three roles (*you*, *answer*, *context*) defined once in `theme.ts` as plain constants that both MUI styles and Mapbox paint properties can read. A Vitest guard fails `npm test` on any colour literal outside `theme.ts`, so the palette cannot drift back.
 
@@ -67,8 +67,8 @@ Responsive down to a mobile bottom-sheet layout.
 ## Getting started
 
 ### Prerequisites
-- Node.js 18+
-- PostgreSQL **with the PostGIS extension** (local, or a managed provider like Neon)
+- Node.js 20.19+ or 22.12+ (Vite 8's minimum)
+- PostgreSQL **with the PostGIS extension** (local, or a managed provider like Neon), and `psql`
 - A Mapbox access token ([free](https://account.mapbox.com/access-tokens/))
 
 ### 1. Backend
@@ -77,15 +77,19 @@ cd cityscope-backend
 npm install
 cp .env.example .env          # set DATABASE_URL, PORT=3001, CORS_ORIGIN (and CITYSCOPE_DB_TARGET=local if DATABASE_URL is a local database)
 
-# schema + data
-npm run seed:cities                     # seed the 8 city records
-npm run migrate -- 002-add-poi-geometry.sql   # add geom column + GiST indexes
-npm run fetch:pois -- berlin            # fetch POIs from Overpass (repeat per city)
-npm run seed:all                        # load districts + POIs into the DB
+# schema, once, on an empty database
+psql -c "CREATE DATABASE cityscope;"
+psql -d cityscope -f src/scripts/setup-db.sql          # PostGIS + the cities, districts and pois tables
+npm run migrate -- 001-add-cities.sql
+npm run migrate -- 002-add-poi-geometry.sql           # geom column + GiST indexes
+npm run migrate -- 003-repair-district-outlines.sql
+
+# data
+npm run seed:all                        # cities, districts and POIs from the committed files
 
 npm run dev                   # http://localhost:3001
 ```
-> The repo ships pre-fetched `pois-data-*.json` for all cities, so you can skip `fetch:pois` and go straight to `seed:all`.
+> The repo ships pre-fetched `pois-data-*.json` for all cities, so `seed:all` works straight away. To refresh a city from OpenStreetMap first, run `npm run fetch:pois -- <city>`.
 
 **`CITYSCOPE_DB_TARGET`.** The scripts that write to a database (`migrate`, `seed`, `seed:cities`, `seed:pois`, `seed:parks`, `seed:all`, `reach:build`, `reach:calibrate`, `reach:publish`, `reach:check-gp`) refuse to run unless this holds a non-empty label of your choosing (`local`, `reach-dev`, `production`), and they print it with the database host before connecting, as `Writing to local (localhost:5432)`. The label is only what you typed: nothing checks it against `DATABASE_URL`, so the printed host is the part to read. For a local database, `CITYSCOPE_DB_TARGET=local` can stay in `.env`, as long as that file's `DATABASE_URL` really is a local database. For any other target, set it on the command line for that run (`CITYSCOPE_DB_TARGET=production npm run ...`) and keep it out of `.env`. `reach:build --dry-run` writes nothing and doesn't need it.
 
@@ -146,6 +150,7 @@ City-scoped routes (`:cityId` e.g. `berlin`):
 | GET  | `/api/cities/:cityId/districts/:id/stats` | Live district statistics (PostGIS) |
 | GET  | `/api/cities/:cityId/pois` | POI records for a city |
 | POST | `/api/cities/:cityId/pois/within` | Count POIs inside a drawn polygon (`ST_Within`) |
+| POST | `/api/cities/:cityId/pois/in-isochrone` | The places inside each band of an isochrone, joined server-side with `ST_Within` per contour, so the browser never downloads the whole POI set |
 | GET  | `/api/cities/:cityId/reach` | Everyday reach for a whole city: one precomputed GeoJSON of populated H3 blocks with their estimated residents and walking distance to the nearest of six everyday needs, and how it was measured (`meta.method`: `network` or `estimate`). Brotli-compressed when the client accepts it, with an `ETag` (`304` when unchanged); `404` until the city has been published |
 | GET  | `/api/cities/:cityId/reach/:cellId` | One block's residents and, for each need, its nearest place (name, category, coordinates, metres, estimated minutes rounded up, so they agree with the map's colour) and the walk there along the streets as `[lng, lat]` pairs (`null` for a straight-line build). `400` for a malformed cell id, `404` for an unknown cell |
 | GET  | `/health` | Keep-warm target; answers without touching the database |
@@ -231,4 +236,4 @@ Population data: Schiavina, Freire, Carioli, MacManus (2023), *GHS-POP R2023A*, 
 
 ## License
 
-The code is MIT. The OpenStreetMap-derived data files, the committed `cityscope-backend/src/scripts/pois-data*.json` and the park files `fetch:parks` writes, are © OpenStreetMap contributors under the [ODbL](https://opendatacommons.org/licenses/odbl/), not MIT. GHSL population data is CC BY 4.0, as cited above.
+The code is MIT ([LICENSE](LICENSE)). The OpenStreetMap-derived data files, the committed `cityscope-backend/src/scripts/pois-data*.json` and the park files `fetch:parks` writes, are © OpenStreetMap contributors under the [ODbL](https://opendatacommons.org/licenses/odbl/), not MIT. GHSL population data is CC BY 4.0, as cited above.
