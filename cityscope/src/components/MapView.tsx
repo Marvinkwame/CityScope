@@ -62,6 +62,7 @@ import {
   REACH_SELECTED_CASING_LAYER_ID,
   REACH_SELECTED_LAYER_ID,
   REACH_LINKS_SOURCE_ID,
+  REACH_LINKS_CASING_LAYER_ID,
   REACH_LINKS_LAYER_ID,
   FEATURE_TYPE_PRIORITY,
   classifyLayerId,
@@ -71,6 +72,7 @@ import {
   INK,
   REACH_FILL_OPACITY,
   REACH_SELECTION,
+  REACH_WALK,
   ROLE,
   SURFACE,
   heatmapColorExpression,
@@ -945,7 +947,9 @@ function MapView() {
   }, [reachEnabled, reachCard, reachPayload, reachK, reachSelectedCell, reachMinutes, reachNeeds]);
   const linksVisible = reachLayerVisibility({ enabled: reachEnabled, ready: reachReady, is3D }).selection;
 
-  // The dashed lines, drawn in the answer colour above the context layers.
+  // The walks: dashed answer-colour lines above the context layers, each over a
+  // dark casing so it reads on every block class. Both go just under the first
+  // label, the casing first, so the line lands on top of it.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
@@ -958,11 +962,25 @@ function MapView() {
       map.addSource(REACH_LINKS_SOURCE_ID, { type: 'geojson', data });
       map.addLayer(
         {
+          id: REACH_LINKS_CASING_LAYER_ID,
+          type: 'line',
+          source: REACH_LINKS_SOURCE_ID,
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: {
+            'line-color': REACH_WALK.casing,
+            'line-width': 5,
+          },
+        },
+        answerBeforeId(map.getStyle().layers),
+      );
+      map.addLayer(
+        {
           id: REACH_LINKS_LAYER_ID,
           type: 'line',
           source: REACH_LINKS_SOURCE_ID,
+          layout: { 'line-join': 'round' },
           paint: {
-            'line-color': ROLE.answer,
+            'line-color': REACH_WALK.line,
             'line-width': 2,
             'line-dasharray': [2, 1],
           },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { REACH_CLASS, REACH_FILL_OPACITY, REACH_SELECTION, SURFACE } from './theme';
+import { REACH_CLASS, REACH_FILL_OPACITY, REACH_SELECTION, REACH_WALK, SURFACE } from './theme';
 
 type Rgb = [number, number, number];
 
@@ -45,6 +45,16 @@ describe('reach class contrast', () => {
 
   it('keeps the selection casing at least 3:1 from the strongest class', () => {
     expect(contrast(solid(REACH_SELECTION.casing), flat(REACH_CLASS.allMet))).toBeGreaterThanOrEqual(3);
+  });
+
+  // A walk is the answer colour, the same hue as the brightest class, so on its
+  // own it vanishes over a block where every need is met.
+  it('keeps the walk casing at least 3:1 from the strongest class', () => {
+    expect(contrast(solid(REACH_WALK.casing), flat(REACH_CLASS.allMet))).toBeGreaterThanOrEqual(3);
+  });
+
+  it('keeps the walk line at least 3:1 from its casing', () => {
+    expect(contrast(solid(REACH_WALK.line), solid(REACH_WALK.casing))).toBeGreaterThanOrEqual(3);
   });
 
   // Most blocks at 5 minutes are in the darkest class, so it must still read as

@@ -58,6 +58,13 @@ export const REACH_FILL_OPACITY = 0.9;
 /** The selected block: a gold line over an ink casing. */
 export const REACH_SELECTION = { line: ROLE.you, casing: INK } as const;
 
+/**
+ * A walk to a block's nearest place: an answer line over an ink casing. The
+ * answer colour is the brightest block class's hue, so without the casing a
+ * walk disappears over every block where all needs are met.
+ */
+export const REACH_WALK = { line: ROLE.answer, casing: INK } as const;
+
 export const PANEL_GRADIENT = `linear-gradient(180deg, ${SURFACE.panelTop} 0%, ${SURFACE.land} 100%)`;
 
 /**

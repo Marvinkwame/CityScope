@@ -50,6 +50,7 @@ export const REACH_SELECTED_SOURCE_ID = 'reach-selected-source';
 export const REACH_SELECTED_CASING_LAYER_ID = 'reach-selected-casing';
 export const REACH_SELECTED_LAYER_ID = 'reach-selected';
 export const REACH_LINKS_SOURCE_ID = 'reach-links-source';
+export const REACH_LINKS_CASING_LAYER_ID = 'reach-links-casing';
 export const REACH_LINKS_LAYER_ID = 'reach-links';
 
 export const FEATURE_TYPE_PRIORITY: Record<LayerId, number> = {
