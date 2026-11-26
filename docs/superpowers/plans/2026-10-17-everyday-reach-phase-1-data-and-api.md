@@ -43,7 +43,7 @@ All of it is developed and verified end to end on a Neon branch before productio
 - Never commit GHSL tiles, park files, NHS files or `.env.reach-dev`.
 
 **Overpass**
-- Every request sends `User-Agent: CityScope/1.0 (educational geospatial portfolio)`, or Overpass answers 406.
+- Every request sends `User-Agent: CityScope/1.0 (educational geospatial project)`, or Overpass answers 406.
 - Cities are fetched one at a time, with ≥ 30 s cooldowns.
 - Retry on 429/502/503/504.
 

@@ -9,7 +9,7 @@
 
 CityScope's question is "how dense, and how reachable, is a city?", but every tool answers it for one point at a time: a walking-time area from one origin, the 300 m spotlight around one click, one district, one drawn shape. Nothing answers it for a whole city, and nothing gives a visitor a single number to remember.
 
-The owner is job-hunting for mapping, property, logistics and urban-tech roles. The feature that best shows those skills is one that turns the existing data and PostGIS work into a city-wide answer with a measured, honestly stated error, not another single-point tool.
+CityScope grows out of an interest in mapping, property, logistics and urban technology. The most useful next feature is one that turns the existing data and PostGIS work into a city-wide answer with a measured, honestly stated error, not another single-point tool.
 
 ## Goals
 

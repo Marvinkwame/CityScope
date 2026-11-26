@@ -691,6 +691,6 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 ## Notes & deviations from the spec
 
-- **Tests:** the spec mentioned a frontend helper test, but the frontend has no test runner and the testable logic (density + percentage) now lives in the backend `statsMath` helper, which Vitest covers. Adding a whole frontend test runner is out of scope here; the frontend formatting is trivial display logic. The endpoint's spatial SQL is verified manually against seeded data (Task 3, Step 3) rather than via an automated integration test against the live Neon DB (which would be flaky and pollute the portfolio database).
+- **Tests:** the spec mentioned a frontend helper test, but the frontend has no test runner and the testable logic (density + percentage) now lives in the backend `statsMath` helper, which Vitest covers. Adding a whole frontend test runner is out of scope here; the frontend formatting is trivial display logic. The endpoint's spatial SQL is verified manually against seeded data (Task 3, Step 3) rather than via an automated integration test against the live Neon DB (which would be flaky and pollute the live database).
 - **Derived math placement:** `ST_Contains` / `ST_Area` / `GROUP BY` / the city-average baseline all run in PostGIS; only the final density division and percentage are computed in the (unit-tested) TS helper. This keeps the impressive spatial work in SQL while making the arithmetic testable without a DB.
 - **`docs/` is untracked** and has been wiped by `git clean` before — commit this plan if you want it preserved.

@@ -1,6 +1,6 @@
 # CityScope
 
-Full-stack **geospatial analytics** platform: explore urban density and reachability across **8 cities** using real OpenStreetMap data. Portfolio project (owner is job-hunting) — optimise for how it reads to recruiters/interviewers.
+Full-stack **geospatial analytics** platform: explore urban density and reachability across **8 cities** using real OpenStreetMap data, built out of an interest in maps and urban analytics. Keep the code, docs and README clear for a technical reader.
 
 > Also read your memory files (`MEMORY.md`) — they hold cross-session context on working style, dev quirks, and what's next.
 
@@ -96,6 +96,6 @@ Spec: `docs/superpowers/specs/2026-10-17-everyday-reach-design.md` (with "Amendm
 ## Working notes
 
 - The user runs their own frontend server on **:5173**, and backend CORS is pinned there — so **verify the backend with `curl` on :3001** and hand live browser checks to the user (a preview server on another port breaks CORS / `useCities`).
-- **Overpass rate-limits (429/504)** — fetch cities sequentially with cooldowns and retry. **Overpass answers 406 without a `User-Agent` header**; `src/lib/overpass.ts` sends `CityScope/1.0 (educational geospatial portfolio)` and retries 429/502/503/504, network errors and a 200 carrying a "runtime error" remark (a partial answer) with doubling waits, so go through `overpassFetch`, not a bare `fetch`. `seed:pois` and `seed:parks` refuse an empty input rather than replace a city with nothing.
+- **Overpass rate-limits (429/504)** — fetch cities sequentially with cooldowns and retry. **Overpass answers 406 without a `User-Agent` header**; `src/lib/overpass.ts` sends `CityScope/1.0 (educational geospatial project)` and retries 429/502/503/504, network errors and a 200 carrying a "runtime error" remark (a partial answer) with doubling waits, so go through `overpassFetch`, not a bare `fetch`. `seed:pois` and `seed:parks` refuse an empty input rather than replace a city with nothing.
 - All feature work through 2026-08-29 is **merged to `main`** (PR #4): district statistics, polygon draw & analyse, save & share, uncapped POI data, and the README rewrite. The old feature branches are ancestors of `main` and safe to delete. Still confirm what's on `main` vs a branch before assuming, and put new work on its own branch.
 - **Deployed:** frontend on Vercel (`city-scope-seven.vercel.app`) → API on **Render** (`cityscope-rzj5.onrender.com`) → Neon PostGIS. Render's free tier cold-starts at ~8–9 s after idle (warm calls are 300–700 ms), so first-load latency is a known issue, not a bug you've just introduced.
