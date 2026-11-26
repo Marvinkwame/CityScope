@@ -2,6 +2,7 @@ import {
   DISTRICT_FILL_LAYER_ID,
   ISOCHRONE_FILL_LAYER_ID,
   ISOCHRONE_LINE_LAYER_ID,
+  REACH_LINKS_CASING_LAYER_ID,
   REACH_LINKS_LAYER_ID,
   ROUTE_LAYER_ID,
 } from '../constants/layerConfig';
@@ -23,8 +24,8 @@ import {
  * readable over the blocks). `reachBeforeId` slots them under the district fill,
  * and they are left out of ANSWER_LAYER_IDS, so district layers added later
  * still land above them through `contextBeforeId`. They also sit beneath the
- * isochrone and route. The lines to the selected block's nearest places are an
- * ordinary answer layer.
+ * isochrone and route. The walks to the selected block's nearest places, each a
+ * line over a dark casing, are ordinary answer layers.
  *
  * Pure: takes the `map.getStyle().layers` array, never touches the map.
  */
@@ -34,12 +35,14 @@ type StackLayer = { id: string; type: string };
 
 /**
  * The analysis-result layers: the isochrone fill and line, the route, and the
- * lines to the selected reach block's nearest places.
+ * walks to the selected reach block's nearest places (the casing first, as it
+ * sits beneath the walk).
  */
 export const ANSWER_LAYER_IDS: ReadonlyArray<string> = [
   ISOCHRONE_FILL_LAYER_ID,
   ISOCHRONE_LINE_LAYER_ID,
   ROUTE_LAYER_ID,
+  REACH_LINKS_CASING_LAYER_ID,
   REACH_LINKS_LAYER_ID,
 ];
 

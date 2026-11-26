@@ -7,6 +7,7 @@ import {
   ISOCHRONE_LINE_LAYER_ID,
   REACH_EXTRUSION_LAYER_ID,
   REACH_FILL_LAYER_ID,
+  REACH_LINKS_CASING_LAYER_ID,
   REACH_LINKS_LAYER_ID,
   ROUTE_LAYER_ID,
 } from '../constants/layerConfig';
@@ -74,5 +75,18 @@ describe('everyday reach layer order', () => {
     expect(ANSWER_LAYER_IDS).toContain(REACH_LINKS_LAYER_ID);
     expect(ANSWER_LAYER_IDS).not.toContain(REACH_FILL_LAYER_ID);
     expect(ANSWER_LAYER_IDS).not.toContain(REACH_EXTRUSION_LAYER_ID);
+  });
+
+  it('counts the walk casing as an answer, listed before the walk it sits under', () => {
+    expect(ANSWER_LAYER_IDS).toContain(REACH_LINKS_CASING_LAYER_ID);
+    expect(ANSWER_LAYER_IDS.indexOf(REACH_LINKS_CASING_LAYER_ID)).toBeLessThan(
+      ANSWER_LAYER_IDS.indexOf(REACH_LINKS_LAYER_ID),
+    );
+  });
+
+  it('puts context added later beneath the walk casing', () => {
+    const casing = { id: REACH_LINKS_CASING_LAYER_ID, type: 'line' };
+    const walk = { id: REACH_LINKS_LAYER_ID, type: 'line' };
+    expect(contextBeforeId([background, road, casing, walk, label])).toBe(REACH_LINKS_CASING_LAYER_ID);
   });
 });
