@@ -142,7 +142,7 @@ City-scoped routes (`:cityId` e.g. `berlin`):
 | GET  | `/api/cities/:cityId/reach/:cellId` | One block's residents and, for each need, its nearest place (name, category, coordinates, metres, estimated minutes rounded up, so they agree with the map's colour) and the walk there along the streets as `[lng, lat]` pairs (`null` for a straight-line build). `400` for a malformed cell id, `404` for an unknown cell |
 | GET  | `/health` | Keep-warm target; answers without touching the database |
 
-The Everyday reach map layer reads these two endpoints: the city's payload the first time the layer is switched on, and a block's card when that block is selected. All eight cities are live on the deployed API, loaded on 2026-11-06 with the straight-line version, each matching the local test run block for block. The street version, built and measured locally on 2026-11-21, replaces it city by city once this version of the frontend is deployed.
+The Everyday reach map layer reads these two endpoints: the city's payload the first time the layer is switched on, and a block's card when that block is selected. All eight cities are live on the deployed API measured along the streets, switched on 2026-11-24 (Sydney) and 2026-11-26 (the rest), each matching the local build block for block; each city's map was unavailable for 18–51 seconds during its switch. The straight-line version they replaced had been live since 2026-11-06.
 
 ---
 
