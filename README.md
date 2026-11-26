@@ -4,6 +4,10 @@
 
 🔗 **[Live Demo](https://city-scope-seven.vercel.app)** &nbsp;·&nbsp; [Frontend](cityscope/) &nbsp;·&nbsp; [Backend](cityscope-backend/)
 
+![Everyday reach in Munich: blocks shaded by how many of six everyday needs lie within 10 minutes' walk, with one block selected and its walks to the nearest school and park drawn along the streets](docs/images/everyday-reach-munich.png)
+
+*Everyday reach in Munich at 10 minutes. Each block is shaded by how many of six everyday needs are within reach, and the selected block's walks to its nearest school and park follow the streets.*
+
 ---
 
 ## What it does
@@ -21,6 +25,10 @@ Real OpenStreetMap POI data (about 242,000 places across **8 cities**, 232,620 o
 | **Geocoding Search** | Debounced search for addresses / landmarks worldwide, biased to the active city. Fly-to + pin. |
 | **Save & Share** | The full view — city, camera, layers, 3D, the active analysis tool with its inputs, and Everyday reach's time, needs and selected block — serialises to a base64url **URL hash**, so any configured view is a shareable, restorable link. |
 | **Layers, 3D & Multi-city** | Toggle roads / buildings / districts / heatmap, and Everyday reach as a fifth switch with its own panel; extrude buildings in 3D; switch between 8 cities. |
+
+![New York in 3D: each populated block rises by its estimated residents and is shaded by how many of the six needs lie within 15 minutes' walk](docs/images/everyday-reach-new-york-3d.png)
+
+*New York in 3D at 15 minutes. Each block rises by its estimated residents: Manhattan's stand tallest, and the darker blocks in Queens are missing one need or more.*
 
 Responsive down to a mobile bottom-sheet layout.
 
@@ -205,7 +213,11 @@ The three blocks the straight line got most wrong in the 2026-11-06 calibration 
 By street, no held-out block has more than 3 of its 24 checks wrong, and ten blocks in six cities have 3. Two in Paris show where walking the map's streets still breaks:
 
 - **Paris**, block `891fb46296fffff` (48.84586, 2.27454): 3 of 24 wrong. The block's nearest walkable point is on a paved pedestrian area beside the Seine, which OpenStreetMap maps as an outline (`highway=pedestrian`, `area=yes`). The network can only walk round an outline, not across it, so every walk from the block follows it about 400 m before meeting a street, and the nearest doctor, pharmacy and school come out at about 1 km (11–12 minutes), though the closest of each is 200–380 m away in a straight line. Mapbox reached them within 10 minutes. [Open at 10 minutes](https://city-scope-seven.vercel.app/#s=eyJ2IjoxLCJjaXR5IjoicGFyaXMiLCJ2aWV3Ijp7ImxuZyI6Mi4yNzQ1NCwibGF0Ijo0OC44NDU4Niwiem9vbSI6MTUsImJlYXJpbmciOjAsInBpdGNoIjowfSwibGF5ZXJzIjp7InJvYWRzIjp0cnVlLCJidWlsZGluZ3MiOnRydWUsImRpc3RyaWN0cyI6ZmFsc2UsImhlYXRtYXAiOmZhbHNlfSwiaXMzRCI6ZmFsc2UsInJlYWNoIjp7InQiOjEwLCJuIjpbInNtIiwicGgiLCJkciIsInNjIiwicGsiLCJzdCJdLCJjIjoiODkxZmI0NjI5NmZmZmZmIn19)
+
+  ![The Paris block by the Seine at 15 minutes: every walk first follows the outline of a paved riverside area south-west before turning back towards its place](docs/images/where-it-breaks-paris-seine.png)
 - **Paris**, block `891fb46708fffff` (48.84489, 2.31610): 3 of 24 wrong. Its nearest park by street is Jardin Atlantique, the garden built over the tracks of Gare Montparnasse. The walk reaches it along a footway mapped on the garden's level (806 m, under 9 minutes); Mapbox's walks didn't reach it even within 15. One of the two networks has the way up wrong, and this data can't say which. [Open at 10 minutes](https://city-scope-seven.vercel.app/#s=eyJ2IjoxLCJjaXR5IjoicGFyaXMiLCJ2aWV3Ijp7ImxuZyI6Mi4zMTYxLCJsYXQiOjQ4Ljg0NDg5LCJ6b29tIjoxNSwiYmVhcmluZyI6MCwicGl0Y2giOjB9LCJsYXllcnMiOnsicm9hZHMiOnRydWUsImJ1aWxkaW5ncyI6dHJ1ZSwiZGlzdHJpY3RzIjpmYWxzZSwiaGVhdG1hcCI6ZmFsc2V9LCJpczNEIjpmYWxzZSwicmVhY2giOnsidCI6MTAsIm4iOlsic20iLCJwaCIsImRyIiwic2MiLCJwayIsInN0Il0sImMiOiI4OTFmYjQ2NzA4ZmZmZmYifX0)
+
+  ![The Paris block near Gare Montparnasse at 15 minutes: the walk to Jardin Atlantique, the garden over the station's tracks, runs along Boulevard de Vaugirard](docs/images/where-it-breaks-paris-jardin-atlantique.png)
 
 **Blocks far from any street.** A block's walk starts at its nearest street node, and the join counts as walking. In seven cities under 0.5% of residents live in blocks more than 150 m from one. Amsterdam has 3.5%, most of them in the Westpoort port, where GHSL's modelled grid puts about 27,600 residents on industrial land with no public streets to walk.
 
