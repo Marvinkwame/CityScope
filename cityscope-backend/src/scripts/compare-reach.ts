@@ -98,9 +98,13 @@ async function main(): Promise<void> {
     usage();
   }
 
+  const beforeFile =
+    parsed.beforePath !== null ? path.resolve(parsed.beforePath) : path.join(BEFORE_DIR, `${city.id}.json`);
+
   console.error(`Reading from ${describeDatabase(process.env.DATABASE_URL)}`);
+  console.error(`Before: ${beforeFile}`);
   try {
-    const before = readBefore(parsed.beforePath ? path.resolve(parsed.beforePath) : path.join(BEFORE_DIR, `${city.id}.json`), city.id);
+    const before = readBefore(beforeFile, city.id);
     const after = await readAfter(city.id);
     const c = compareReach(before, after);
 

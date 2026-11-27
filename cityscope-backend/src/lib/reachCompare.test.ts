@@ -100,5 +100,6 @@ describe('parseCompareArgs', () => {
     expect(parseCompareArgs([])).toBeNull();
     expect(parseCompareArgs(['--before', 'x.json'])).toBeNull();
     expect(parseCompareArgs(['berlin', '--before'])).toBeNull();
+    expect(parseCompareArgs(['berlin', '--before', ''])).toBeNull();
   });
 });

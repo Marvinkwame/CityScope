@@ -131,6 +131,6 @@ export function parseCompareArgs(argv: readonly string[]): { cityId: string; bef
   const [cityId, flag, value, ...rest] = argv;
   if (cityId === undefined || cityId.startsWith('--')) return null;
   if (flag === undefined) return { cityId, beforePath: null };
-  if (flag !== '--before' || value === undefined || value.startsWith('--') || rest.length > 0) return null;
+  if (flag !== '--before' || value === undefined || value === '' || value.startsWith('--') || rest.length > 0) return null;
   return { cityId, beforePath: value };
 }
