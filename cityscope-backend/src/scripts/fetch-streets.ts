@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { CITY_CONFIGS } from '../config/cities.js';
 import { overpassFetch } from '../lib/overpass.js';
 import { osmBaseOf, streetsRecordName, writeFetchRecord } from '../lib/sourceDates.js';
-import { StreetsCollector, buildStreetQuery, tilesOf } from '../lib/streets.js';
+import { StreetsCollector, buildStreetQuery, isOverpassDate, tilesOf } from '../lib/streets.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -19,7 +19,7 @@ function pause(ms: number): Promise<void> {
 }
 
 function usage(): never {
-  console.error('Usage: tsx fetch-streets.ts <cityId> [--tile <degrees>]');
+  console.error('Usage: tsx fetch-streets.ts <cityId> [--tile <degrees>] [--date <YYYY-MM-DDTHH:MM:SSZ>]');
   console.error('Available cities:', CITY_CONFIGS.map((c) => c.id).join(', '));
   process.exit(1);
 }
@@ -39,6 +39,16 @@ async function fetchStreets() {
     }
   }
 
+  let date: string | undefined;
+  const dateFlag = args.indexOf('--date');
+  if (dateFlag !== -1) {
+    date = args[dateFlag + 1];
+    if (date === undefined || !isOverpassDate(date)) {
+      console.error('--date needs a UTC time like 2026-11-21T02:08:48Z');
+      process.exit(1);
+    }
+  }
+
   const cityConfig = CITY_CONFIGS.find((c) => c.id === cityId);
   if (!cityConfig) {
     console.error(`Unknown city: ${cityId}`);
@@ -49,22 +59,29 @@ async function fetchStreets() {
   // edge and use streets just beyond it.
   const tiles = tilesOf(cityConfig.fetchBounds, tileDegrees);
   console.log(
-    `Fetching streets for ${cityConfig.name} from Overpass API: ${tiles.length} tiles of ${tileDegrees} degrees...`,
+    `Fetching streets for ${cityConfig.name} from Overpass API: ${tiles.length} tiles of ${tileDegrees} degrees${date ? ` as of ${date}` : ''}...`,
   );
 
   const collector = new StreetsCollector();
   let fetchedAt = new Date().toISOString();
-  let osmBase: string | null = null;
+  // A dated download is the map as of that date; otherwise Overpass's own base is the server's current state.
+  let osmBase: string | null = date ?? null;
+  let areaTotal = 0;
+  let privateTotal = 0;
 
   for (const [i, tile] of tiles.entries()) {
     if (i > 0) await pause(PAUSE_BETWEEN_TILES_MS);
-    const data = await overpassFetch(buildStreetQuery(tile));
+    const data = await overpassFetch(buildStreetQuery(tile, date));
     fetchedAt = new Date().toISOString();
     const base = osmBaseOf(data);
     // ISO 8601 timestamps in one format sort as text; keep the oldest.
-    if (base !== null && (osmBase === null || base < osmBase)) osmBase = base;
-    const { ways, kept } = collector.addOverpassAnswer(data);
-    console.log(`Tile ${i + 1}/${tiles.length}: ${ways} ways, ${kept} kept`);
+    if (date === undefined && base !== null && (osmBase === null || base < osmBase)) osmBase = base;
+    const { ways, kept, areas, footPrivate } = collector.addOverpassAnswer(data);
+    areaTotal += areas;
+    privateTotal += footPrivate;
+    console.log(
+      `Tile ${i + 1}/${tiles.length}: ${ways} ways, ${kept} kept, ${areas} areas, ${footPrivate} foot=private dropped`,
+    );
   }
 
   const file = collector.toFile();
@@ -76,6 +93,7 @@ async function fetchStreets() {
   const outputPath = path.join(DATA_DIR, `streets-${cityId}.json`);
   writeFileSync(outputPath, JSON.stringify(file));
   console.log(`Saved ${file.ways.length} ways and ${file.nodeCount} nodes to ${outputPath}`);
+  console.log(`${areaTotal} walkable areas, ${privateTotal} foot=private ways dropped`);
 
   // When the streets were fetched, and the OSM database state they come from,
   // beside the streets file (git-ignored with it).
