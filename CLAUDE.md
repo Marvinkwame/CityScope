@@ -9,7 +9,7 @@ Full-stack **geospatial analytics** platform: explore urban density and reachabi
 ```
 cityscope/           # Frontend — Vite dev server on :5173
 cityscope-backend/   # Backend — Express on :3001
-docs/superpowers/    # specs + plans (tracked on main — keep committing them; a git clean wiped them once)
+docs/superpowers/    # specs + plans: local only, git-ignored — never commit them (git clean -x would delete them, and a git clean wiped them once)
 ```
 
 ## Tech stack
@@ -88,7 +88,7 @@ Spec: `docs/superpowers/specs/2026-10-17-everyday-reach-design.md` (with "Amendm
 - Strict TypeScript, **no `any`**; type-only imports use `import type`; NodeNext ESM on the backend means relative imports carry a `.js` extension.
 - MUI `sx` styling; dark "cartographer's instrument" theme with three colour roles in `cityscope/src/theme.ts`: `ROLE.you` gold (what the user did — pins, drawn areas, selection, actions), `ROLE.answer` cyan (analysis results), `ROLE.context` warm white (heatmap, district lines). **No colour literals outside `theme.ts`** — use a token, or `alpha()`/`darken()` on one; `cityscope/src/colourGuard.test.ts` fails `npm test` otherwise (plain white and black are allowed).
 - **Commits: granular, one concern each, NO `Co-Authored-By` trailer.** One concern per branch. The user usually commits themselves.
-- New features: brainstorm → spec (`docs/superpowers/specs/`) → plan (`docs/superpowers/plans/`) → subagent-driven execution.
+- New features: brainstorm → spec (`docs/superpowers/specs/`) → plan (`docs/superpowers/plans/`) → subagent-driven execution. Specs and plans stay local (git-ignored): never commit them, and never link to them from the README or code.
 
 ## Environment
 
