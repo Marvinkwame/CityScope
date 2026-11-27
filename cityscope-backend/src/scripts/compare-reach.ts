@@ -5,7 +5,8 @@
 // data/reach-before/<cityId>.json. "After" is the payload in reach_payloads
 // (Brotli-compressed), read inside a read-only transaction. Nothing is written.
 //
-// Usage: tsx src/scripts/compare-reach.ts <cityId>
+// Usage: tsx src/scripts/compare-reach.ts <cityId> [--before <payload.json>]
+// --before reads the before payload from that file instead of the default.
 // Check the printed database host: .env points at production.
 
 import { readFileSync } from 'node:fs';
@@ -15,14 +16,14 @@ import { brotliDecompressSync } from 'node:zlib';
 import { CITY_CONFIGS } from '../config/cities.js';
 import pool from '../db.js';
 import { describeDatabase } from '../lib/dbTarget.js';
-import { compareReach } from '../lib/reachCompare.js';
+import { compareReach, parseCompareArgs } from '../lib/reachCompare.js';
 import type { ReachPayload } from '../lib/reachPayload.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BEFORE_DIR = path.resolve(__dirname, '../../data/reach-before');
 
 function usage(): never {
-  console.error('Usage: tsx src/scripts/compare-reach.ts <cityId>');
+  console.error('Usage: tsx src/scripts/compare-reach.ts <cityId> [--before <payload.json>]');
   console.error('Available cities:', CITY_CONFIGS.map((c) => c.id).join(', '));
   process.exit(1);
 }
@@ -44,8 +45,7 @@ function parsePayload(text: string, what: string): ReachPayload {
   return parsed;
 }
 
-function readBefore(cityId: string): ReachPayload {
-  const file = path.join(BEFORE_DIR, `${cityId}.json`);
+function readBefore(file: string, cityId: string): ReachPayload {
   let text: string;
   try {
     text = readFileSync(file, 'utf8');
@@ -90,16 +90,17 @@ const pctRange = (h: { k: number; low: number; high: number }): string =>
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
-  if (args.length !== 1 || args[0].startsWith('--')) usage();
-  const city = CITY_CONFIGS.find((c) => c.id === args[0]);
+  const parsed = parseCompareArgs(args);
+  if (!parsed) usage();
+  const city = CITY_CONFIGS.find((c) => c.id === parsed.cityId);
   if (!city) {
-    console.error(`Unknown city: ${args[0]}`);
+    console.error(`Unknown city: ${parsed.cityId}`);
     usage();
   }
 
   console.error(`Reading from ${describeDatabase(process.env.DATABASE_URL)}`);
   try {
-    const before = readBefore(city.id);
+    const before = readBefore(parsed.beforePath ? path.resolve(parsed.beforePath) : path.join(BEFORE_DIR, `${city.id}.json`), city.id);
     const after = await readAfter(city.id);
     const c = compareReach(before, after);
 
