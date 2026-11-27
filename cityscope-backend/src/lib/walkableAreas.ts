@@ -54,10 +54,18 @@ function insideOutline(p: Pt, edges: ReadonlyArray<readonly [Pt, Pt]>): boolean 
 }
 
 export function areaCrossings(file: StreetsFile): { pairs: [number, number][]; areas: number; skipped: number } {
-  // How many distinct ways use each node.
-  const usage = new Map<number, number>();
-  for (const way of file.ways) {
-    for (const node of new Set(way)) usage.set(node, (usage.get(node) ?? 0) + 1);
+  if (file.areas.length === 0) return { pairs: [], areas: 0, skipped: 0 };
+
+  // How many distinct ways use each node, saturating at 2 (an entrance needs two).
+  const usage = new Uint8Array(file.nodeCount);
+  const lastWay = new Int32Array(file.nodeCount).fill(-1);
+  for (let w = 0; w < file.ways.length; w++) {
+    for (const node of file.ways[w]) {
+      // Count a way once per node, however often it repeats the node.
+      if (lastWay[node] === w) continue;
+      lastWay[node] = w;
+      if (usage[node] < 2) usage[node]++;
+    }
   }
 
   const found = new Map<number, Set<number>>();
@@ -70,7 +78,7 @@ export function areaCrossings(file: StreetsFile): { pairs: [number, number][]; a
       skipped++;
       continue;
     }
-    const entrances = outline.filter((n) => (usage.get(n) ?? 0) >= 2);
+    const entrances = outline.filter((n) => usage[n] >= 2);
     if (entrances.length === 0) continue;
 
     let latSum = 0;

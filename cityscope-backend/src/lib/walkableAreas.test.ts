@@ -83,6 +83,10 @@ describe('areaCrossings', () => {
     expect(areaCrossings({ ...square, areas: [] }).pairs).toEqual([]);
   });
 
+  it('returns an empty result for a file with ways but no areas', () => {
+    expect(areaCrossings({ ...squareTwoEntrances, areas: [] })).toEqual({ pairs: [], areas: 0, skipped: 0 });
+  });
+
   it('finds no entrance on an area no other way touches', () => {
     expect(areaCrossings({ ...square, ways: [[0, 1, 2, 3, 0]] }).pairs).toEqual([]);
   });
