@@ -160,6 +160,18 @@ describe('StreetsCollector', () => {
     expect(f.areas).toEqual([1]); // way 30 sorts after way 20
   });
 
+  it('does not count foot=private on a way that access already closed', () => {
+    const c = new StreetsCollector();
+    const counts = c.addOverpassAnswer(
+      answer([
+        way(1, [1, 2], { highway: 'footway', foot: 'private', access: 'private' }),
+        way(2, [3, 4], { highway: 'footway', foot: 'private', access: 'no' }),
+      ]),
+    );
+    expect(counts).toEqual({ ways: 2, kept: 0, areas: 0, footPrivate: 0 });
+    expect(c.toFile().ways).toHaveLength(0);
+  });
+
   it('rejects an answer with no elements array', () => {
     expect(() => new StreetsCollector().addOverpassAnswer({})).toThrow();
   });

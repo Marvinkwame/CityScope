@@ -64,7 +64,7 @@ export function isWalkableArea(tags: Readonly<Record<string, string>>, nodeIds: 
 export function isOverpassDate(value: string): boolean {
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/.exec(value);
   if (match === null) return false;
-  const [, y, mo, d, h, mi, sec] = match.map(Number);
+  const [y, mo, d, h, mi, sec] = match.slice(1).map(Number);
   const date = new Date(Date.UTC(y, mo - 1, d, h, mi, sec));
   return (
     date.getUTCFullYear() === y &&
@@ -169,6 +169,15 @@ function round7(value: number): number {
   return Math.round(value * 1e7) / 1e7;
 }
 
+/** The tags without `foot`: what the rules, as they were before foot=private closed a way, would have made of the way. */
+function withoutFoot(tags: Readonly<Record<string, string>>): Record<string, string> {
+  const rest: Record<string, string> = {};
+  for (const [key, value] of Object.entries(tags)) {
+    if (key !== 'foot') rest[key] = value;
+  }
+  return rest;
+}
+
 /** Collects the tiles' answers into one network. */
 export class StreetsCollector {
   private readonly nodes = new Map<number, [number, number]>();
@@ -194,7 +203,7 @@ export class StreetsCollector {
       ways += 1;
       if (way.nodes.length < 2) continue;
       if (!isWalkable(way.tags)) {
-        if (way.tags.foot === 'private' && isWalkable({ ...way.tags, foot: 'yes' }) && !this.privateWays.has(way.id)) {
+        if (way.tags.foot === 'private' && isWalkable(withoutFoot(way.tags)) && !this.privateWays.has(way.id)) {
           this.privateWays.add(way.id);
           footPrivate += 1;
         }
