@@ -48,6 +48,8 @@ npm run reach:publish -- <city>     # compress the city's payload into reach_pay
 npm run reach:compare -- <city>     # read-only: one README row, data/reach-before/<city>.json vs the published payload
 ```
 
+**CI:** `.github/workflows/ci.yml` runs on every pull request and every push to `main`, on Node 22: frontend `npm ci`, `lint`, `test`, `build`; backend `npm ci`, `build`, `typecheck:scripts`, `test`. No test may need a database, a token or a git-ignored data file, or CI fails.
+
 ## Architecture
 
 - **Map isolation:** ALL Mapbox source/layer/control/marker mutations live in `cityscope/src/components/MapView.tsx` and react to store changes via `useEffect`. UI writes to Zustand stores; the map reads from them.
