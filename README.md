@@ -1,5 +1,7 @@
 # CityScope
 
+[![CI](https://github.com/Marvinkwame/CityScope/actions/workflows/ci.yml/badge.svg)](https://github.com/Marvinkwame/CityScope/actions/workflows/ci.yml)
+
 **A full-stack geospatial analytics platform for exploring urban density and reachability** — see how close every block of eight cities lives to six everyday needs, walked along the real streets, then draw custom areas, run walk-time isochrones, click districts for on-the-fly statistics, and share any view via a link. Powered by real OpenStreetMap data, **PostGIS** spatial queries, and Mapbox GL JS.
 
 🔗 **[Live Demo](https://city-scope-seven.vercel.app)** &nbsp;·&nbsp; [Frontend](cityscope/) &nbsp;·&nbsp; [Backend](cityscope-backend/)
@@ -136,6 +138,8 @@ npm run dev                   # http://localhost:5173
 ```bash
 npm test    # Vitest — in both cityscope/ and cityscope-backend/
 ```
+
+GitHub Actions ([`ci.yml`](.github/workflows/ci.yml)) runs on every pull request and every push to `main`: lint, tests and a production build for the frontend; a build, a type-check of the scripts and tests for the backend. None of it needs a database or a token.
 
 ---
 
