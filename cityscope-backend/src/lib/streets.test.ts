@@ -3,7 +3,9 @@ import {
   WALKABLE_HIGHWAYS,
   StreetsCollector,
   buildStreetQuery,
+  isOverpassDate,
   isWalkable,
+  isWalkableArea,
   parseStreetsFile,
   tilesOf,
 } from './streets';
@@ -40,6 +42,33 @@ describe('isWalkable', () => {
     expect(isWalkable({ highway: 'track', access: 'no', foot: 'designated' })).toBe(true);
     expect(isWalkable({ highway: 'construction' })).toBe(false);
     expect(isWalkable({ route: 'ferry' })).toBe(false);
+  });
+});
+
+describe('foot=private, walkable areas and dates', () => {
+  it('closes a way tagged foot=private, whatever access says', () => {
+    expect(isWalkable({ highway: 'footway', foot: 'private' })).toBe(false);
+    expect(isWalkable({ highway: 'footway', foot: 'private', access: 'yes' })).toBe(false);
+    expect(isWalkable({ highway: 'footway', access: 'private', foot: 'yes' })).toBe(true);
+  });
+  it('recognises a walkable area: walkable, area=yes, closed, four or more entries', () => {
+    expect(isWalkableArea({ highway: 'pedestrian', area: 'yes' }, [1, 2, 3, 1])).toBe(true);
+    expect(isWalkableArea({ highway: 'pedestrian', area: 'yes' }, [1, 2, 1])).toBe(false);
+    expect(isWalkableArea({ highway: 'pedestrian', area: 'yes' }, [1, 2, 3, 4])).toBe(false);
+    expect(isWalkableArea({ highway: 'pedestrian' }, [1, 2, 3, 1])).toBe(false);
+    expect(isWalkableArea({ highway: 'motorway', area: 'yes' }, [1, 2, 3, 1])).toBe(false);
+    expect(isWalkableArea({ highway: 'footway', area: 'yes', foot: 'private' }, [1, 2, 3, 1])).toBe(false);
+  });
+  it('accepts only full UTC timestamps as an Overpass date', () => {
+    expect(isOverpassDate('2026-11-21T02:08:48Z')).toBe(true);
+    expect(isOverpassDate('2026-11-21')).toBe(false);
+    expect(isOverpassDate('2026-11-21T02:08:48.123Z')).toBe(false);
+    expect(isOverpassDate('yesterday')).toBe(false);
+  });
+  it('dates the query when asked, and leaves it as it was otherwise', () => {
+    const tile = { south: 52.4, west: 13.3, north: 52.5, east: 13.4 };
+    expect(buildStreetQuery(tile, '2026-11-21T02:08:48Z')).toContain('[date:"2026-11-21T02:08:48Z"]');
+    expect(buildStreetQuery(tile)).not.toContain('[date:');
   });
 });
 
@@ -108,10 +137,27 @@ describe('StreetsCollector', () => {
     const counts = c.addOverpassAnswer(
       answer([way(1, [1, 2]), way(2, [3, 4], { highway: 'motorway' }), way(3, [5]), { type: 'node', id: 7 }]),
     );
-    expect(counts).toEqual({ ways: 3, kept: 1 });
+    expect(counts).toEqual({ ways: 3, kept: 1, areas: 0, footPrivate: 0 });
     const f = c.toFile();
     expect(f.ways).toHaveLength(1);
     expect(f.nodeCount).toBe(2);
+  });
+
+  it('records walkable areas by index and counts foot=private drops once per way', () => {
+    const c = new StreetsCollector();
+    const elements = [
+      way(30, [1, 2, 3, 1], { highway: 'pedestrian', area: 'yes' }),
+      way(20, [3, 4]),
+      way(10, [5, 6], { highway: 'footway', foot: 'private' }),
+      way(11, [7, 8], { highway: 'motorway', foot: 'private' }),
+    ];
+    expect(c.addOverpassAnswer(answer(elements))).toEqual({ ways: 4, kept: 2, areas: 1, footPrivate: 1 });
+    // The same private way in a neighbouring tile is not counted again.
+    expect(c.addOverpassAnswer(answer(elements)).footPrivate).toBe(0);
+    const f = c.toFile();
+    expect(f.version).toBe(2);
+    expect(f.ways).toHaveLength(2);
+    expect(f.areas).toEqual([1]); // way 30 sorts after way 20
   });
 
   it('rejects an answer with no elements array', () => {
@@ -125,6 +171,22 @@ describe('parseStreetsFile', () => {
     c.addOverpassAnswer(answer([way(10, [1, 2, 3]), way(11, [3, 4])]));
     const f = c.toFile();
     expect(parseStreetsFile(JSON.stringify(f))).toEqual(f);
+  });
+
+  it('reads a version 1 file as version 2 with no areas', () => {
+    const v1 = { version: 1, nodeCount: 2, coords: [1, 2, 3, 4], ways: [[0, 1]] };
+    expect(parseStreetsFile(JSON.stringify(v1))).toEqual({ ...v1, version: 2, areas: [] });
+  });
+
+  it('validates the areas list', () => {
+    const base = { version: 2, nodeCount: 3, coords: [0, 0, 1, 0, 1, 1], ways: [[0, 1, 2, 0], [0, 1], [1, 2, 0, 1]] };
+    const parse = (areas: number[]) => parseStreetsFile(JSON.stringify({ ...base, areas }));
+    expect(parse([0]).areas).toEqual([0]);
+    expect(() => parse([3])).toThrow(/area index/);
+    expect(() => parse([-1])).toThrow(/area index/);
+    expect(() => parse([1])).toThrow(/not closed/);
+    expect(() => parse([0, 0])).toThrow(/ascending/);
+    expect(() => parse([2, 0])).toThrow(/ascending/);
   });
 
   it('throws for a bad coords length', () => {

@@ -3,7 +3,7 @@ import type { StreetsFile } from './streets';
 import { buildStreetGraph, haversineMetres } from './streetGraph';
 
 function file(points: [number, number][], ways: number[][]): StreetsFile {
-  return { version: 1, nodeCount: points.length, coords: points.flat(), ways };
+  return { version: 2, areas: [], nodeCount: points.length, coords: points.flat(), ways };
 }
 
 function neighboursOf(g: ReturnType<typeof buildStreetGraph>, node: number): number[] {

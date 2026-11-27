@@ -9,7 +9,7 @@ import type { PlaceInput } from './networkNearest';
 const M = 1 / 111_195;
 
 function file(points: [number, number][], ways: number[][]): StreetsFile {
-  return { version: 1, nodeCount: points.length, coords: points.flat(), ways };
+  return { version: 2, areas: [], nodeCount: points.length, coords: points.flat(), ways };
 }
 
 function setup(points: [number, number][], ways: number[][]) {
