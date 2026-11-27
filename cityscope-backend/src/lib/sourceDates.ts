@@ -16,7 +16,11 @@ import { readFileSync, writeFileSync } from 'node:fs';
 export interface FetchRecord {
   /** ISO 8601: a timestamp, or only a date when only the day is known. */
   fetchedAt: string | null;
-  /** ISO 8601: Overpass's `osm3s.timestamp_osm_base`, or null when unknown. */
+  /**
+   * ISO 8601: Overpass's `osm3s.timestamp_osm_base`, or null when unknown. For a
+   * dated street download (`fetch:streets --date`) it is the requested date
+   * instead, because Overpass's own base is then the server's current state.
+   */
   osmBase: string | null;
 }
 
