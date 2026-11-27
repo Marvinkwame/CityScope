@@ -41,6 +41,7 @@ import type { Box } from '../lib/population.js';
 import { buildStreetGraph } from '../lib/streetGraph.js';
 import type { StreetGraph } from '../lib/streetGraph.js';
 import { parseStreetsFile } from '../lib/streets.js';
+import { MAX_AREA_OUTLINE_NODES, areaCrossings, withCrossings } from '../lib/walkableAreas.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_GHSL_DIR = path.resolve(__dirname, '../../data/ghsl');
@@ -244,7 +245,14 @@ async function loadNetwork(cityId: string): Promise<Network> {
     }
     throw err;
   }
-  const graph = buildStreetGraph(parseStreetsFile(text));
+  const streets = parseStreetsFile(text);
+  const crossingsStartedAt = performance.now();
+  const { pairs, areas, skipped } = areaCrossings(streets);
+  console.log(
+    `Walkable areas: ${count(areas)} (${count(pairs.length)} crossings added, ` +
+      `${count(skipped)} skipped as over ${count(MAX_AREA_OUTLINE_NODES)} outline nodes) (${seconds(crossingsStartedAt)})`,
+  );
+  const graph = buildStreetGraph(withCrossings(streets, pairs));
   const index = new NodeIndex(graph);
   const share = ((graph.nodeCount / graph.fileNodeCount) * 100).toFixed(1);
   console.log(
