@@ -1,3 +1,5 @@
 .claude/
 # Brainstorming mockups from the visual companion (local only)
 .superpowers/
+# Specs and plans: kept locally, never committed
+docs/superpowers/
