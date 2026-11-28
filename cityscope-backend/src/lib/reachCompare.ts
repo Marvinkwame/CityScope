@@ -125,3 +125,12 @@ export function compareReach(before: ReachPayload, after: ReachPayload): ReachCo
     },
   };
 }
+
+/** `<cityId> [--before <payload.json>]`; null when the arguments do not fit that shape. */
+export function parseCompareArgs(argv: readonly string[]): { cityId: string; beforePath: string | null } | null {
+  const [cityId, flag, value, ...rest] = argv;
+  if (cityId === undefined || cityId.startsWith('--')) return null;
+  if (flag === undefined) return { cityId, beforePath: null };
+  if (flag !== '--before' || value === undefined || value === '' || value.startsWith('--') || rest.length > 0) return null;
+  return { cityId, beforePath: value };
+}

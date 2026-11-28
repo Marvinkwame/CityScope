@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compareReach, shareWithin } from './reachCompare';
+import { compareReach, parseCompareArgs, shareWithin } from './reachCompare';
 import type { ReachFeature, ReachPayload } from './reachPayload';
 
 function block(h: string, r: number, metres: number[]): ReachFeature {
@@ -87,5 +87,19 @@ describe('compareReach', () => {
     expect(result.baseRates).toEqual({ before: {}, after: {} });
     expect(result.agreement.before).toEqual({});
     expect(result.agreement.after[15]).toBe(0.7);
+  });
+});
+
+describe('parseCompareArgs', () => {
+  it('reads a city and an optional --before path', () => {
+    expect(parseCompareArgs(['berlin'])).toEqual({ cityId: 'berlin', beforePath: null });
+    expect(parseCompareArgs(['berlin', '--before', 'data/reach-before/street-v1/berlin.json'])).toEqual({
+      cityId: 'berlin',
+      beforePath: 'data/reach-before/street-v1/berlin.json',
+    });
+    expect(parseCompareArgs([])).toBeNull();
+    expect(parseCompareArgs(['--before', 'x.json'])).toBeNull();
+    expect(parseCompareArgs(['berlin', '--before'])).toBeNull();
+    expect(parseCompareArgs(['berlin', '--before', ''])).toBeNull();
   });
 });

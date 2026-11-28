@@ -43,11 +43,37 @@ const FOOT_OVERRIDES: ReadonlySet<string> = new Set(['yes', 'designated', 'permi
 export function isWalkable(tags: Readonly<Record<string, string>>): boolean {
   const highway = tags.highway;
   if (highway === undefined || !WALKABLE_SET.has(highway)) return false;
-  if (tags.foot === 'no') return false;
+  if (tags.foot === 'no' || tags.foot === 'private') return false;
   if ((tags.access === 'private' || tags.access === 'no') && !FOOT_OVERRIDES.has(tags.foot ?? '')) {
     return false;
   }
   return true;
+}
+
+/** Whether a way is a walkable area: walkable, `area=yes`, closed, and with four or more node entries counting the closing repeat. */
+export function isWalkableArea(tags: Readonly<Record<string, string>>, nodeIds: readonly number[]): boolean {
+  return (
+    isWalkable(tags) &&
+    tags.area === 'yes' &&
+    nodeIds.length >= 4 &&
+    nodeIds[0] === nodeIds[nodeIds.length - 1]
+  );
+}
+
+/** Whether `value` is an Overpass date as `fetch:streets --date` takes it: `YYYY-MM-DDTHH:MM:SSZ`. */
+export function isOverpassDate(value: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/.exec(value);
+  if (match === null) return false;
+  const [y, mo, d, h, mi, sec] = match.slice(1).map(Number);
+  const date = new Date(Date.UTC(y, mo - 1, d, h, mi, sec));
+  return (
+    date.getUTCFullYear() === y &&
+    date.getUTCMonth() === mo - 1 &&
+    date.getUTCDate() === d &&
+    h < 24 &&
+    mi < 60 &&
+    sec < 60
+  );
 }
 
 export interface Bounds {
@@ -81,20 +107,22 @@ export function tilesOf(bounds: Bounds, sizeDegrees: number): Bounds[] {
   return tiles;
 }
 
-/** The Overpass query for the walkable ways in one tile, with their node ids and geometry. */
-export function buildStreetQuery(tile: Bounds): string {
+/** The Overpass query for the walkable ways in one tile, with their node ids and geometry; with a `date`, the map as it was then. */
+export function buildStreetQuery(tile: Bounds, date?: string): string {
   const highways = WALKABLE_HIGHWAYS.join('|');
-  return `[out:json][timeout:180];
+  const dated = date === undefined ? '' : `[date:"${date}"]`;
+  return `[out:json][timeout:180]${dated};
 way["highway"~"^(${highways})$"](${tile.south},${tile.west},${tile.north},${tile.east});
 out body geom;`;
 }
 
-/** One city's network, compact: nodes sorted by OSM id, `coords` = [lng0, lat0, lng1, lat1, …] to 7 decimals; each way a list of node indexes, ways sorted by OSM way id. */
+/** One city's network, compact: nodes sorted by OSM id, `coords` = [lng0, lat0, lng1, lat1, …] to 7 decimals; each way a list of node indexes, ways sorted by OSM way id; `areas` lists, ascending, the indexes into `ways` of the walkable areas (closed outlines). */
 export interface StreetsFile {
-  version: 1;
+  version: 2;
   nodeCount: number;
   coords: number[];
   ways: number[][];
+  areas: number[];
 }
 
 interface Point {
@@ -141,32 +169,60 @@ function round7(value: number): number {
   return Math.round(value * 1e7) / 1e7;
 }
 
+/** The tags without `foot`: what the rules, as they were before foot=private closed a way, would have made of the way. */
+function withoutFoot(tags: Readonly<Record<string, string>>): Record<string, string> {
+  const rest: Record<string, string> = {};
+  for (const [key, value] of Object.entries(tags)) {
+    if (key !== 'foot') rest[key] = value;
+  }
+  return rest;
+}
+
 /** Collects the tiles' answers into one network. */
 export class StreetsCollector {
   private readonly nodes = new Map<number, [number, number]>();
   private readonly ways = new Map<number, number[]>();
+  private readonly areaWays = new Set<number>();
+  private readonly privateWays = new Set<number>();
 
-  /** Adds one tile's answer. `ways` counts the way elements in it, `kept` those it added: walkable, 2+ nodes, and not seen in an earlier tile. */
-  addOverpassAnswer(body: unknown): { ways: number; kept: number } {
+  /**
+   * Adds one tile's answer. `ways` counts the way elements in it, `kept` those it added: walkable, 2+ nodes, and not seen in an earlier tile.
+   * `areas` counts the kept ways that are walkable areas. `footPrivate` counts, once per way, those left out only because of `foot=private`.
+   */
+  addOverpassAnswer(body: unknown): { ways: number; kept: number; areas: number; footPrivate: number } {
     const elements = isRecord(body) ? body.elements : undefined;
     if (!Array.isArray(elements)) throw new Error('Overpass response has no elements array');
 
     let ways = 0;
     let kept = 0;
+    let areas = 0;
+    let footPrivate = 0;
     for (const element of elements) {
       const way = rawWayOf(element);
       if (way === null) continue;
       ways += 1;
-      if (!isWalkable(way.tags) || way.nodes.length < 2 || this.ways.has(way.id)) continue;
+      if (way.nodes.length < 2) continue;
+      if (!isWalkable(way.tags)) {
+        if (way.tags.foot === 'private' && isWalkable(withoutFoot(way.tags)) && !this.privateWays.has(way.id)) {
+          this.privateWays.add(way.id);
+          footPrivate += 1;
+        }
+        continue;
+      }
+      if (this.ways.has(way.id)) continue;
       way.nodes.forEach((osmId, i) => {
         if (!this.nodes.has(osmId)) {
           this.nodes.set(osmId, [round7(way.geometry[i].lon), round7(way.geometry[i].lat)]);
         }
       });
       this.ways.set(way.id, way.nodes);
+      if (isWalkableArea(way.tags, way.nodes)) {
+        this.areaWays.add(way.id);
+        areas += 1;
+      }
       kept += 1;
     }
-    return { ways, kept };
+    return { ways, kept, areas, footPrivate };
   }
 
   toFile(): StreetsFile {
@@ -178,17 +234,22 @@ export class StreetsCollector {
       const lngLat = this.nodes.get(osmId);
       if (lngLat) coords.push(lngLat[0], lngLat[1]);
     });
-    const ways = [...this.ways.entries()]
-      .sort((a, b) => a[0] - b[0])
-      .map(([, osmIds]) => osmIds.map((osmId) => indexOf.get(osmId) ?? -1));
-    return { version: 1, nodeCount: nodeIds.length, coords, ways };
+    const sorted = [...this.ways.entries()].sort((a, b) => a[0] - b[0]);
+    const ways = sorted.map(([, osmIds]) => osmIds.map((osmId) => indexOf.get(osmId) ?? -1));
+    const areas: number[] = [];
+    sorted.forEach(([wayId], index) => {
+      if (this.areaWays.has(wayId)) areas.push(index);
+    });
+    return { version: 2, nodeCount: nodeIds.length, coords, ways, areas };
   }
 }
 
-/** Reads a streets file's text, refusing one whose arrays do not agree. */
+/** Reads a streets file's text (version 1 or 2), refusing one whose arrays do not agree; always returns version 2. */
 export function parseStreetsFile(text: string): StreetsFile {
   const parsed: unknown = JSON.parse(text);
-  if (!isRecord(parsed) || parsed.version !== 1) throw new Error('Not a version 1 streets file');
+  if (!isRecord(parsed) || (parsed.version !== 1 && parsed.version !== 2)) {
+    throw new Error('Not a version 1 or 2 streets file');
+  }
   const { nodeCount, coords, ways } = parsed;
   if (typeof nodeCount !== 'number' || !Number.isInteger(nodeCount) || nodeCount < 0) {
     throw new Error('Streets file has a bad nodeCount');
@@ -210,5 +271,22 @@ export function parseStreetsFile(text: string): StreetsFile {
     }
     checked.push(way);
   }
-  return { version: 1, nodeCount, coords, ways: checked };
+  const areas: number[] = [];
+  if (parsed.version === 2) {
+    if (!Array.isArray(parsed.areas) || !parsed.areas.every(isNumber)) throw new Error('Streets file has bad areas');
+    for (const index of parsed.areas) {
+      if (!Number.isInteger(index) || index < 0 || index >= checked.length) {
+        throw new Error(`Streets file has an area index ${index} outside 0..${checked.length - 1}`);
+      }
+      if (areas.length > 0 && index <= areas[areas.length - 1]) {
+        throw new Error(`Streets file areas must be strictly ascending, but ${index} follows ${areas[areas.length - 1]}`);
+      }
+      const way = checked[index];
+      if (way.length < 4 || way[0] !== way[way.length - 1]) {
+        throw new Error(`Streets file area ${index} is not closed`);
+      }
+      areas.push(index);
+    }
+  }
+  return { version: 2, nodeCount, coords, ways: checked, areas };
 }

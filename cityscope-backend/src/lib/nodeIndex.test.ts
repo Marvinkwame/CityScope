@@ -6,7 +6,7 @@ import { NodeIndex } from './nodeIndex';
 const M_PER_DEG = 111_195;
 
 function graphOf(points: [number, number][], ways: number[][]) {
-  const f: StreetsFile = { version: 1, nodeCount: points.length, coords: points.flat(), ways };
+  const f: StreetsFile = { version: 2, areas: [], nodeCount: points.length, coords: points.flat(), ways };
   return buildStreetGraph(f);
 }
 
